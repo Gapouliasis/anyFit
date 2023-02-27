@@ -1,0 +1,302 @@
+---
+title: "Introducing AnyFit R Package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that make their study a cumbersome task. For example:
+
+
+
+* Seasonality 
+* Over-annual trends - long-term persistence
+* Intermittency 
+* Highly skewed distributions 
+* Different forms of autocorrelation 
+
+Importantly, many of these physical characteristics act on different scales, ranging from very fine (e.g. hourly) to very large (e.g. annual or decadal). Additionally, advances in different technology sectors, with a prominent position of the remote sensing industry, have made publicly accessible, large databases of ground (e.g. NASA MODIS, KNMI) and remote observations,  hindcast and reanalysis models. All of the above imply that tools developed for timeseries analysis, or more commonly known exploratory data analysis (EDA) should:
+
+* Be data agnostic
+* Be able to handle multiple temporal scales
+* Be easily extensible 
+* Be able to handle large sets of data from multiple stations/locations efficiently 
+
+AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. Moreover, all visualization functions are implemented in ggplot2 package. AnyFit is developed with practitioners and researchers in mind. In this manner it streamlines the EDA with the stochastic modelling of hydrocliamtic variables using the anySim package, thus setting the foundations for a timeseries analysis and modeling ecosystem.   
+
+In the present document we are going to present the package capabilities through an application of 102 recorded, 105 years duration, daily precipitation timeseries from KNMI which are publicly accessible. We are going to conclude with two practical examples of stochastic modeling, one univariate and one cyclostationary univariate, using the anySim package.   
+
+
+```{r setup}
+library(anyFit)
+```
+
+The analysis begins with loading the historical data. This is done by delim2xts function. It receives data in a delimited file which a column contains the dates and each other column presents a timeseries entry, e.g. a different station or a process. Data have to be in a strict time step and this has to be provided as an arguments. The date format of the date column has to be known, as well as the file delimiter. Additionally, it can receive arguments for skipping file lines, excluding leap years and others. Missing data are formally treated by introducing NANs.
+```{r}
+file <- "KNMI_Daily.csv"
+file_path <- file.path(cwd,file)
+date_format <- "%d/%m/%Y"
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path, date_format = date_format, 
+                  time_zone = "UTC", delim = " ", time_step = time_step)
+
+```
+
+Having loaded the data we should interrogate them for missing values. This can be done for different time scales of interest. In this example we choose to examine the first 4 stations in monthly and annual scales. 
+```{r}
+missing <- check_missing(data[,seq(1,4)], c("months","years"))
+missing$list_years$figure
+```
+
+It appears that we have a complete data set. We can know plot some basic features for station 4.
+```{r}
+bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
+                      show_label = FALSE, ignore_zeros = TRUE)
+bstats$plot
+```
+
+Additonaly, basic_stats will return a table with the basic statistics and the quantiles.
+
+```{r}
+bstats$stats_table
+bstats$quantiles_table
+```
+The above statistics concerns the original scale of the data, i.e. daily. However, hydroclimatic processes act on different temporal scales. Therefore, it is useful to aggregate the data to several different temporal scales and examine their statistical properties. We will begin by aggregating and plotting in monthly, quarterly and annual scales. 
+```{r}
+agg_ts <- aggregate_xts(data[,4], c("months","quarters","years"), FUN = 'sum')
+smonthly_ts <- agg_ts$list_months$aggregated
+agg_ts$Combined_Plot
+```
+
+This plot demonstrated the precipitation variability at different time scales. It should be noted that an arbitrary season can be defined instead of a predefined scale, for example a wet and a dry season in a region near the equator. It is usual practice to examine timeseries on a monthly basis since it an intuitive scale and in this way it is possible to capture cyclostationary behavior. Using monthly stats we can extract monthly statistics in the original and the aggregated temporal scales for each month. 
+
+```{r,message=FALSE}
+defaultW <- getOption("warn") 
+options(warn = -1)
+monthly_sts <- monthly_stats(data[,4],base_scale = TRUE, FUN = "sum")
+monthly_sts$fbase
+```
+
+```{r}
+monthly_sts$faggre
+```
+Additionaly, we can plot tables with statistics in similar fashion as basic_stats.
+
+```{r}
+monthly_sts$base_list$July$raw_stats
+```
+
+Data visualization is widely recognized for playing an essential role in both data comprehension and result communication. For this reason we are providing wrappers for three commonly used type of plots, boxplots, violin plots and ridge plots. The first two group variables by month. This way they provide a good understanding of inter-annual variability. 
+
+```{r}
+boxes <- monthly_boxplots(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+boxes
+```
+
+```{r}
+violins <- monthly_violins(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+violins
+```
+Ridge plots are implemented for both different timeseries and monthly scale within a single timeseries. 
+```{r}
+ridges <- ridge_plots(data[,seq(1,10)], ignore_zeros = TRUE)
+ridges$plot_all
+```
+
+
+```{r}
+ridges$plot_monthly$Y.Xtemp.2
+```
+
+Naturally, at this point, dependencies between different stations or processes might be of interest. Moving further from the traditional correlation coefficient, which as a measure can be rather reductive, we plot the joint distribution of two timeseries in three forms, the original space (i.e. a simple scatter plot), the uniform space (i.e. a copula) and the standard normal space. The copula plot depicts the full dependence structure between the two timeseries without the influence of marginal distributions. It is particularly useful to examine asymmetries and tail dependencies. Similarly, a standard normal plot can be used to examine tail dependencies in the form of semi-correlations. For completion, correlation measures are added. \rho denotes the Pearson correlation and r denotes the Spearman correlation. 
+
+```{r}
+correls <- correl_plots(data[,1],data[,4], check_common = TRUE, ignore_zeros = TRUE)
+correls$combined
+```
+
+Another important component of timeseries is the autocorrelation function. Strong autocorrelations with heavy tails will result in the clustering of values, e.g. series of high or low values. On the contrary weak autocorrelations imply a bahviour simillar to random noise. Currently, AniFit contains three theoretical autocorrelation functions, namely, Cauchy, Hurst-Kolmogorov (HK) and the short range or exponential. These functions can be fitted to the available data.  
+```{r}
+acfs <- fit_ACF(data[,4], lag = 10, ignore_zeros = TRUE )
+acfs$ACF_plot
+```
+Additionally, in a similar manner to monthly_stats, fit_ACF_monthly function fits the theoretical ACFs on a monthly level. 
+
+```{r, fig.width=10,fig.height=11}
+monthly_acfs <- fit_ACF_monthly(data[,4], lag = 10)
+monthly_acfs$ACF_monthly_plot
+```
+
+Last but not least, AnyFit package incorporates L-Moment estimators for the following functions:
+
+* Exponential
+* Rayleigh
+* Gamma
+* Normal
+* Log-Normal
+* Generalized Logistic (in progress)
+* 3-parameter Weibull 
+* Gumbel
+* 3-parameter Gamma (PearsonIII)
+* Generalized Extreme Value Distribution (GEV) (in progress)
+* Generalized Pareto Distribution (GPD) (in progress)
+* Generalized Gamma 
+* Generalized Gamma with location (in progress)
+* BurXII (in progress)
+* Dagum (in progress)
+* Exponentiated Weibull
+
+The definition of the relevant function for the above distributions follows the typical definition of R language, e.g. qgamma for the quantile function of Gamma, pexp for the CDF of Exponential and rdagum for the random number generator of Dagum. The fitting function for each of the above are defined with the prefix "fitlm_". For example we try to fit the Exponentiated Weibull to station 4 data and get the distribution parameters and some goodness of fit measures. 
+
+```{r}
+params <- fitlm_expweibull(data[,4], ignore_zeros = TRUE)
+params$Param
+params$GoF
+```
+However, one cannot rely solely on goodness of fit measures to decide the appropriate distribution for a given dataset. Visual interpretation is required. Function fit_diagnostic implements three common diagnostic plots, namely probability plot, QQ plot and PP plot. QQ and PP plots compare the theoretical and empirical quantiles and probabilities respectively. A perfect fit should fall on the 1/1 line. In a probability plot, the y axis which contains the probabilities is scaled according to the theoretical distribution. In this way a perfect fit should present as a straight line in the scaled axis. 
+
+```{r}
+fit_check <- fit_diagnostics(data[,4], dist = 'expweibull',
+                             params = params$Param, ignore_zeros = TRUE)
+fit_check$Diagnostic_Plots
+```
+From the figure above, we can conclude that the Exponentiated weibull provides a good fit for our data. However, picking the correct distribution from the beginning is not always feasible. Function fitlm_multi fits a list of distributions to a given timeseries and returns the GoF measures and the QQ and PP plots. Probability plots in this case are not used, since the axis scaling depends upon the theoretical distribution which is not unique. 
+
+```{r}
+candidates <- list('exp','expweibull', 'gamma3')
+fits <- fitlm_multi(data['2010',4],candidates = candidates, ignore_zeros = TRUE)
+fits$diagnostics
+```
+A table with the GoF measures is also provided.
+
+```{r}
+fits$GoF_summary
+```
+
+We know have all of the information needed to construct a synthetic timeseries based in the measured data. We are going to employ AutoRegressive To Anything (ARTA) model from the anySim package to simulate 100 years of daily precipitation. 
+
+```{r}
+set.seed(12)
+# Define the target autocorrelation structure.
+ACS=csCAS(param=c(acfs$ACF_params$Cauchy$beta,acfs$ACF_params$Cauchy$kappa),lag=1000) # CAS with b=3 and k=0.6
+# Define the target distribution function (ICDF).
+FX='qexpweibull' # Gamma distribution
+# Define the parameters of the target distribution.
+pFX <- params$Param
+# Estimate the parameters of the auxiliary Gaussian AR(p) model.
+ARTApar=EstARTAp(ACF=ACS,dist=FX,params=pFX,NatafIntMethod='GH')
+# Generate a synthetic series of 10000 length.
+SynthARTAcont=SimARTAp(ARTApar=ARTApar,steps=36494)
+```
+
+We can easily "package" the synthetic timeseries in a xts format and use the existing tools to visualise and examine the model performance. 
+
+```{r}
+simVector <- unlist(SynthARTAcont$X)
+starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
+endtime=as.POSIXct('01/12/2120',format=date_format, tz = time_zone)
+dates <- seq(from = starttime, to = endtime, by = '1 day')
+simARTA_Xts <- xts(x = simVector, order.by = dates)
+
+uni_check <- basic_stats(simARTA_Xts, pstart = '2030', pend = '2035',show_table = FALSE,
+                         show_label = FALSE, ignore_zeros = TRUE )
+uni_check$plot
+```
+
+
+```{r}
+univ_fcheck <- fit_diagnostics(simARTA_Xts, dist = 'expweibull', params = params$Param, ignore_zeros = TRUE)
+univ_fcheck$Diagnostic_Plots
+```
+
+Additionally, there are cases when a bulk investigation of multiple timeseries is required. In such cases examining the diagnostics from 10s or 100s of stations may not be feasible. On way to approach this is to plot the L-CV space of several distributions and compare it with the observed ones. This will narrow down the candidate distributions to fit. Currently, this test is only implemented for the Dagum, Generalized Gamma, Exponentiated Weibull and BurXII distributions. Additionally, the percentage of points inside the domain of each distribution is plotted. 
+
+```{r}
+ts_lmoms <- lmom_stats(data, ignore_zeros = TRUE)
+
+lcheck <- LRatio_check(ts_lmoms)
+lcheck$multi_plots
+```
+
+We can now fit the candidate distributions to all of the timeseries using the function fitlm_nxts. Diagnostic plots are outputted in panels of nrow*ncol plots for ease of use. Remarkably, it only takes about 4-5 minutes to fit 3 candidate distributions to 102 stations. 
+
+```{r, fig.width=10,fig.height=11}
+start.time <- Sys.time()
+fits_all <- fitlm_nxts(data, candidates, nrow = 5, ncol = 4, ignore_zeros = TRUE)
+end.time <- Sys.time()
+elapsed.time <- round((end.time - start.time), 3)
+print(elapsed.time)
+fits_all$QQ_panels[[1]]
+```
+
+
+Final step on our presentation and analysis is the reproduction of a cyclostationary process. Using function fitlm_monthly we can fit distributions on the monthly precipitations, which where aggregated at the initial steps using function aggregate_xts. We can plot the diagnostics (QQ and PP plots) as well as a summary table with the goodness of fit measures. 
+
+```{r, fig.width=10,fig.height=11}
+candidates <- list('exp','weibull', 'gamma3')
+monthly_fits <- fitlm_monthly(smonthly_ts,candidates = candidates, ignore_zeros = TRUE)
+monthly_fits$monthly_QQplot
+```
+
+
+```{r}
+monthly_fits$GoF_monthly$January
+```
+
+Using the above and the month to month correlations from monthly_stats earlier we can now simulate a cyclostationary monthly precipitation process. 
+
+```{r}
+set.seed(21)
+# Define the number of seasons.
+NumOfSeasons=12 # number of months
+# Define the (12) lag-1 season-to-season correlation coefficients
+rtarget<-monthly_sts$lag1$Value + 0.03
+# Define that distributions are of zero-inflated type.
+FXs<-rep('qzi',NumOfSeasons)
+# Define the parameters of the distribution function for each season.
+PFXs<-vector("list",NumOfSeasons)
+for (i in 1:NumOfSeasons){
+  PFXs[[i]] <- c(list(p0=eval(parse(text = paste0('monthly_sts$agg_list$',month.name[i],'$agg_stats[13,]'))),
+                    Distr = match.fun(eval(parse(text = paste0('monthly_fits$params_monthly$',month.name[i],'$gamma3$Distribution$FXs'))))),
+                   eval(parse(text = paste0('monthly_fits$params_monthly$',month.name[i],'$gamma3$Param'))))
+}
+
+# Estimate the parameters of SPARTA model.
+SPARTApar<-EstSPARTA(s2srtarget=rtarget, dist=FXs, params=PFXs,
+                     NatafIntMethod='GH', NoEval=9, polydeg=8, nodes=11)
+# Generate a cyclostationary synthetic series of 10000 length.
+simSPARTA<-SimSPARTA(SPARTApar=SPARTApar, steps=1000)
+```
+
+As before, monthly_fdiagnostics can be used to interogate the synthetic data. 
+
+```{r, fig.width=10,fig.height=11}
+simVector <- list()
+for (i in 1:1000){
+  simVector[[i]] <- simSPARTA$X[i,] 
+}
+
+simVector <- unlist(simVector)
+starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
+endtime=as.POSIXct('01/12/3020',format=date_format, tz = time_zone)
+dates <- seq(from = starttime, to = endtime, by = '1 month')
+simXts <- xts(x = simVector, order.by = dates)
+
+
+monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly, ignore_zeros = TRUE)
+monthly_fcheck$monthly_QQplot
+```
+
+
