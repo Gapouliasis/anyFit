@@ -73,7 +73,10 @@ correl_plots <- function(x,y, check_common = TRUE,ignore_zeros = FALSE,
   colnames(data) <- c("X","Y")
   rho_pearson <- round(stats::cor(data$X, data$Y, method = "pearson", use = "complete.obs"), digits = 2)
 
-  pso_data <- as.data.frame(copula::pobs(data))
+  #pso_data <- as.data.frame(copula::pobs(data))
+  pso_data <- data.frame(X = rank(data[,1], ties.method = "random")/(nrow(data) + 1),
+                         Y = rank(data[,2], ties.method = "random")/(nrow(data) + 1))
+
   rho <- round(stats::cor(pso_data$X, pso_data$Y, method = "spearman", use = "complete.obs"), digits = 2)
 
   x_norm <- qnorm(pso_data$X)

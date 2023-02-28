@@ -12,6 +12,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports: 
 	xts,
+	zoo,
 	readr,
 	lubridate,
 	ggplot2,
@@ -21,7 +22,15 @@ Imports:
 	PearsonDS,
 	FAdist,
 	VGAM,
-	ExtDist
+	ExtDist,
+	stats,
+	ggpubr,
+	moments,
+	CDFt,
+	sp,
+	reshape2,
+	ggridges,
+	viridis
 Depends: 
     R (>= 2.10)
-LazyData: false
+LazyData: true

@@ -40,6 +40,9 @@
 #'
 #' @return A list which contains the combined timeseries, PDF, ECDF and autocorrelation plot and the statistics table.
 #'
+#' @import zoo
+#' @import ggplot2
+#'
 #' @examples
 #'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 #'time_zone <- "UTC"
@@ -130,7 +133,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 
   ts_clean <- ts[!is.na(ts),]
   if (ignore_zeros == TRUE){ts_clean <- ts_clean[which(ts_clean > zero_threshold),]}
-  acf_dirty <- acf(ts_clean, lag.max = 10, plot = FALSE)
+  acf_dirty <- stats::acf(ts_clean, lag.max = 10, plot = FALSE)
   acf2df <- data.frame(ACF=acf_dirty$acf, Lag = seq(from = 0, to = 10))
 
   plot_acf <- ggplot(acf2df, aes(x = Lag, y = ACF)) + geom_point() + geom_line() + ggtitle('ACF') #+ ylab(expression(rho_{t,t-1}))
@@ -164,11 +167,11 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   Pdr <- round(mean(ts<=zero_threshold,na.rm=T),2)
 
   # Quantiles of all values
-  Q5<-round(quantile(ts,probs=c(0.05),na.rm=TRUE,names=FALSE),2)
-  Q25<-round(quantile(ts,probs=c(0.25),na.rm=TRUE,names=FALSE),2)
-  Q50<-round(quantile(ts,probs=c(0.50),na.rm=TRUE,names=FALSE),2)
-  Q75<-round(quantile(ts,probs=c(0.75),na.rm=TRUE,names=FALSE),2)
-  Q95<-round(quantile(ts,probs=c(0.95),na.rm=TRUE,names=FALSE),2)
+  Q5<-round(stats::quantile(ts,probs=c(0.05),na.rm=TRUE,names=FALSE),2)
+  Q25<-round(stats::quantile(ts,probs=c(0.25),na.rm=TRUE,names=FALSE),2)
+  Q50<-round(stats::quantile(ts,probs=c(0.50),na.rm=TRUE,names=FALSE),2)
+  Q75<-round(stats::quantile(ts,probs=c(0.75),na.rm=TRUE,names=FALSE),2)
+  Q95<-round(stats::quantile(ts,probs=c(0.95),na.rm=TRUE,names=FALSE),2)
   IQR<-abs(Q75-Q25)
 
   # Conditional Statistics and probabilities
@@ -231,11 +234,11 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
     Lkurtosis<-round(lmom_ratios[4],2)
 
     # Quantiles of non-zero values
-    Q5NonZero<-round(quantile(ts[ts>zero_threshold],probs=c(0.05),na.rm=TRUE,names=FALSE),5)
-    Q25NonZero<-round(quantile(ts[ts>zero_threshold],probs=c(0.25),na.rm=TRUE,names=FALSE),5)
-    Q50NonZero<-round(quantile(ts[ts>zero_threshold],probs=c(0.50),na.rm=TRUE,names=FALSE),5)
-    Q75NonZero<-round(quantile(ts[ts>zero_threshold],probs=c(0.75),na.rm=TRUE,names=FALSE),5)
-    Q95NonZero<-round(quantile(ts[ts>zero_threshold],probs=c(0.95),na.rm=TRUE,names=FALSE),5)
+    Q5NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.05),na.rm=TRUE,names=FALSE),5)
+    Q25NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.25),na.rm=TRUE,names=FALSE),5)
+    Q50NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.50),na.rm=TRUE,names=FALSE),5)
+    Q75NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.75),na.rm=TRUE,names=FALSE),5)
+    Q95NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.95),na.rm=TRUE,names=FALSE),5)
     IQRNonZero<-abs(Q75NonZero-Q25NonZero)
 
     stats_table <- data.frame(Value=c(NumofData,NumofMisData,PercOfMissingData,MinNonZero,MaxNonZero,MeanNonZero,

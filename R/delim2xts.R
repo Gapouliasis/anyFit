@@ -24,6 +24,9 @@
 #'data <- delim2xts(file_path = file_path,
 #'                  time_zone = "UTC", delim = " ", time_step = time_step)
 #'
+#' @import xts
+#' @import lubridate
+#'
 #' @export
 
 #Function that reads data with dates from a delimited file and produces an xts object. With arguments for leap years

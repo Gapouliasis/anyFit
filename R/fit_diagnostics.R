@@ -23,6 +23,8 @@
 #'
 #'fcheck <- fit_diagnostics(data[,4], distr = 'gamma3', params = fit$parameter_list[[1]], ignore_zeros = TRUE)
 #'
+#' @import scales
+#'
 #' @export
 #'
 #'
