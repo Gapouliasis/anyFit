@@ -26,7 +26,7 @@
 
 ridge_plots <- function(ts,palette='Set3', ignore_zeros = FALSE,
                         zero_threshold = 0.01){
-  ts = coredata(data.frame(Y=as.matrix(data), date=time(data)))
+  ts = coredata(data.frame(Y=as.matrix(ts), date=time(ts)))
   ts = reshape2::melt(ts, id.vars= 'date')
   if (ignore_zeros == TRUE){
     ts <- ts[ts$value > zero_threshold,]

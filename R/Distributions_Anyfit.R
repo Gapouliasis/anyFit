@@ -1,22 +1,14 @@
-#' @title anyFit_distributions
-#'
-#' @description anyFit distributions and distribution fitting functions
-#'
-
-
-
-#Anyfit supported distributions
-# library("lmom")
-# library("lmomco")
-#
-# library("fitdistrplus")
-# library("PearsonDS")
-# library("FAdist")
-# library("EnvStats")
-# library("VGAM")
-# library("ExtDist")
-
 # Exponential -------------------------------------------------------------
+
+#' @name Exponential
+#' @title Exponential Distribution
+#'
+#' @description Exponential distribution
+#'
+#' @import lmom
+#'
+#' @export
+#'
 
 # x<-rexp(1000,location=0,scale=3) # my function
 
@@ -25,21 +17,37 @@ dexp=function(x,location,scale) {
   return(fx)
 }
 
+#' @rdname Exponential
+#' @export
 pexp=function(q,location,scale) {
   FX=lmom::cdfexp(x=q,para=c(location,scale))
   return(FX)
 }
-
+#' @rdname Exponential
+#' @export
 qexp=function(p,location,scale) {
   x=lmom::quaexp(f=p,para=c(location,scale))
   return(x)
 }
-
+#' @rdname Exponential
+#' @export
 rexp=function(n,location,scale) {
   x=lmom::quaexp(f=runif(n),para=c(location,scale))
   return(x)
 }
 
+
+#' @title fitlm_exp
+#'
+#' @description Function for fitting the Exponential distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param bound Is the distribution bound? Default is NULL.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -65,7 +73,7 @@ fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
     par<-c(fit$location,fit$scale)
 
   }
-  u_emp <- ppoints(x)
+  u_emp <- stats::ppoints(x)
   q_emp <- x
   qq_fitted <- qexp(u_emp, location = fit$location, scale = fit$scale)
 
@@ -73,7 +81,7 @@ fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
   KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
 
   MLE<--sum(log(dexp(x,location=fit$location,scale=fit$scale)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qexp(p=plotpos,location=fit$location,scale=fit$scale)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -98,26 +106,48 @@ fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 
 # Rayleigh ----------------------------------------------------------
-
+#' @name Rayleigh
+#' @title Rayleigh Distribution
+#'
+#' @description Rayleigh distribution
+#'
+#' @export
+#'
 drayleigh = function(x, location, scale) {
   fx <- VGAM::drayleigh(x - location, scale, log = FALSE)
   return(fx)
 }
 
+#' @rdname Rayleigh
+#' @export
 prayleigh = function(x, location, scale) {
   fx <- VGAM::prayleigh(x - location, scale, lower.tail = TRUE, log.p = FALSE)
   return(fx)
 }
-
+#' @rdname Rayleigh
+#' @export
 qrayleigh = function(p, location, scale) {
   fx <- VGAM::qrayleigh(p, scale, lower.tail = TRUE, log.p = FALSE) + location
   return(fx)
 }
-
+#' @rdname Rayleigh
+#' @export
 rrayleigh = function(n, location, scale) {
   fx <- VGAM::rrayleigh(n, scale) + location
   return(fx)
 }
+
+
+#' @title fitlm_rayleigh
+#'
+#' @description Function for fitting the Rayleigh distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -131,14 +161,14 @@ fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   scale <- 1/sqrt(2*ratio)
   par <- c(location,scale)
 
-  u_emp <- ppoints(x)
+  u_emp <- stats::ppoints(x)
   q_emp <- x
   qq_fitted <- qrayleigh(u_emp, location = fit$location, scale = fit$scale)
 
   CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
   KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
   MLE<--sum(log(dexp(x,location=location,scale=scale)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qrayleigh(p=plotpos,location=location,scale=scale)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -166,25 +196,50 @@ fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 # x<-stats::rgamma(10000,scale=3,shape=0.5)
 
+#' @name Gamma
+#' @title Gamma Distribution
+#'
+#' @description Gamma distribution
+#'
+#' @export
+#'
+
 dgamma=function(x,scale,shape) {
   fx=stats::dgamma(x=x,shape=shape,scale=scale)
   return(fx)
 }
 
+#' @rdname Gamma
+#' @export
 pgamma=function(q,scale,shape) {
   FX=stats::pgamma(q=q,shape=shape,scale=scale)
   return(FX)
 }
 
+#' @rdname Gamma
+#' @export
 qgamma=function(p,scale,shape) {
   x=stats::qgamma(p=p,shape=shape,scale=scale)
   return(x)
 }
 
+#' @rdname Gamma
+#' @export
 rgamma=function(n,scale,shape) {
   x=stats::rgamma(n=n,shape=shape,scale=scale)
   return(x)
 }
+
+#' @title fitlm_gamma
+#'
+#' @description Function for fitting the Gamma distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -201,7 +256,7 @@ fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 
   MLE<--sum(log(dgamma(x,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgamma(p=plotpos,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -226,26 +281,51 @@ fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 # Gamma3 -------------------------------------------------------------
 
 # x<-rgamma3(10000,location=5,scale=0.5,shape=3)
+#' @name Gamma3
+#' @title 3-parameter Gamma Distribution
+#'
+#' @description 3-parameter Gamma distribution
+#'
+#' @export
+#'
 
 dgamma3=function(x,location,scale,shape) {
   fx=PearsonDS::dpearsonIII(x=x,shape=shape,location=location,scale=1/scale)
   return(fx)
 }
 
+#' @rdname Gamma3
+#' @export
 pgamma3=function(q,location,scale,shape) {
   FX=PearsonDS::ppearsonIII(q=q,shape=shape,location=location,scale=1/scale)
   return(FX)
 }
 
+#' @rdname Gamma3
+#' @export
 qgamma3=function(p,location,scale,shape) {
   x=PearsonDS::qpearsonIII(p=p,shape=shape,location=location,scale=1/scale)
   return(x)
 }
 
+#' @rdname Gamma3
+#' @export
 rgamma3=function(n,location,scale,shape) {
   x=PearsonDS::rpearsonIII(n=n,shape=shape,location=location,scale=1/scale)
   return(x)
 }
+
+#' @title fitlm_gamma3
+#'
+#' @description Function for fitting the 3-parameter Gamma distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
+
 
 fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -264,7 +344,7 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 
   MLE<--sum(log(dgamma3(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgamma3(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -278,7 +358,7 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   Res<-list()
   Res$Distribution<-list(FXs="qgamma3")
   Res$Param<-fit
-  Res$TheorLMom<-lmrpe3(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrpe3(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 
@@ -290,6 +370,18 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 # Generalised Logistic -------------------------------------------------------------
 
 # x<-quaglo(runif(10000), c(0,1,-0.5))
+
+#' @title fitlm_genlogi
+#'
+#' @description Function for fitting the Generalized Logistic distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
+
 
 fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -323,25 +415,50 @@ fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 # x<-rnorm(10000, mean=0,sd=3)
 # identical runs
 
+#' @name Normal
+#' @title Normal Distribution
+#'
+#' @description Normal distribution
+#'
+#' @export
+#'
+
 dnorm=function(x,mean=0,sd=1) {
   fx=stats::dnorm(x=x,sd=sd,mean=mean)
   return(fx)
 }
 
+#' @rdname Normal
+#' @export
 pnorm=function(q,mean=0,sd=1) {
   FX=stats::pnorm(q=q,sd=sd,mean=mean)
   return(FX)
 }
 
+#' @rdname Normal
+#' @export
 qnorm=function(p,mean=0,sd=1) {
   x=stats::qnorm(p=p,sd=sd,mean=mean)
   return(x)
 }
 
+#' @rdname Normal
+#' @export
 rnorm=function(n,mean=0,sd=1) {
   x=stats::rnorm(n=n,sd=sd,mean=mean)
   return(x)
 }
+
+#' @title fitlm_norm
+#'
+#' @description Function for fitting the Normal distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 
 fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
@@ -358,7 +475,7 @@ fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$sd = par[2]
 
   MLE<--sum(log(dnorm(x,mean=fit$mean,sd=fit$sd)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qnorm(p=plotpos,mean=fit$mean,sd=fit$sd)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -387,25 +504,51 @@ fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 # x<-rweibull(10,scale = 5,shape = 1.5)
 # identical runs
 
+#' @name Weibull3
+#' @title 3-parameter Weibull Distribution
+#'
+#' @description 3-parameter Weibull distribution
+#'
+#' @export
+#'
+
 dweibull=function(x,location,scale,shape) {
   fx=FAdist::dweibull3(x=x,shape=shape,scale=scale,thres=location)
   return(fx)
 }
 
+#' @rdname Weibull3
+#' @export
 pweibull=function(q,location,scale,shape) {
   FX=FAdist::pweibull3(q=q,shape=shape,scale=scale,thres=location)
   return(FX)
 }
 
+#' @rdname Weibull3
+#' @export
 qweibull=function(p,location,scale,shape) {
   x=FAdist::qweibull3(p=p,shape=shape,scale=scale,thres=location)
   return(x)
 }
 
+#' @rdname Weibull3
+#' @export
 rweibull=function(n,location,scale,shape) {
   x=FAdist::rweibull3(n=n,shape=shape,scale=scale,thres=location)
   return(x)
 }
+
+#' @title fitlm_weibull
+#'
+#' @description Function for fitting the 3-parameter Weibull distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param bound Is the distribution bound? Default is NULL.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -425,7 +568,7 @@ fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   # print(paste("Weibull distribution bounded at",fit$location,sep=" "))
 
   MLE<--sum(log(dweibull(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qweibull(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -454,26 +597,50 @@ fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 # x<- rgumbel(10000, location=1,scale=3) # FAdist
 # identical runs
 
+#' @name Gumbel
+#' @title Gumbel Distribution
+#'
+#' @description Gumbel distribution
+#'
+#' @export
+#'
+
 dgumbel=function(x,location,scale) {
   fx=FAdist::dgumbel(x=x,scale=scale,location=location)
   return(fx)
 }
 
+#' @rdname Gumbel
+#' @export
 pgumbel=function(q,location,scale) {
   FX=FAdist::pgumbel(q=q,scale=scale,location=location)
   return(FX)
 }
 
+#' @rdname Gumbel
+#' @export
 qgumbel=function(p,location,scale) {
   x=FAdist::qgumbel(p=p,scale=scale,location=location)
   return(x)
 }
 
+#' @rdname Gumbel
+#' @export
 rgumbel=function(n,location,scale) {
   x=FAdist::rgumbel(n=n,scale=scale,location=location)
   return(x)
 }
 
+#' @title fitlm_gumbel
+#'
+#' @description Function for fitting the Gumbel distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
@@ -491,7 +658,7 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 
   MLE<--sum(log(dgumbel(x,location=fit$location,scale=fit$scale)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgumbel(p=plotpos,location=fit$location,scale=fit$scale)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -520,25 +687,51 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 # elmlnorm3(x,bound=0,plot=0)
 
+#' @name Log-Normal
+#' @title Log-Normal Distribution
+#'
+#' @description Log-Normal distribution
+#'
+#' @export
+#'
+
 dlognorm=function(x,location=0,scale,shape) {
   fx=FAdist::dlnorm3(x=x,shape=shape,scale=scale,thres=location)
   return(fx)
 }
 
+#' @rdname Log-Normal
+#' @export
 plognorm=function(q,location=0,scale,shape) {
   FX=FAdist::plnorm3(q=q,shape=shape,scale=scale,thres=location)
   return(FX)
 }
 
+#' @rdname Log-Normal
+#' @export
 qlognorm=function(p,location=0,scale,shape) {
   x=FAdist::qlnorm3(p=p,shape=shape,scale=scale,thres=location)
   return(x)
 }
 
+#' @rdname Log-Normal
+#' @export
 rlognorm=function(n,location=0,scale,shape) {
   x=FAdist::rlnorm3(n=n,shape=shape,scale=scale,thres=location)
   return(x)
 }
+
+#' @title fitlm_lognorm
+#'
+#' @description Function for fitting the 3-parameter Log-Normal distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param bound Is the distribution bound? Default is NULL.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
@@ -559,7 +752,7 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   # print(paste("Lognormal distribution bounded at",fit$location,sep=" "))
 
   MLE<--sum(log(dlnorm(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qlnorm(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -587,25 +780,50 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 # x<-quagev(runif(100000), c(0,1,-0.5)) #lmom
 # x<-rgev(...) # FAdist
 
+#' @name GEV
+#' @title Generalized Extreme Value Distribution
+#'
+#' @description Generalized Extreme Value distribution
+#'
+#' @export
+#'
+
 dgev=function(x,location,scale,shape) {
   fx=FAdist::dgev(x=x,shape=shape,scale=scale,location=location)
   return(fx)
 }
 
+#' @rdname GEV
+#' @export
 pgev=function(q,location,scale,shape) {
   FX=FAdist::pgev(q=q,shape=shape,scale=scale,location=location)
   return(FX)
 }
 
+#' @rdname GEV
+#' @export
 qgev=function(p,location,scale,shape) {
   x=FAdist::qgev(p=p,shape=shape,scale=scale,location=location)
   return(x)
 }
 
+#' @rdname GEV
+#' @export
 rgev=function(n,location,scale,shape) {
   x=FAdist::rgev(n=n,shape=shape,scale=scale,location=location)
   return(x)
 }
+
+#' @title fitlm_gev
+#'
+#' @description Function for fitting the Generalized Extreme Value distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 
 fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
@@ -623,7 +841,7 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$shape = par[3]
 
   MLE<--sum(log(dgev(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgev(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -650,6 +868,16 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 # lower bound at location parameter (false in lmom tutorial)
 
+#' @title fitlm_GPD
+#'
+#' @description Function for fitting the Generalized Pareto Distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param bound Is the distribution bound? Default is NULL.
+#'
+#' @export
+#'
+
 fitlm_GPD=function(x,bound=NULL) {
   x <- na.omit(coredata(x))
   if (ignore_zeros == TRUE){
@@ -669,7 +897,7 @@ fitlm_GPD=function(x,bound=NULL) {
   print("Shape parameter must be >-1/4 for finite kurtosis")
 
   MLE<--sum(log(dgpd(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgpd(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -692,29 +920,54 @@ fitlm_GPD=function(x,bound=NULL) {
 
 # Generalised Gamma -------------------------------------------------------------
 
+#' @name GenGamma
+#' @title Generalized Gamma Distribution
+#'
+#' @description Generalized Gamma distribution
+#'
+#' @export
+#'
+
 dgengamma=function(x,scale, shape1, shape2){
   require(VGAM)
   fx = dgengamma.stacy(x = x,scale = scale, k = (shape1/shape2), d = shape2)
   return(fx)
 }
 
+#' @rdname GenGamma
+#' @export
 pgengamma=function(q,scale, shape1, shape2){
   require(VGAM)
   FX = pgengamma.stacy(q = q ,scale = scale, k = (shape1/shape2), d = shape2)
   return(FX)
 }
 
+#' @rdname GenGamma
+#' @export
 qgengamma=function(p,scale, shape1, shape2){
   require(VGAM)
   X = qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
+#' @rdname GenGamma
+#' @export
 rgengamma=function(n,scale, shape1, shape2){
   require(VGAM)
   X = rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
+
+#' @title fitlm_gengamma
+#'
+#' @description Function for fitting the Generalized Gamma distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
   x <- na.omit(coredata(x))
@@ -785,7 +1038,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgengamma(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -811,6 +1064,13 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
 
 
 #Generalized Gamma with location----------------------------------------
+#' @name GenGamma-Location
+#' @title Generalized Gamma with Location Distribution
+#'
+#' @description Generalized Gamma with Location distribution
+#'
+#' @export
+#'
 
 pgengamma_loc=function(q, location, scale, shape1, shape2){
   require(VGAM)
@@ -818,23 +1078,42 @@ pgengamma_loc=function(q, location, scale, shape1, shape2){
   return(FX)
 }
 
+#' @rdname GenGamma-Location
+#' @export
 dgengamma_loc=function(x,location, scale, shape1, shape2){
   require(VGAM)
   fx = dgengamma.stacy(x = x - location,scale = scale, k = (shape1/shape2), d = shape2)
   return(fx)
 }
 
+#' @rdname GenGamma-Location
+#' @export
 qgengamma_loc=function(p, location, scale, shape1, shape2){
   require(VGAM)
   X = location+ qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
+#' @rdname GenGamma-Location
+#' @export
 rgengamma_loc=function(n, location, scale, shape1, shape2){
   require(VGAM)
   X = location + rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
+
+#' @title fitlm_gengamma_loc
+#'
+#' @description Function for fitting the Generalized Gamma with location distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param location The location parameter of the distribution
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
+
 
 fitlm_gengamma_loc=function(x,location,ignore_zeros = FALSE, zero_threshold = 0.01)  {
   x <- na.omit(coredata(x))
@@ -905,7 +1184,7 @@ fitlm_gengamma_loc=function(x,location,ignore_zeros = FALSE, zero_threshold = 0.
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qgengamma(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -959,10 +1238,21 @@ fitlm_gengamma_loc=function(x,location,ignore_zeros = FALSE, zero_threshold = 0.
 # }
 
 #DK definition
+
+#' @name BurXII
+#' @title Burr Type XII Distribution
+#'
+#' @description Burr Type XII distribution
+#'
+#' @export
+#'
+
 dburr=function(q, scale, shape1, shape2, PW=1){
   d=PW*shape1*scale^(-shape1)*q^(shape1-1)*((shape1*shape2*(q/scale)^shape1)+1)^(-1/(shape1*shape2)-1)
 }
 
+#' @rdname BurXII
+#' @export
 pburr=function(q, scale, shape1, shape2, PW=1) {
   # scale: lamda
   # shape1: zeta
@@ -971,6 +1261,8 @@ pburr=function(q, scale, shape1, shape2, PW=1) {
   return(p)
 }
 
+#' @rdname BurXII
+#' @export
 qburr=function(p, scale, shape1, shape2, PW=1) {
 
   q=rep(NA, length(p))
@@ -986,11 +1278,24 @@ qburr=function(p, scale, shape1, shape2, PW=1) {
   return(q)
 }
 
+#' @rdname BurXII
+#' @export
 rburr=function(n, scale, shape1, shape2, PW=1) {
   p=runif(n)
   q=qburrDK2(p = p, scale=scale, shape1=shape1, shape2=shape2, PW=PW)
   return(q)
 }
+
+#' @title fitlm_burr
+#'
+#' @description Function for fitting the Burr Type XII distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
   x <- na.omit(coredata(x))
@@ -1059,7 +1364,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qburr(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -1085,16 +1390,29 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
 
 
 #Dagum--------------------------------------------------------------
+
+#' @name Dagum
+#' @title Dagum Distribution
+#'
+#' @description Dagum distribution
+#'
+#' @export
+#'
+
 pdagum=function(q, scale, shape1, shape2, PW=1) {
   # The moments exist (i.e., have finite values) only for order r < 1/shape2;  for larger r they are infinite.
   p=(1-PW)+PW*(1+(shape2/shape1)*(q/scale)^(-1/shape2))^-shape1
   return(p)
 }
 
+#' @rdname Dagum
+#' @export
 ddagum=function(q, scale, shape1, shape2, PW=1) {
   d=PW*(1/scale)*(q/scale)^(-1-1/shape2)*((1/shape1)*(shape1 + shape2*(q/scale)^(-1/shape2)))^(-1-shape1)
 }
 
+#' @rdname Dagum
+#' @export
 qdagum=function(p, scale, shape1, shape2, PW=1) {
 
   q=rep(NA, length(p))
@@ -1110,9 +1428,23 @@ qdagum=function(p, scale, shape1, shape2, PW=1) {
   return(q)
 }
 
+#' @rdname Dagum
+#' @export
 rdagum=function(n, scale, shape1, shape2, PW=1) {
   qdagum(p = runif(n), scale=scale, shape1 = shape1, shape2 = shape2, PW=PW)
 }
+
+
+#' @title fitlm_dagum
+#'
+#' @description Function for fitting the Dagum distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
   x <- na.omit(coredata(x))
@@ -1180,7 +1512,7 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qdagum(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
@@ -1206,12 +1538,22 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
 
 # Exponentiated Weibull (Generalized Weibull) Distribution-----------------------------
 # Cumulative distribution function
+#' @name ExpWeibull
+#' @title Exponential Weibull Distribution
+#'
+#' @description Exponential Weibull distribution
+#'
+#' @export
+#'
+
 pexpweibull<- function(q,scale,shape1,shape2,log.p=FALSE){
   log.cdf <- shape2*stats::pweibull(q = q, scale=scale,shape=shape1,log.p=TRUE)
   ifelse(log.p, return(log.cdf), return(exp(log.cdf)))
 }
 
 # Probability density function
+#' @rdname ExpWeibull
+#' @export
 dexpweibull<- function(x,scale,shape1,shape2,log=FALSE){
   log.pdf <-  log(shape2) + (shape2-1)*stats::pweibull(q = x,scale=scale,shape=shape1,log=TRUE) +
     stats::dweibull(x = x,scale=scale,shape=shape1,log=TRUE)
@@ -1219,19 +1561,32 @@ dexpweibull<- function(x,scale,shape1,shape2,log=FALSE){
 }
 
 # Quantile function
+#' @rdname ExpWeibull
+#' @export
 qexpweibull<- function(p,scale,shape1,shape2){
   quant <-  stats::qweibull(p = p^(1/shape2),scale=scale,shape=shape1)
   return(quant)
 }
 
 # Random number generation
+#' @rdname ExpWeibull
+#' @export
 rexpweibull<- function(n,scale,shape1,shape2){
   u = runif(n)
   sim <-  stats::qweibull(u^(1/shape2),scale=scale,shape=shape1)
   return(sim)
 }
 
-
+#' @title fitlm_expweibull
+#'
+#' @description Function for fitting the Exponential Weibull distribution using the L-Moments method
+#'
+#' @param x A xts object containing the time series data.
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @export
+#'
 
 fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   # Important: MEANT to be fitted ONLY to NON-NEGATIVE data.
@@ -1264,7 +1619,7 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit=list(scale=as.vector(fit[1]), shape1=as.vector(fit[2]), shape2=as.vector(fit[3]))
 
   MLE<--sum(log(dexpweibull(x=xNZ,scale=fit$scale,shape1=fit$shape1,shape2=fit$shape2)))
-  plotpos<-pp(x=x,a=0,sort=FALSE)
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles<-qexpweibull(p=plotpos,scale=fit$scale,shape1=fit$shape1,shape2=fit$shape2)
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]

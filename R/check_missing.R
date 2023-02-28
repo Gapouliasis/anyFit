@@ -26,6 +26,7 @@
 #'
 #' missing$list_years$figure
 #'
+#' @import ggfortify
 #'
 #' @export
 #'
@@ -70,7 +71,7 @@ check_missing <-function(data, periods, plot = TRUE ,group_months = FALSE){
     #colnames(temp) <- c('Time','Value')
 
 
-    f <- autoplot(period_prct, geom = 'bar') + ggplot2::xlab('Date') +
+    f <- autoplot(period_prct, ts.geom = 'bar') + ggplot2::xlab('Date') +
       ggplot2::ggtitle(paste('Pecentage of missing values per',period_title))
 
     if (period == 'months' & group_months == TRUE){

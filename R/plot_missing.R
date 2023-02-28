@@ -34,7 +34,7 @@ plot_missing <- function(ts){
   ts_df[INA,2] <- data_mean
   f <- ggplot(data = ts_df, aes(x = Index, y = Values, colour = Legend)) + geom_point() +
     scale_color_manual(values = c('black','red')) + ylab(ylabel) +
-    ggtitle('Check Missing') + xlab('Date') + ggtitle('Missing Values check')
+    xlab('Date') + ggtitle('Missing Values check')
   return(f)
 }
 

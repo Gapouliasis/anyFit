@@ -47,7 +47,7 @@ file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, date_format = date_format, 
+data <- delim2xts(file_path = file_path, 
                   time_zone = "UTC", delim = " ", time_step = time_step)
 
 ```
@@ -72,7 +72,7 @@ bstats$stats_table
 bstats$quantiles_table
 ```
 The above statistics concerns the original scale of the data, i.e. daily. However, hydroclimatic processes act on different temporal scales. Therefore, it is useful to aggregate the data to several different temporal scales and examine their statistical properties. We will begin by aggregating and plotting in monthly, quarterly and annual scales. 
-```{r}
+```{r,fig.fullwidth=TRUE}
 agg_ts <- aggregate_xts(data[,4], c("months","quarters","years"), FUN = 'sum')
 smonthly_ts <- agg_ts$list_months$aggregated
 agg_ts$Combined_Plot
@@ -83,17 +83,14 @@ This plot demonstrated the precipitation variability at different time scales. I
 ```{r,message=FALSE}
 defaultW <- getOption("warn") 
 options(warn = -1)
-monthly_sts <- monthly_stats(data[,4],base_scale = TRUE, FUN = "sum")
-monthly_sts$fbase
-```
-
-```{r}
+monthly_sts <- monthly_stats(data[,4],aggregated = TRUE, FUN = "sum")
 monthly_sts$faggre
 ```
+
 Additionaly, we can plot tables with statistics in similar fashion as basic_stats.
 
 ```{r}
-monthly_sts$base_list$July$raw_stats
+monthly_sts$agg_stats
 ```
 
 Data visualization is widely recognized for playing an essential role in both data comprehension and result communication. For this reason we are providing wrappers for three commonly used type of plots, boxplots, violin plots and ridge plots. The first two group variables by month. This way they provide a good understanding of inter-annual variability. 
@@ -109,7 +106,7 @@ violins
 ```
 Ridge plots are implemented for both different timeseries and monthly scale within a single timeseries. 
 ```{r}
-ridges <- ridge_plots(data[,seq(1,10)], ignore_zeros = TRUE)
+ridges <- ridge_plots(data[,c(1)], ignore_zeros = TRUE)
 ridges$plot_all
 ```
 
@@ -186,9 +183,10 @@ fits$GoF_summary
 We know have all of the information needed to construct a synthetic timeseries based in the measured data. We are going to employ AutoRegressive To Anything (ARTA) model from the anySim package to simulate 100 years of daily precipitation. 
 
 ```{r}
+library(anySim)
 set.seed(12)
 # Define the target autocorrelation structure.
-ACS=csCAS(param=c(acfs$ACF_params$Cauchy$beta,acfs$ACF_params$Cauchy$kappa),lag=1000) # CAS with b=3 and k=0.6
+ACS=csCAS(param=c(acfs$ACF_params$CAS$beta,acfs$ACF_params$CAS$kappa),lag=1000) # CAS with b=3 and k=0.6
 # Define the target distribution function (ICDF).
 FX='qexpweibull' # Gamma distribution
 # Define the parameters of the target distribution.
@@ -203,10 +201,11 @@ We can easily "package" the synthetic timeseries in a xts format and use the exi
 
 ```{r}
 simVector <- unlist(SynthARTAcont$X)
+date_format <- "%d/%m/%Y"
 starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
 endtime=as.POSIXct('01/12/2120',format=date_format, tz = time_zone)
 dates <- seq(from = starttime, to = endtime, by = '1 day')
-simARTA_Xts <- xts(x = simVector, order.by = dates)
+simARTA_Xts <- xts::xts(x = simVector, order.by = dates)
 
 uni_check <- basic_stats(simARTA_Xts, pstart = '2030', pend = '2035',show_table = FALSE,
                          show_label = FALSE, ignore_zeros = TRUE )
@@ -250,7 +249,7 @@ monthly_fits$monthly_QQplot
 
 
 ```{r}
-monthly_fits$GoF_monthly$January
+monthly_fits$GoF_monthly$exp
 ```
 
 Using the above and the month to month correlations from monthly_stats earlier we can now simulate a cyclostationary monthly precipitation process. 
@@ -265,10 +264,11 @@ rtarget<-monthly_sts$lag1$Value + 0.03
 FXs<-rep('qzi',NumOfSeasons)
 # Define the parameters of the distribution function for each season.
 PFXs<-vector("list",NumOfSeasons)
+
 for (i in 1:NumOfSeasons){
-  PFXs[[i]] <- c(list(p0=eval(parse(text = paste0('monthly_sts$agg_list$',month.name[i],'$agg_stats[13,]'))),
-                    Distr = match.fun(eval(parse(text = paste0('monthly_fits$params_monthly$',month.name[i],'$gamma3$Distribution$FXs'))))),
-                   eval(parse(text = paste0('monthly_fits$params_monthly$',month.name[i],'$gamma3$Param'))))
+  PFXs[[i]] <- c(p0= monthly_sts$agg_stats['Pdr',i],
+                    Distr = match.fun('qgamma3'), 
+                    setNames(monthly_fits$params_monthly$gamma3[[i]], rownames(monthly_fits$params_monthly$gamma3[i])))
 }
 
 # Estimate the parameters of SPARTA model.
@@ -290,10 +290,10 @@ simVector <- unlist(simVector)
 starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
 endtime=as.POSIXct('01/12/3020',format=date_format, tz = time_zone)
 dates <- seq(from = starttime, to = endtime, by = '1 month')
-simXts <- xts(x = simVector, order.by = dates)
+simXts <- xts::xts(x = simVector, order.by = dates)
 
 
-monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly, ignore_zeros = TRUE)
+monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly$gamma3, ignore_zeros = TRUE)
 monthly_fcheck$monthly_QQplot
 ```
 

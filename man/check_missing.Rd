@@ -38,5 +38,4 @@ missing <- check_missing(data[,seq(1,4)], c("months","years"))
 
 missing$list_years$figure
 
-
 }

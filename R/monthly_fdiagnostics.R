@@ -39,7 +39,7 @@ monthly_fdiagnostics <- function(ts, distr, params, ignore_zeros = FALSE, zero_t
     month_name[i] <- month.name[i]
     I <- which(month(ts) == i)
     monthly_ts <- ts[I]
-    params_temp <- list(param = eval(parse(text = paste0('params$',month.name[i],'$',distr,'$Param'))))
+    params_temp <- list(param = eval(parse(text = paste0('params$',month.name[i]))))
     params_temp <- c(params_temp, list(ts = monthly_ts, dist = distr,
                                        ignore_zeros = ignore_zeros, zero_threshold = zero_threshold))
     monthly_fit <- do.call(fit_diagnostics, params_temp)

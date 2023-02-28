@@ -53,18 +53,18 @@ fitlm_monthly <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0
     if (i == 1){
       params_monthly = list()
       GoF_monthly = list()
-      for (i in 1:length(candidates)){
-        params_monthly <- c(params_monthly, list(as.data.frame(unlist(monthly_fit$parameter_list[[i]]$Param))))
-        GoF_monthly <- c(GoF_monthly, list(as.data.frame(monthly_fit$parameter_list[[i]]$GoF)))
+      for (j in 1:length(candidates)){
+        params_monthly <- c(params_monthly, list(as.data.frame(unlist(monthly_fit$parameter_list[[j]]$Param))))
+        GoF_monthly <- c(GoF_monthly, list(as.data.frame(monthly_fit$parameter_list[[j]]$GoF)))
       }
     }else{
-      for (i in 1:length(candidates)){
-        temp <- params_monthly[[i]]
-        temp <- cbind(temp, as.data.frame(unlist(monthly_fit$parameter_list[[i]]$Param)))
-        params_monthly[[i]] <- temp
-        temp <- GoF_monthly[[i]]
-        temp <- cbind(temp, as.data.frame(monthly_fit$parameter_list[[i]]$GoF))
-        GoF_monthly[[i]] <- temp
+      for (j in 1:length(candidates)){
+        temp <- params_monthly[[j]]
+        temp <- cbind(temp, as.data.frame(unlist(monthly_fit$parameter_list[[j]]$Param)))
+        params_monthly[[j]] <- temp
+        temp <- GoF_monthly[[j]]
+        temp <- rbind(temp, as.data.frame(monthly_fit$parameter_list[[j]]$GoF))
+        GoF_monthly[[j]] <- temp
       }
     }
   }
@@ -76,8 +76,8 @@ fitlm_monthly <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0
     colnames(temp) <- month.name
     params_monthly[[i]] <- temp
     temp <- GoF_monthly[[i]]
-    colnames(temp) <- month.name
-    GoF_monthly[[i]] <- temp
+    rownames(temp) <- month.name
+    GoF_monthly[[i]] <- t(temp)
   }
 
   if (length(i_months)<12){
