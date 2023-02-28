@@ -46,15 +46,14 @@ Aggregates a xts timeseries to different time scales
 and returns a list of plots and aggregated timeseries.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
-                
+
 agg_ts <- aggregate_xts(data[,4], c("months","quarters","years"), FUN = 'sum')
-smonthly_ts <- agg_ts$list_months$aggregated                
+smonthly_ts <- agg_ts$list_months$aggregated
 
 }

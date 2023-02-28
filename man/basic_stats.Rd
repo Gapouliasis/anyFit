@@ -78,3 +78,18 @@ all major statistics.
 With arguments for plotting position of stats table and timeseries plotting period.
 }
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
+show_label = FALSE, ignore_zeros = TRUE)
+
+bstats$plot
+bstats$stats_table
+
+}

@@ -43,9 +43,7 @@ library(anyFit)
 
 The analysis begins with loading the historical data. This is done by delim2xts function. It receives data in a delimited file which a column contains the dates and each other column presents a timeseries entry, e.g. a different station or a process. Data have to be in a strict time step and this has to be provided as an arguments. The date format of the date column has to be known, as well as the file delimiter. Additionally, it can receive arguments for skipping file lines, excluding leap years and others. Missing data are formally treated by introducing NANs.
 ```{r}
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
-date_format <- "%d/%m/%Y"
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 

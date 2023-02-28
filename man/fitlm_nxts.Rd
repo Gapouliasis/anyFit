@@ -35,17 +35,16 @@ to an arbitrary number of timeseries in xts format. Additionally to the list of 
 goodness-of-fit metric, PP and QQ plots.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
-                
+
 candidates <- list('exp','expweibull', 'gamma3')
-                                     
+
 fits_all <- fitlm_nxts(data, candidates, nrow = 5, ncol = 4, ignore_zeros = TRUE)
-fits_all$QQ_panels[[1]]                 
+fits_all$QQ_panels[[1]]
 
 }

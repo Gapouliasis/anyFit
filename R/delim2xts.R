@@ -17,8 +17,7 @@
 #' @return An xts object.
 #'
 #' @examples
-#'file <- "KNMI_Daily.csv"
-#'file_path <- file.path(cwd,file)
+#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 #'time_zone <- "UTC"
 #'time_step <- "1 day"
 #'

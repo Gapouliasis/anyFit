@@ -36,3 +36,16 @@ The GoF metric calculated are the Kramer von-Mises and Kolmogorov-Smirnov. NEEDS
 \description{
 Performs a goodness-of-fit test to diagnose fitted distributions by month.
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+monthly_fits <- fitlm_monthly(smonthly_ts,candidates = 'gamma3', ignore_zeros = TRUE)
+
+monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly, ignore_zeros = TRUE)
+
+}

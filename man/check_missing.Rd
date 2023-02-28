@@ -27,17 +27,16 @@ If the period is set to "months" and "group_months" is set to TRUE,
 the function returns also a plot of the percentage of missing values grouped by month.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
-                
+
 missing <- check_missing(data[,seq(1,4)], c("months","years"))
 
 missing$list_years$figure
-                                     
+
 
 }

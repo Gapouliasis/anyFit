@@ -1,5 +1,5 @@
 Package: anyFit
-Title: What the Package Does (One Line, Title Case)
+Title: Exploratory Data Analysis on xts timeseries objects
 Version: 0.0.0.9000
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
@@ -13,4 +13,15 @@ RoxygenNote: 7.2.3
 Imports: 
 	xts,
 	readr,
-	lubridate
+	lubridate,
+	ggplot2,
+	lmom,
+	lmomco,
+	fitdistrplus,
+	PearsonDS,
+	FAdist,
+	VGAM,
+	ExtDist
+Depends: 
+    R (>= 2.10)
+LazyData: false

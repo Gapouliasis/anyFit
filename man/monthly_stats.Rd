@@ -40,3 +40,17 @@ and provided on a table are the number of data points,
 number of missing data, percentage of missing data, min, max, mean, variance,
 standard deviation, variation, 3rd moment, skewness, kurtosis and probability dry.
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+monthly_sts <- monthly_stats(data[,4],base_scale = TRUE, FUN = "sum")
+
+monthly_sts$fbase
+monthly_sts$base_list$July$raw_stats
+
+}

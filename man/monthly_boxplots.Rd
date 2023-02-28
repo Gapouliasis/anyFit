@@ -26,3 +26,14 @@ A ggplot object with monthly boxplots
 \description{
 Plot monthly boxplots for a given time series.
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+boxes <- monthly_boxplots(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+
+}

@@ -30,3 +30,16 @@ The GoF metric calculated are the Kramer von-Mises and Kolmogorov-Smirnov. NEEDS
 \description{
 Performs a goodness-of-fit test to diagnose fitted distributions.
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+fit <- fitlm_multi(data[,4],candidates = 'gamma3', ignore_zeros = TRUE)
+
+fcheck <- fit_diagnostics(data[,4], distr = 'gamma3', params = fit$parameter_list[[1]], ignore_zeros = TRUE)
+
+}

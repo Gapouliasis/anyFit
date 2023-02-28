@@ -33,3 +33,15 @@ Function to fit theoretical Autocorrelation Functions (ACFs) to timeseries data.
 Three functions are available, the Cauchy-type autocorrelation structure,
 the Hurst - Kolmogorov and the Short Range dependence structure.
 }
+\examples{
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+acfs <- fit_ACF(data[,4], lag = 10, ignore_zeros = TRUE )
+acfs$ACF_plot
+
+}

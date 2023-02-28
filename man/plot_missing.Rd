@@ -18,15 +18,14 @@ Assigns the mean value of timeseries to NA for easy identification of empties.
 Meant for quick and dirty (i.e. Engineering) visual checks
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
-                 
-                 
+
+
 plot_missing(data[,seq(1,4)])
 
 }

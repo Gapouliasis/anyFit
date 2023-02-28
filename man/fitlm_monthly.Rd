@@ -35,16 +35,15 @@ to a timeseries in xts format. Additionally to the list of the fitted parameters
 goodness-of-fit metric, PP and QQ plots.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
-                 
+
 candidates <- list('exp','expweibull', 'gamma3')
-monthly_fits <- fitlm_monthly(data[,4],candidates = candidates, ignore_zeros = TRUE)            
+monthly_fits <- fitlm_monthly(data[,4],candidates = candidates, ignore_zeros = TRUE)
 
 monthly_fits$monthly_QQplot
 

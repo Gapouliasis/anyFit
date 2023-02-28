@@ -48,8 +48,7 @@ An xts object.
 A function to convert data from delimited files to xts objects.The function takes a file path, time zone, date index, time step, delimiter, skip rows, column names, no value, and exc_leaps (exclude 29th of February from leap years) as arguments. The use is given the option to save the xts dataset in a text file.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 

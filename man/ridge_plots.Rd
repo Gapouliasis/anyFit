@@ -4,30 +4,34 @@
 \alias{ridge_plots}
 \title{ridge_xts}
 \usage{
-ridge_plots(
-  data,
-  palette = "Set3",
-  ignore_zeros = FALSE,
-  zero_threshold = 0.01
-)
+ridge_plots(ts, palette = "Set3", ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{data}{A vector or matrix of data}
+\item{ts}{A xts object containing the time series data.}
 
 \item{palette}{Color palette to use for ridge plot. Default is 'Set3'}
 
-\item{ignore_zeros}{Boolean specifying whether to ignore values below zero_threshold}
+\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
-\item{zero_threshold}{Threshold value for ignoring data. Default is 0.01}
+\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 }
 \value{
 A list with two elements: plot_all and plot_monthly. plot_all is the full ridge plot for the data, plot_monthly is a list of ridge plots for each month of the data.
 }
 \description{
-ridge_xts
+Function that generates ridge plots from timeseries.
+It will also generate ridge plots on the monthly scale.
 }
 \examples{
-data(airquality)
-ridge_plots(airquality$Ozone)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
+time_zone <- "UTC"
+time_step <- "1 day"
+
+data <- delim2xts(file_path = file_path,
+                 time_zone = "UTC", delim = " ", time_step = time_step)
+
+ridges <- ridge_plots(data[,seq(1,10)], ignore_zeros = TRUE)
+ridges$plot_all
+ridges$plot_monthly$Y.Xtemp.2
 
 }

@@ -20,12 +20,11 @@ A dataframe with the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of the time se
 Calculate the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of a time series.
 }
 \examples{
-file <- "KNMI_Daily.csv"
-file_path <- file.path(cwd,file)
+file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
 time_step <- "1 day"
 
-data <- delim2xts(file_path = file_path, 
+data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
 ts_lmoms <- lmom_stats(data, ignore_zeros = TRUE)
 
