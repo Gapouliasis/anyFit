@@ -65,8 +65,8 @@ delim2xts <- function(file_path,time_zone,date_index = 1,time_step = '1 day',del
     }
   }
 
-  starttime = dates[1]
-  endtime = dates[nrow(Data)]
+  starttime = min(dates)
+  endtime = max(dates)
   # starttime=as.POSIXct(Data[1, date_index, drop = TRUE],format=date_format, tz = time_zone)
   # endtime=as.POSIXct(Data[nrow(Data), date_index, drop = TRUE],format=date_format, tz = time_zone)
 
