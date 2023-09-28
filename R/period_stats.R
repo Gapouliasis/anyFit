@@ -8,7 +8,7 @@
 #'
 #'
 #' @param ts a xts object containing the time series data
-#' @param period a period for which to calculate statistics. Default is NA
+#' @param period a period for which to calculate statistics. Default is 'months'
 #' @param period_multiplier a multiplier to define arbitrary periods based on the period argument.
 #' E.g. 2 months, 3 years etc. Default is 1.
 #'
@@ -27,8 +27,8 @@
 #' @export
 #'
 
-period_stats <-function(ts, period = NA, period_multiplier = 1){
-  spec_period <- endpoints(ts, on = 'months', k = period_multiplier)
+period_stats <-function(ts, period = 'months', period_multiplier = 1){
+  spec_period <- endpoints(ts, on = period, k = period_multiplier)
 
   NumofData <- period.apply(ts, spec_period, FUN = length)
   NA_vals <- xts(x = is.na(ts), order.by = index(ts))
