@@ -4,12 +4,12 @@
 \alias{period_stats}
 \title{period_stats}
 \usage{
-period_stats(ts, period = NA, period_multiplier = 1)
+period_stats(ts, period = "months", period_multiplier = 1)
 }
 \arguments{
 \item{ts}{a xts object containing the time series data}
 
-\item{period}{a period for which to calculate statistics. Default is NA}
+\item{period}{a period for which to calculate statistics. Default is 'months'}
 
 \item{period_multiplier}{a multiplier to define arbitrary periods based on the period argument.
 E.g. 2 months, 3 years etc. Default is 1.}

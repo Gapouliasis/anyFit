@@ -483,13 +483,12 @@ fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   MSEquant<-sum((theorquantiles-x)^2)/length(x)
   DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
   MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- list(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
 
   Res<-list()
   Res$Distribution<-list(FXs="qnorm")
   Res$Param<-fit
-  Res$TheorLMom<-lmrnor(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrnor(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 

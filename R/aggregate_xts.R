@@ -16,6 +16,7 @@
 #' @param season_end Vector of season end dates. Can be used to aggregate into user-defined seasons.
 #' Must be in the form of '%m-%d', e.g. '10-15'
 #' @param mseason_title Title for the user-defined season.
+#' @param ... additional arguments for FUN
 #'
 #' @return A list with the aggregated timeseries for every selected period in xts format and
 #' a plot containing the aggregated timeseries.
@@ -43,7 +44,7 @@
 # season_end <- set of strings in the form of '%m-%d', e.g. '10-15'
 # mseason_title <- The title for the manual season.
 aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA,
-                          pstart = NA, pend = NA, season_end = NA, mseason_title = NA){
+                          pstart = NA, pend = NA, season_end = NA, mseason_title = NA, ...){
 
   if (!is.na(pstart)){start_date <- pstart}else{start_date <- index(ts)[1]}
   if (!is.na(pend)){end_date <- pend}else{end_date <- index(ts)[nrow(ts)]}
@@ -81,7 +82,7 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
         Iper <- which(periods == period)
         spec_period <- endpoints(ts, on = period, k = period_multiplier[Iper])
 
-        period_ts <- period.apply(ts, spec_period, FUN = eval(FUN))
+        period_ts <- period.apply(ts, spec_period, FUN = eval(FUN),...)
 
         f <- autoplot.zoo(period_ts, geom = 'line') + ggplot2::xlab('Date') +
           ggplot2::ggtitle(paste(period_multiplier[Iper], period_title,'Timeseries', sep = ' '))

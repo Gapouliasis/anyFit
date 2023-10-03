@@ -12,7 +12,8 @@ aggregate_xts(
   pstart = NA,
   pend = NA,
   season_end = NA,
-  mseason_title = NA
+  mseason_title = NA,
+  ...
 )
 }
 \arguments{
@@ -36,6 +37,8 @@ Usefull for long timeseries.}
 Must be in the form of '\%m-\%d', e.g. '10-15'}
 
 \item{mseason_title}{Title for the user-defined season.}
+
+\item{...}{additional arguments for FUN}
 }
 \value{
 A list with the aggregated timeseries for every selected period in xts format and
