@@ -1,6 +1,6 @@
 #' @title basic_stats_nc
 #'
-#' This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
+#' @description This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
 #' It returns the statistics in raster format.
 #'
 #' @param raster_file A raster file
@@ -61,7 +61,7 @@ basic_stats_nc = function(raster_file, filename = NA, varname = NA,
     ncdf_stats = lapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table})
   }
   ncdf_stats = t(do.call(cbind,ncdf_stats))
-  ncdf_stats = cbind(x_coords,ncdf_stats)
+  ncdf_stats = cbind(coords,ncdf_stats)
   #rownames(ncdf_stats) = as.character(dates)
   raster_stats = raster::rasterFromXYZ(ncdf_stats)
   projection(raster_stats) = projection(raster_file)

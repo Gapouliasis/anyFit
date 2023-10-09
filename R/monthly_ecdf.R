@@ -1,6 +1,6 @@
 #' @title monthly_ecdf
 #'
-#' This function takes a time series and generates a grid of monthly Empirical
+#' @description This function takes a time series and generates a grid of monthly Empirical
 #' Cumulative Distribution Function (ECDF) plots for each month in the time series.
 #'
 #' @param ts A xts object containing the time series data.

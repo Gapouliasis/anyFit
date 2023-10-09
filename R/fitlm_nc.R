@@ -1,6 +1,6 @@
 #' @title fitlm_nc
 #'
-#' This function fits a list of candidate distributions using the L-moments method NetCDF raster file.
+#' @description This function fits a list of candidate distributions using the L-moments method NetCDF raster file.
 #' It returns fitted distribution parameters, the theoretical L-moments of the fitted distribution,
 #' the sample L-Moments and goodness-of-fit statistics in raster format.
 #'

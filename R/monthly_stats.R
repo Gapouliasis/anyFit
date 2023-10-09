@@ -1,7 +1,7 @@
 #' @title monthly_stats
 #'
 #' @description  This function provides monthly statistics in aggregated and original (base) timescale
-#' and plots of a time series. Statistics ploted are average, standard deviation, skewness. For the base scale
+#' and plots of a time series. Statistics plotted are average, standard deviation, skewness. For the base scale
 #' the probability dry is calculated. For the monthly scale the month to month correlations are calculated.
 #' Month to month correlations are calculated backwards. i.e January == cor(December, January). Statistics calculated
 #' and provided on a table are the number of data points,

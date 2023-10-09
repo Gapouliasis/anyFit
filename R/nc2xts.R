@@ -1,6 +1,6 @@
 #' @title nc2xts
 #'
-#' This function reads a NetCDF raster file, optionally masks it by country, continent, or user defined shapefile,
+#' @description This function reads a NetCDF raster file, optionally masks it by country, continent, or user defined shapefile,
 #' and converts it into an xts object for further analysis.
 #'
 #' @param filename The path to the NetCDF file.

@@ -1,6 +1,6 @@
 #' @title period_apply_nc
 #'
-#' This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
+#' @description This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
 #' over specified time periods (e.g., months, years).
 #'
 #' @param raster_file A raster file
