@@ -2,11 +2,7 @@
 % Please edit documentation in R/fitlm_nc.R
 \name{fitlm_nc}
 \alias{fitlm_nc}
-\title{fitlm_nc
-
-This function fits a list of candidate distributions using the L-moments method NetCDF raster file.
-It returns fitted distribution parameters, the theoretical L-moments of the fitted distribution,
-the sample L-Moments and goodness-of-fit statistics in raster format.}
+\title{fitlm_nc}
 \usage{
 fitlm_nc(
   raster_file,
@@ -20,7 +16,7 @@ fitlm_nc(
 )
 }
 \arguments{
-\item{raster_file}{A raster file}
+\item{raster_file}{A raster file.}
 
 \item{filename}{(optional) A NetCDF file name to import if raster_file is not provided.}
 
@@ -41,8 +37,6 @@ A list of raster objects containing the fitted distribution parameters, the theo
 the sample L-Moments and goodness-of-fit statistics in raster format.
 }
 \description{
-fitlm_nc
-
 This function fits a list of candidate distributions using the L-moments method NetCDF raster file.
 It returns fitted distribution parameters, the theoretical L-moments of the fitted distribution,
 the sample L-Moments and goodness-of-fit statistics in raster format.

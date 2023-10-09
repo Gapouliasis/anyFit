@@ -4,7 +4,7 @@
 #' It returns fitted distribution parameters, the theoretical L-moments of the fitted distribution,
 #' the sample L-Moments and goodness-of-fit statistics in raster format.
 #'
-#' @param raster_file A raster file
+#' @param raster_file A raster file.
 #' @param filename (optional) A NetCDF file name to import if raster_file is not provided.
 #' @param varname (optional) The name of the variable to extract from 'filename'.
 #' @param candidates A list of distribution to fit.

@@ -2,10 +2,7 @@
 % Please edit documentation in R/monthly_ecdf.R
 \name{monthly_ecdf}
 \alias{monthly_ecdf}
-\title{monthly_ecdf
-
-This function takes a time series and generates a grid of monthly Empirical
-Cumulative Distribution Function (ECDF) plots for each month in the time series.}
+\title{monthly_ecdf}
 \usage{
 monthly_ecdf(ts, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
@@ -20,8 +17,6 @@ monthly_ecdf(ts, ignore_zeros = FALSE, zero_threshold = 0.01)
 A grid of monthly ECDF plots.
 }
 \description{
-monthly_ecdf
-
 This function takes a time series and generates a grid of monthly Empirical
 Cumulative Distribution Function (ECDF) plots for each month in the time series.
 }

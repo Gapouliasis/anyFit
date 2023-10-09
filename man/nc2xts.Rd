@@ -2,10 +2,7 @@
 % Please edit documentation in R/nc2xts.R
 \name{nc2xts}
 \alias{nc2xts}
-\title{nc2xts
-
-This function reads a NetCDF raster file, optionally masks it by country, continent, or user defined shapefile,
-and converts it into an xts object for further analysis.}
+\title{nc2xts}
 \usage{
 nc2xts(filename, varname, shapefile = NA, country = NA, continent = NA)
 }
@@ -24,8 +21,6 @@ nc2xts(filename, varname, shapefile = NA, country = NA, continent = NA)
 A list containing the raster, xts object, dates, and coordinates.
 }
 \description{
-nc2xts
-
 This function reads a NetCDF raster file, optionally masks it by country, continent, or user defined shapefile,
 and converts it into an xts object for further analysis.
 }

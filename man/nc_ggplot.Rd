@@ -4,17 +4,31 @@
 \alias{nc_ggplot}
 \title{nc_ggplot}
 \usage{
-nc_ggplot(raster_file)
+nc_ggplot(
+  raster_file,
+  title = FALSE,
+  legend.title = NA,
+  viridis.option = "viridis",
+  ...
+)
 }
 \arguments{
-\item{raster_file}{A NetCDF raster file.}
+\item{raster_file}{A raster file.}
+
+\item{title}{Logical, whether to add variable names as plot titles.}
+
+\item{legend.title}{The title for the color legend.}
+
+\item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
+
+\item{...}{Additional arguments to pass to 'ggarrange' function from the 'ggpubr' package.}
 }
 \value{
 A ggplot2 object representing the raster plot.
 }
 \description{
-This function takes a NetCDF raster file and a variable name as inputs, and generates
-a ggplot2 raster plot.
+This function takes a NetCDF raster file and generates
+a ggplot2 raster plot. Supports RasterBricks e.g. Timeseries of rasters
 }
 \examples{
 

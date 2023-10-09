@@ -2,10 +2,7 @@
 % Please edit documentation in R/period_apply_nc.R
 \name{period_apply_nc}
 \alias{period_apply_nc}
-\title{period_apply_nc
-
-This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
-over specified time periods (e.g., months, years).}
+\title{period_apply_nc}
 \usage{
 period_apply_nc(
   raster_file,
@@ -36,8 +33,6 @@ period_apply_nc(
 A raster object with the summary statistics for the specified time periods.
 }
 \description{
-period_apply_nc
-
 This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
 over specified time periods (e.g., months, years).
 }

@@ -2,10 +2,7 @@
 % Please edit documentation in R/basic_stats_nc.R
 \name{basic_stats_nc}
 \alias{basic_stats_nc}
-\title{basic_stats_nc
-
-This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
-It returns the statistics in raster format.}
+\title{basic_stats_nc}
 \usage{
 basic_stats_nc(
   raster_file,
@@ -36,8 +33,6 @@ basic_stats_nc(
 A raster object containing basic statistics.
 }
 \description{
-basic_stats_nc
-
 This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
 It returns the statistics in raster format.
 }
