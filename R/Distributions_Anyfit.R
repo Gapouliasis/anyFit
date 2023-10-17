@@ -1,3 +1,32 @@
+GOF_tests = function(x, fit, distribution){
+  u_emp <- stats::ppoints(x)
+  q_emp <- x
+  qq_fitted <- do.call(paste0('q',distribution), c(list(p = u_emp), fit))
+
+  CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
+  KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
+
+  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit))))
+  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
+  theorquantiles = -do.call(paste0('q',distribution), c(list(p = plotpos), fit))
+  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
+  samplesort<-sort(x,decreasing=TRUE)[1:10]
+
+  MSEquant<-sum((theorquantiles-x)^2)/length(x)
+  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
+  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
+
+  # AIC = 2*length(fit)-2*sum(log(do.call(paste0('d',distribution),c(list(x = x), fit))))
+  # BIC = length(fit)*log(length(x))-2*sum(do.call(paste0('d',distribution),c(list(x = x), fit)))
+
+  GoF <- list(MLE=MLE, CM = CM, KS = KS,
+              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  return(GoF)
+}
+
+
+
+
 # Exponential -------------------------------------------------------------
 
 #' @name Exponential
@@ -73,25 +102,8 @@ fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
     par<-c(fit$location,fit$scale)
 
   }
-  u_emp <- stats::ppoints(x)
-  q_emp <- x
-  qq_fitted <- qexp(u_emp, location = fit$location, scale = fit$scale)
 
-  CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
-  KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
-
-  MLE<--sum(log(dexp(x,location=fit$location,scale=fit$scale)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qexp(p=plotpos,location=fit$location,scale=fit$scale)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-
-  GoF <- list(MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'exp')
 
   Res<-list()
   Res$Distribution<-list(FXs="qexp",bound=bound)
@@ -154,35 +166,22 @@ fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
+
+  sam=lmom::samlmu(x)
   l1 <- lmom::samlmu(x,nmom = 1, ratios = FALSE)
   l2 <- lmom::samlmu(x,nmom = 2, ratios = FALSE)
   location <- l1 - sqrt(2)/(sqrt(2) - 1)*l2
   ratio <- (gamma(1.5))^2*(3-2*sqrt(2))/(2*l2^2)
   scale <- 1/sqrt(2*ratio)
-  par <- c(location,scale)
 
-  u_emp <- stats::ppoints(x)
-  q_emp <- x
-  qq_fitted <- qrayleigh(u_emp, location = fit$location, scale = fit$scale)
+  fit = list(location = location, scale = scale)
 
-  CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
-  KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
-  MLE<--sum(log(dexp(x,location=location,scale=scale)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qrayleigh(p=plotpos,location=location,scale=scale)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'rayleigh')
 
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
   Res<-list()
   Res$Distribution<-list(FXs="qrayleigh")
-  Res$Param<-par
-  Res$TheorLMom<-lmrexp(par,nmom=4)
+  Res$Param<-fit
+  Res$TheorLMom<-c(gamma(1.5)/sqrt(scale)+location, gamma(1.5)/sqrt(scale)*(sqrt(2)-1)/sqrt(2))
   names(sam)<-c('lambda_1','lambda_2','tau_3','tau_4')
   Res$DataLMom<-sam
   Res$GoF<-GoF
@@ -254,17 +253,7 @@ fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$scale = par[2]
   fit$shape = par[1]
 
-
-  MLE<--sum(log(dgamma(x,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgamma(p=plotpos,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- c(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gamma')
 
   Res<-list()
   Res$Distribution<-list(FXs="qgamma")
@@ -342,18 +331,7 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$scale=1/((1/2)*par[2]*abs(par[3]))
   fit$shape=4/(par[3]^2)
 
-
-  MLE<--sum(log(dgamma3(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgamma3(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gamma3')
 
   Res<-list()
   Res$Distribution<-list(FXs="qgamma3")
@@ -397,8 +375,7 @@ fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$scale = par[2]
   fit$shape = par[3]
 
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gamma3')
 
   Res<-list()
   Res$Param<-fit
@@ -474,16 +451,7 @@ fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$mean=par[1]
   fit$sd = par[2]
 
-  MLE<--sum(log(dnorm(x,mean=fit$mean,sd=fit$sd)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qnorm(p=plotpos,mean=fit$mean,sd=fit$sd)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'norm')
 
   Res<-list()
   Res$Distribution<-list(FXs="qnorm")
@@ -563,20 +531,7 @@ fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   fit$scale = par[2]
   fit$shape = par[3]
 
-
-  # print(paste("Weibull distribution bounded at",fit$location,sep=" "))
-
-  MLE<--sum(log(dweibull(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qweibull(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'weibull')
 
   Res<-list()
   Res$Distribution<-list(FXs="qweibull",bound=bound)
@@ -647,7 +602,6 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
     x <- x[x > zero_threshold,]
   }
 
-
   sam=lmom::samlmu(x)
   par=lmom::pelgum(sam)
   names(par) = NULL
@@ -655,18 +609,7 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$location=par[1]
   fit$scale = par[2]
 
-
-  MLE<--sum(log(dgumbel(x,location=fit$location,scale=fit$scale)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgumbel(p=plotpos,location=fit$location,scale=fit$scale)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gumbel')
 
   Res<-list()
   Res$Distribution<-list(FXs="qgumbel")
@@ -747,20 +690,7 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   fit$scale = par[2]
   fit$shape = par[3]
 
-
-  # print(paste("Lognormal distribution bounded at",fit$location,sep=" "))
-
-  MLE<--sum(log(dlnorm(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qlnorm(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'lognorm')
 
   Res<-list()
   Res$Distribution<-list(FXs="qlnorm",bound=bound)
@@ -839,23 +769,14 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$scale = par[2]
   fit$shape = par[3]
 
-  MLE<--sum(log(dgev(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgev(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gev')
 
   Res<-list()
   Res$Distribution<-list(FXs="qgev")
   Res$Param<-fit
   Res$TheorLMom<-lmrgev(par,nmom=4)
   Res$DataLMom<-sam
+  Res$GoF = GoF
 
   return(Res)
 }
@@ -907,11 +828,14 @@ fitlm_GPD=function(x,bound=NULL) {
   GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
               MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
 
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gpd')
 
   Res<-list()
+  Res$Distribution<-list(FXs="qgpd")
   Res$Param<-fit
   Res$TheorLMom<-lmrgpa(par,nmom=4)
   Res$DataLMom<-sam
+  Res$GoF = GoF
 
   return(Res)
 }
@@ -1037,16 +961,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgengamma(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- c(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
-
+  GoF <- GOF_tests(x = x, fit = para, distribution = 'gengamma')
 
   #para$PW=PW
 
@@ -1183,22 +1098,15 @@ fitlm_gengamma_loc=function(x,location,ignore_zeros = FALSE, zero_threshold = 0.
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgengamma(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
+  fit = c(list(location = location), para)
 
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- c(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
-
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'qgengamma_loc')
 
   #para$PW=PW
 
   Res<-list()
-  Res$Distribution<-list(FXs="qgengamma")
-  Res$Param<-para
+  Res$Distribution<-list(FXs="qgengamma_loc")
+  Res$Param<-fit
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-lm
   Res$GoF<-GoF
@@ -1363,16 +1271,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qburr(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- c(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
-
+  GoF <- GOF_tests(x = x, fit = para, distribution = 'burr')
 
   #para$PW=PW
 
@@ -1511,17 +1410,7 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01)  {
                  scale=para$scale, shape1=para$shape1, shape2=para$shape2,
                  subdiv = 10000,acc = 10^-2)
 
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qdagum(p=plotpos,scale=para$scale, shape1=para$shape1, shape2=para$shape2)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- c(MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
-
-
+  GoF <- GOF_tests(x = x, fit = para, distribution = 'dagum')
   #para$PW=PW
 
   Res<-list()
@@ -1617,17 +1506,7 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit=lmom::pelq(lmom = lm[1:3], qfunc = qexpweibull, start = START, type = 's')$para
   fit=list(scale=as.vector(fit[1]), shape1=as.vector(fit[2]), shape2=as.vector(fit[3]))
 
-  MLE<--sum(log(dexpweibull(x=xNZ,scale=fit$scale,shape1=fit$shape1,shape2=fit$shape2)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qexpweibull(p=plotpos,scale=fit$scale,shape1=fit$shape1,shape2=fit$shape2)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'expweibull')
 
   Res<-list()
   Res$Distribution<-list(FXs="qexpweibull")
