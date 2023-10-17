@@ -59,6 +59,12 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
     stop('Argument period_multiplier must be a vector with the same length as periods')
   }
 
+  if (is.na(period_multiplier)){
+    period_multiplier = rep(1,length(periods))
+  }
+
+  plot_list = list(fraw)
+  agg_list = list()
   #“secs” (seconds), “seconds”, “mins” (minutes), “minutes”, “hours”, “days”, “weeks”, “months”, “quarters”, and “years”
   suppressWarnings(
     if (!is.na(periods)){
@@ -82,12 +88,13 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
         Iper <- which(periods == period)
         spec_period <- endpoints(ts, on = period, k = period_multiplier[Iper])
 
-        period_ts <- period.apply(ts, spec_period, FUN = eval(FUN),...)
+        period_ts <- period.apply(ts, spec_period, FUN = eval(FUN))#,...)
 
         f <- autoplot.zoo(period_ts, geom = 'line') + ggplot2::xlab('Date') +
           ggplot2::ggtitle(paste(period_multiplier[Iper], period_title,'Timeseries', sep = ' '))
-        assign(paste('f', which(periods == period), sep = ''),f)
-        assign(paste('list',period, sep = '_'),list(aggregated = period_ts, figure = f))
+        plot_list = c(plot_list, list(f))
+
+        agg_list = c(agg_list, list(list(aggregated = period_ts, figure = f)))
       }
     }
   )
@@ -119,8 +126,9 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
         suffix <- 1
       }
 
-      assign(paste('f', suffix, sep = ''),f)
-      assign(paste('list','manual', sep = '_'),list(aggregated = period_ts, figure = f))
+      plot_list = c(plot_list, list(f))
+
+      agg_list = c(agg_list, list(aggregated = period_ts, figure = f))
 
       periods <- c(periods,'manual')
     }
@@ -128,45 +136,9 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
 
   nperiods <- length(periods)
 
-  if (nperiods==1){
-    f_combined <- ggpubr::ggarrange(fraw,f1, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'))
-  }else if(nperiods==2){
-    f_combined <- ggpubr::ggarrange(fraw,f1,f2, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'))
-  }else if(nperiods==3){
-    f_combined <- ggpubr::ggarrange(fraw,f1,f2,f3, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'))
-  }else if(nperiods==4){
-    f_combined <- ggpubr::ggarrange(fraw,f1,f2,f3,f4, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'))
-  }else if(nperiods==5){
-    f_combined <- ggpubr::ggarrange(fraw,f1,f2,f3,f4,f5, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))), eval(parse(text = paste('list',periods[5],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'),paste('list',periods[5],sep = '_'))
-  }else if(nperiods==6){
-    f_combined <- ggpubr::ggarrange(fraw,f1,f2,f3,f4,f5,f6, nrow = (nperiods + 1), ncol = 1)
-    list_out <- list(f_combined, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))), eval(parse(text = paste('list',periods[5],sep = '_'))),
-                     eval(parse(text = paste('list',periods[6],sep = '_'))))
-    names(list_out) <- c('Combined_Plot', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'),paste('list',periods[5],sep = '_'),
-                         paste('list',periods[6],sep = '_'))
-  }
+  f_combined = ggpubr::ggarrange(plotlist = plot_list, nrow = (nperiods + 1), ncol = 1)
+  list_out = c(list(f_combined), agg_list)
+  names(list_out) = c('Combined_Plot', paste('list',periods,sep = '_'))
 
   return(list_out)
 }

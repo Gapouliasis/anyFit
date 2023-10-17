@@ -45,6 +45,8 @@ check_missing <-function(data, periods, plot = TRUE ,group_months = FALSE){
     apply(x, 2, FUN = sum)
   }
 
+  temp_list = list()
+
   #“secs” (seconds), “seconds”, “mins” (minutes), “minutes”, “hours”, “days”, “weeks”, “months”, “quarters”, and “years”
   for (period in periods){
     if (period == 'months'){
@@ -86,45 +88,15 @@ check_missing <-function(data, periods, plot = TRUE ,group_months = FALSE){
     }
 
     if (plot == TRUE){
-      assign(paste('list',period, sep = '_'),list(prct_missing = period_prct, figure = f))
+      temp_list = c(temp_list, list(list(prct_missing = period_prct, figure = f)))
     }else{
-      assign(paste('list',period, sep = '_'),list(prct_missing = period_prct))
+      temp_list = c(temp_list, list(list(prct_missing = period_prct)))
     }
 
   }
 
-  if (length(periods)==1){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'))
-  }else if(length(periods)==2){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'))
-  }else if(length(periods)==3){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'))
-  }else if(length(periods)==4){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'))
-  }else if(length(periods)==5){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))), eval(parse(text = paste('list',periods[5],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'),paste('list',periods[5],sep = '_'))
-  }else if(length(periods)==6){
-    list_out <- list(prct_missing, eval(parse(text = paste('list',periods[1],sep = '_'))),
-                     eval(parse(text = paste('list',periods[2],sep = '_'))),eval(parse(text = paste('list',periods[3],sep = '_'))),
-                     eval(parse(text = paste('list',periods[4],sep = '_'))), eval(parse(text = paste('list',periods[5],sep = '_'))),
-                     eval(parse(text = paste('list',periods[6],sep = '_'))))
-    names(list_out) <- c('prct_missing', paste('list',periods[1],sep = '_'),paste('list',periods[2],sep = '_'),
-                         paste('list',periods[3],sep = '_'),paste('list',periods[4],sep = '_'),paste('list',periods[5],sep = '_'),
-                         paste('list',periods[6],sep = '_'))
-  }
+  list_out <- c(prct_missing, temp_list)
+  names(list_out) <- c('prct_missing', paste('list',periods,sep = '_'))
+
   return(list_out)
 }
