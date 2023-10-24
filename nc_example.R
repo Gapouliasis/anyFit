@@ -21,8 +21,10 @@ Lmom_plot = nc_ggplot(fits_all$raster_TheorLMom, viridis.option = "inferno")
 
 nc_data = ncdf4::nc_open(filename = filename)
 
-x_coords = ncdf4::ncvar_get(nc_data, "latitude")
-pap
-#names(nc_data$var)
+y_coords = ncdf4::ncvar_get(nc_data, "latitude")
+x_coords = ncdf4::ncvar_get(nc_data, "longitude")
 
-nc_brick = raster::brick(filename, varname = varname, level = 1)
+coords = data.frame(x = x_coords[c(220,221)],y = y_coords[c(150,150)])
+
+rnd_xts = nc2xts_nn(filename = filename, varname = "rr", coords = coords)
+

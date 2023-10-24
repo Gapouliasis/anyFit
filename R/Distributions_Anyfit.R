@@ -1,5 +1,5 @@
 GOF_tests = function(x, fit, distribution){
-  u_emp <- stats::ppoints(x)
+  u_emp <- rank(x, na.last = NA, ties.method = "average")/(length(x)+1)
   q_emp <- x
   qq_fitted <- do.call(paste0('q',distribution), c(list(p = u_emp), fit))
 
