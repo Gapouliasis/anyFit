@@ -1,7 +1,29 @@
+#' @title normalise_xts
+#'
+#' @description This function normalizes an xts time series by transforming the data into standard normal
+#' distribution, either on a monthly basis or for the entire time series.
+#' Tranforming the data in the standard normal space can assist in visually identifying outliers.
+#' Using the monthly distribution to normalise the data can be useful in cyclo-stationary processes.
+#' In other cases, 'dist_period' should be set to NA.
+#'
+#'
+#' @param ts A xts object containing the time series data.
+#' @param dist_period The distribution period for normalization ('monthly' or NA).
+#' @param ignore_zeros A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.
+#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#'
+#' @return A list of normalized xts time series.
+#'
+#' @examples
+#'
+#' @import xts
+#'
+#' @export
+
 normalise_xts = function(ts, dist_period = 'monthly',
                          ignore_zeros = FALSE, zero_threshold = 0.01){
 
-  col_list = list()
+  out_list = list()
   ts_orig = ts
 
   for (c in 1:ncol(ts_orig)){
@@ -40,8 +62,9 @@ normalise_xts = function(ts, dist_period = 'monthly',
       normal_xts = xts(x = z_emp, order.by = index(ts))
     }
 
-    col_list = c(col_list, list(normal_xts))
+    out_list = c(out_list, list(normal_xts))
   }
 
-  normal_xts = do.call(cbind.xts, col_list)
-}
+  names(out_list) = colnames(ts_orig)
+  return(out_list)
+ }

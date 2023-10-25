@@ -8,7 +8,7 @@ delim2xts(
   file_path,
   time_zone,
   date_index = 1,
-  time_step = "1 day",
+  strict_step = TRUE,
   delim = "\\t",
   skip_rows = 0,
   col_names = TRUE,
@@ -25,7 +25,7 @@ delim2xts(
 
 \item{date_index}{Position of the date column in the data file.}
 
-\item{time_step}{Time step of the timeseries.}
+\item{strict_step}{Logical that indicates if the timeseries are recorded in strict timestep.}
 
 \item{delim}{Delimiter used in the data file.}
 
@@ -45,14 +45,18 @@ delim2xts(
 An xts object.
 }
 \description{
-A function to convert data from delimited files to xts objects.The function takes a file path, time zone, date index, time step, delimiter, skip rows, column names, no value, and exc_leaps (exclude 29th of February from leap years) as arguments. The use is given the option to save the xts dataset in a text file.
+A function to convert data from delimited files to xts objects.
+The function takes a file path, time zone, date index, time step, delimiter,
+skip rows, column names, no value, and exc_leaps (exclude 29th of February from leap years) as arguments.
+If the time step of the timeseries is strict then the function will try to identify potential gaps in the data and indicate them with NANs.
+Otherwise the function will return the raw dataset.
+The user is given the option to save the xts dataset in a text file.
 }
 \examples{
 file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
-time_step <- "1 day"
 
 data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
+                 time_zone = "UTC", delim = " ", strict_step = TRUE)
 
 }
