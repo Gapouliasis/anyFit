@@ -2,7 +2,7 @@
 #'
 #' @description This function checks if the L-ratios of a given time series
 #' are within the acceptable parameter space for four different distributions.
-#' These are the Dagum, GGamma, ExpWeibull, and BurrXII. TO BE EXANDED
+#' These are the Dagum, GGamma, ExpWeibull, and BurrXII. TO BE EXPANDED
 #'
 #' @param ts_lmoms A vector or a matrix of L-moments of the time series of interest.
 #' Can test multiple timeseries as columns of a matrix.

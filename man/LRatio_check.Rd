@@ -17,7 +17,7 @@ and a ggplot object with the visual representation of the test.
 \description{
 This function checks if the L-ratios of a given time series
 are within the acceptable parameter space for four different distributions.
-These are the Dagum, GGamma, ExpWeibull, and BurrXII. TO BE EXANDED
+These are the Dagum, GGamma, ExpWeibull, and BurrXII. TO BE EXPANDED
 }
 \examples{
 

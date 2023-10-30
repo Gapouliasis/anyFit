@@ -10,7 +10,7 @@
 \usage{
 pdagum(q, scale, shape1, shape2, PW = 1)
 
-ddagum(q, scale, shape1, shape2, PW = 1)
+ddagum(x, scale, shape1, shape2, PW = 1)
 
 qdagum(p, scale, shape1, shape2, PW = 1)
 

@@ -8,7 +8,7 @@
 \alias{rburr}
 \title{Burr Type XII Distribution}
 \usage{
-dburr(q, scale, shape1, shape2, PW = 1)
+dburr(x, scale, shape1, shape2, PW = 1)
 
 pburr(q, scale, shape1, shape2, PW = 1)
 

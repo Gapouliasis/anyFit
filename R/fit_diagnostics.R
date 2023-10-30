@@ -79,10 +79,10 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
   #   theme(legend.position='bottom') +
   #   labs(colour = 'Legend', x = 'data', y = 'P(x<X)') + scale_colour_manual(values = c('red','black')) +
   #   ggtitle('Probability Plot') +  scale_y_continuous(breaks = breaks, labels = breaks, trans = fit_trans)
-  Probplot <- ggplot() + geom_point(data = emp_data, aes(x=q_emp , y=u_emp), shape = 1, size = 2, stroke = 2) +
-    geom_line(data = fit_data, aes(x=q_fitted, y=u), size = 1) +
-    labs(colour = 'Legend', x = 'data', y = 'P(x<X)') +
-    ggtitle('Probability Plot') +  scale_y_continuous(breaks = breaks, labels = breaks, trans = fit_trans)
+  # Probplot <- ggplot() + geom_point(data = emp_data, aes(x=q_emp , y=u_emp), shape = 1, size = 2, stroke = 2) +
+  #   geom_line(data = fit_data, aes(x=q_fitted, y=u), size = 1) +
+  #   labs(colour = 'Legend', x = 'data', y = 'P(x<X)') +
+  #   ggtitle('Probability Plot') +  scale_y_continuous(breaks = breaks, labels = breaks, trans = fit_trans)
   #Probplot <- ggplot()
   param_list_temp4 <- params
   param_list_temp4$p <- u_emp
@@ -106,7 +106,8 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
     geom_line(data = pp_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
     ggtitle('P-P Plot')
 
-  diagnostics <- ggpubr::ggarrange(Probplot, QQplot, PPplot, nrow = 1, ncol = 3)
+  #diagnostics <- ggpubr::ggarrange(Probplot, QQplot, PPplot, nrow = 1, ncol = 3)
+  diagnostics <- ggpubr::ggarrange(QQplot, PPplot, nrow = 1, ncol = 2)
 
   #MLE <- sum(log(doeval(parse(text = dfunction))(x,par[1],par[2])))
   #KS <- ks.test(x = q_emp, y = qq_fitted)
@@ -116,6 +117,7 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
 
   GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS)
 
-  out_list <- list(Diagnostic_Plots = diagnostics, GoF = GoF, Probplot = Probplot , QQplot = QQplot, PPplot = PPplot)
+  #out_list <- list(Diagnostic_Plots = diagnostics, GoF = GoF, Probplot = Probplot , QQplot = QQplot, PPplot = PPplot)
+  out_list <- list(Diagnostic_Plots = diagnostics, GoF = GoF, QQplot = QQplot, PPplot = PPplot)
   return(out_list)
 }

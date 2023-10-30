@@ -4,7 +4,7 @@
 \alias{fitlm_dagum}
 \title{fitlm_dagum}
 \usage{
-fitlm_dagum(x, ignore_zeros = FALSE, zero_threshold = 0.01)
+fitlm_dagum(x, ignore_zeros = FALSE, zero_threshold = 0.01, method = "knn")
 }
 \arguments{
 \item{x}{A xts object containing the time series data.}
@@ -12,7 +12,16 @@ fitlm_dagum(x, ignore_zeros = FALSE, zero_threshold = 0.01)
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+
+\item{method}{The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.}
 }
 \description{
-Function for fitting the Dagum distribution using the L-Moments method
+Function for fitting the Dagum distribution using the L-Moments method.
+Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
+For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
+'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
+This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
+In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
+based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
 }

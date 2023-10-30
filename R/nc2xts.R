@@ -45,7 +45,7 @@ nc2xts = function(filename, varname, shapefile = NA, country = NA, continent = N
 
   nc_brick = raster::brick(filename, varname = varname, level = 1)
 
-  world_data = readRDS("data/world_data.rds")
+  #world_data = readRDS("data/world_data.rds")
   if (!is.na(country)){
     countries = world_data$name
     if (country %in% countries){
