@@ -24,6 +24,7 @@ AnyFit aims to address the above demands in a robust manner. It is based on the 
 * Perform distribution fitting at various temporal scales (e.g. monthly, annual) with ease
 * Provides support for some "exotic" distributions, such as the Dagum and BurXII
 * Extent summary statistics and distribution fitting functionality directly to spatial data and produce NetCDF files with results
+* Streamline the visualisation of spatial statistics
 
 In detail the distributions supported by anyFit are the following:
 * Exponential
