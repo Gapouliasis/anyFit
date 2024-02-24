@@ -59,15 +59,15 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
     stop('Argument period_multiplier must be a vector with the same length as periods')
   }
 
-  if (is.na(period_multiplier)){
-    period_multiplier = rep(1,length(periods))
-  }
+  # if (is.na(period_multiplier)){
+  #   period_multiplier = rep(1,length(periods))
+  # }
 
   plot_list = list(fraw)
   agg_list = list()
   #“secs” (seconds), “seconds”, “mins” (minutes), “minutes”, “hours”, “days”, “weeks”, “months”, “quarters”, and “years”
   suppressWarnings(
-    if (!is.na(periods)){
+    if (!is.na(periods)[1]){
       for (period in periods){
         if (period == 'months'){
           period_title <- 'Monthly'

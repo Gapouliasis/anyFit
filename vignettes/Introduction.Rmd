@@ -15,9 +15,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that make their study a cumbersome task. For example:
-
-
+Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that complicate their study. For example:
 
 * Seasonality 
 * Over-annual trends - long-term persistence
@@ -30,11 +28,38 @@ Importantly, many of these physical characteristics act on different scales, ran
 * Be data agnostic
 * Be able to handle multiple temporal scales
 * Be easily extensible 
-* Be able to handle large sets of data from multiple stations/locations efficiently 
+* Be able to handle large sets of data from multiple stations/locations efficiently
+* Be able to work with NetCDF files
 
-AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. Moreover, all visualization functions are implemented in ggplot2 package. AnyFit is developed with practitioners and researchers in mind. In this manner it streamlines the EDA with the stochastic modelling of hydrocliamtic variables using the anySim package, thus setting the foundations for a timeseries analysis and modeling ecosystem.   
+AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. Moreover, all visualization functions are implemented in ggplot2 package. AnyFit is developed with practitioners and researchers in mind. In this manner it streamlines the EDA with the stochastic modelling of hydrocliamtic variables using the anySim package, thus setting the foundations for a timeseries analysis and modeling ecosystem. Notable examples of anyFit functionality include:
 
-In the present document we are going to present the package capabilities through an application of 102 recorded, 105 years duration, daily precipitation timeseries from KNMI which are publicly accessible. We are going to conclude with two practical examples of stochastic modeling, one univariate and one cyclostationary univariate, using the anySim package.   
+* Read directly from delimited files to xts format
+* Identify gaps in data
+* Produce summary statistics at various temporal scales (e.g. monthly, annual) with ease
+* Perform distribution fitting at various temporal scales (e.g. monthly, annual) with ease
+* Provides support for some "exotic" distributions, such as the Dagum and BurXII
+* Extent summary statistics and distribution fitting functionality directly to spatial data and produce NetCDF files with results
+* Streamline the visualisation of spatial statistics
+
+In detail the distributions supported by anyFit are the following:
+* Exponential
+* Rayleigh
+* Gamma
+* Normal
+* Log-Normal
+* Generalized Logistic 
+* 3-parameter Weibull 
+* Gumbel
+* 3-parameter Gamma (PearsonIII)
+* Generalized Extreme Value Distribution (GEV) 
+* Generalized Pareto Distribution (GPD) 
+* Generalized Gamma 
+* Generalized Gamma with location 
+* BurXII 
+* Dagum 
+* Exponentiated Weibull
+
+In the present document we are going to present the package capabilities based on point precipitation measurements and gridded re-analysis data. Additionally, we will provide two practical examples of stochastic modeling, one univariate and one cyclostationary univariate, using the anySim package.   
 
 
 ```{r setup}
@@ -45,10 +70,9 @@ The analysis begins with loading the historical data. This is done by delim2xts 
 ```{r}
 file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
 time_zone <- "UTC"
-time_step <- "1 day"
 
 data <- delim2xts(file_path = file_path, 
-                  time_zone = "UTC", delim = " ", time_step = time_step)
+                  time_zone = "UTC", delim = " ", strict_step = TRUE)
 
 ```
 
@@ -73,7 +97,7 @@ bstats$quantiles_table
 ```
 The above statistics concerns the original scale of the data, i.e. daily. However, hydroclimatic processes act on different temporal scales. Therefore, it is useful to aggregate the data to several different temporal scales and examine their statistical properties. We will begin by aggregating and plotting in monthly, quarterly and annual scales. 
 ```{r,fig.fullwidth=TRUE}
-agg_ts <- aggregate_xts(data[,4], c("months","quarters","years"), FUN = 'sum')
+agg_ts <- aggregate_xts(ts = data[,4], periods = c("months","quarters","years"), FUN = 'sum')
 smonthly_ts <- agg_ts$list_months$aggregated
 agg_ts$Combined_Plot
 ```
@@ -141,16 +165,16 @@ Last but not least, AnyFit package incorporates L-Moment estimators for the foll
 * Gamma
 * Normal
 * Log-Normal
-* Generalized Logistic (in progress)
+* Generalized Logistic 
 * 3-parameter Weibull 
 * Gumbel
 * 3-parameter Gamma (PearsonIII)
-* Generalized Extreme Value Distribution (GEV) (in progress)
-* Generalized Pareto Distribution (GPD) (in progress)
+* Generalized Extreme Value Distribution (GEV) 
+* Generalized Pareto Distribution (GPD) 
 * Generalized Gamma 
-* Generalized Gamma with location (in progress)
-* BurXII (in progress)
-* Dagum (in progress)
+* Generalized Gamma with location 
+* BurXII 
+* Dagum 
 * Exponentiated Weibull
 
 The definition of the relevant function for the above distributions follows the typical definition of R language, e.g. qgamma for the quantile function of Gamma, pexp for the CDF of Exponential and rdagum for the random number generator of Dagum. The fitting function for each of the above are defined with the prefix "fitlm_". For example we try to fit the Exponentiated Weibull to station 4 data and get the distribution parameters and some goodness of fit measures. 
@@ -296,8 +320,31 @@ simXts <- xts::xts(x = simVector, order.by = dates)
 monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly$gamma3, ignore_zeros = TRUE)
 monthly_fcheck$monthly_QQplot
 ```
+anyFit additionally introduces functionality for gridded datasets which can be read from netCDF files. The statistical functionality for single timeseries (e.g. basic stats, distribution fitting) is extended to spatial data as well.   
+Firstly, we show how to extract point timeseries from a netCDF file and fit a distribution.   
 ```{r}
 file_path_nc <- system.file("extdata", "rr_ens_mean_0.25deg_reg_2011-2022_v27.0e.nc", package = "anyFit")
+
+coords = data.frame(x = 14.375,y = 62.625)
+
+point_xts = nc2xts_nn(filename = file_path_nc, varname = "rr", coords = coords)
+
+bstats <- basic_stats(point_xts, pstart = '2012',pend = '2014', show_table = FALSE,
+                      show_label = FALSE, ignore_zeros = TRUE)
+bstats$plot
+
+params = fitlm_burr(point_xts, ignore_zeros = TRUE)
+fit_check <- fit_diagnostics(point_xts, dist = 'burr',
+                             params = params$Param, ignore_zeros = TRUE)
+
+fit_check$Diagnostic_Plots
+```
+
+Instead just extracting the timeseries for a given location, we can investigate the timeseries over a region. anyFit provides the option of masking the raw dataset according to a country, continent or an arbitrary shapefile. Note that for the masking to work, both the raw data and the mask have to be in the same coordinate system. 
+
+Once the data are loaded we can aggregate them into different scales, for example annual and plot them. 
+
+```{r}
 
 data = nc2xts(filename = file_path_nc, varname = "rr", country = "Belgium")
 data_raster = data$raster
@@ -306,6 +353,8 @@ annual_data = period_apply_nc(data_raster, period = "years", FUN = "sum")
 
 annual_plot = nc_ggplot(annual_data,title = TRUE,viridis.option = "turbo",
                         legend.title = "Annual Precipitation (mm)", common.legend = TRUE, legend = "bottom")
+
+annual_plot
 
 stats = basic_stats_nc(annual_data, ignore_zeros = TRUE)
 
@@ -316,30 +365,28 @@ fits_all = fitlm_nc(data_raster, ignore_zeros = TRUE, candidates = "gamma")
 params_plot = nc_ggplot(fits_all$raster_params, viridis.option = "turbo")
 
 Lmom_plot = nc_ggplot(fits_all$raster_TheorLMom, viridis.option = "inferno")
+```
+Furthermore, we can provide statistics of the annual precipitation of Belgium, for example the mean, variance and the 95th quantile:
 
-nc_data = ncdf4::nc_open(filename = filename)
+```{r}
 
-y_coords = ncdf4::ncvar_get(nc_data, "latitude")
-x_coords = ncdf4::ncvar_get(nc_data, "longitude")
+stats = basic_stats_nc(annual_data, ignore_zeros = TRUE)
 
-coords = data.frame(x = x_coords[c(220)],y = y_coords[c(150)])
+plot_stats = nc_ggplot(stats[[c("Mean","Var","Q95")]])
 
-rnd_xts = nc2xts_nn(filename = filename, varname = "rr", coords = coords)
-
-params = fitlm_gengamma(data2[,4], ignore_zeros = TRUE)
-params = fitlm_burr(rnd_xts, ignore_zeros = TRUE)
-fit_check <- fit_diagnostics(rnd_xts, dist = 'burr',
-                             params = params$Param$para, ignore_zeros = TRUE)
-
-params = fitlm_dagum(rnd_xts, ignore_zeros = TRUE)
-fit_check <- fit_diagnostics(rnd_xts, dist = 'dagum',
-                             params = params$Param, ignore_zeros = TRUE)
-
-params = fitlm_gengamma(rnd_xts, ignore_zeros = TRUE)
-fit_check <- fit_diagnostics(rnd_xts, dist = 'gengamma',
-                             params = params$Param, ignore_zeros = TRUE)
-
-params = fitlm_gengamma_loc(rnd_xts, location = 0, ignore_zeros = TRUE)
+plot_stats
 ```
 
+After we have interogated our data we can fit a distribution:
+```{r}
 
+fits_all = fitlm_nc(data_raster, ignore_zeros = TRUE, candidates = "gamma")
+
+params_plot = nc_ggplot(fits_all$raster_params, viridis.option = "turbo")
+
+params_plot
+
+Lmom_plot = nc_ggplot(fits_all$raster_TheorLMom, viridis.option = "inferno")
+
+Lmom_plot
+```

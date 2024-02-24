@@ -1,6 +1,6 @@
 GOF_tests = function(x, fit, distribution){
-  u_emp <- rank(x, na.last = NA, ties.method = "average")/(length(x)+1)
-  q_emp <- x
+  u_emp <- rank(coredata(x), na.last = NA, ties.method = "average")/(length(x)+1)
+  q_emp <- coredata(x)
   qq_fitted <- do.call(paste0('q',distribution), c(list(p = u_emp), fit))
 
   CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)

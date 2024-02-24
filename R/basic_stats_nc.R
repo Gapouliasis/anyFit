@@ -1,7 +1,20 @@
 #' @title basic_stats_nc
 #'
 #' @description This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
-#' It returns the statistics in raster format.
+#' It returns the following statistics in raster format.
+#' \itemize{
+#' \item Number of Data - Number of missing data - Percentage of missing Data
+#' \item Minimum - Maximum - Average - Variance - Coefficient of Variation - Standard Deviation - Third moment - Skewness
+#' - Kurtosis
+#' \item L-mean, L-scale , 3rd and 4th L-coefficients
+#' \item Probability Dry
+#' \item Quantiles 5th , 25th, 50th, 75th, 95th - Interquartile range.
+#' \item Mean value and variance from a dry (defined by zero_threshold argument) to a wet state
+#' \item Mean value and variance from a wet to a dry (defined by zero_threshold argument) state
+#' \item Mean value and variance from a wet to a wet state
+#' \item Transition probability from a wet to a wet state
+#' \item Transition probability from a dry to a dry state
+#' }
 #'
 #' @param raster_file A raster file
 #' @param filename (optional) A NetCDF file name to import if raster_file is not provided.
