@@ -13,7 +13,7 @@
 #'
 #' @return A raster object containing basic statistics.
 #'
-#' @examples
+#' @examples TO BE FILLED
 #'
 #' @import raster
 #' @import xts

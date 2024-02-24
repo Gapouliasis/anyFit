@@ -16,7 +16,7 @@
 #' @return A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
 #' the sample L-Moments and goodness-of-fit statistics in raster format.
 #'
-#' @examples
+#' @examples TO BE FILLED
 #'
 #' @import raster
 #' @import xts

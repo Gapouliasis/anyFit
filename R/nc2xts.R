@@ -31,7 +31,6 @@
 #' @import raster
 #' @import xts
 #' @importFrom lubridate ymd ydm mdy myd dmy dym ymd_h dmy_h mdy_h ydm_h ymd_hm dmy_hm mdy_hm ydm_hm ymd_hms dmy_hms mdy_hms ydm_hms
-#' @importFrom rgdal readOGR
 #'
 #' @export
 
@@ -64,9 +63,8 @@ nc2xts = function(filename, varname, shapefile = NA, country = NA, continent = N
     }else{
       stop("Continent name is incorrect")
     }
-
-  }else if(!is.na(continent)){
-    mask = rgdal::readOGR(shapefile)
+  }else if(!is.na(shapefile)){
+    mask = raster::shapefile(shapefile)
     r2 <- raster::crop(nc_brick, raster::extent(mask))
     r3 <- raster::mask(r2, mask = mask)
   }else{

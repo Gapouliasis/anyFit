@@ -9,7 +9,7 @@
 #'
 #' @return A grid of monthly ECDF plots.
 #'
-#' @examples
+#' @examples TO BE FILLED
 #'
 #' @import ggplot2
 #' @import reshape2

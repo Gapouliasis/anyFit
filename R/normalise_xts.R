@@ -14,7 +14,7 @@
 #'
 #' @return A list of normalized xts time series.
 #'
-#' @examples
+#' @examples TO BE FILLED
 #'
 #' @import xts
 #'

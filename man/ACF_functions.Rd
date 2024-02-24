@@ -2,9 +2,15 @@
 % Please edit documentation in R/ACF_functions.R
 \name{CAS_ACF}
 \alias{CAS_ACF}
+\alias{HK_ACF}
+\alias{SRD_ACF}
 \title{ACF_functions}
 \usage{
 CAS_ACF(kappa, beta, lag_max = 10)
+
+HK_ACF(H, lag_max = 10)
+
+SRD_ACF(kappa, lag_max = 10)
 }
 \description{
 Theoretical ACF functions.

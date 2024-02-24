@@ -30,3 +30,7 @@ Tranforming the data in the standard normal space can assist in visually identif
 Using the monthly distribution to normalise the data can be useful in cyclo-stationary processes.
 In other cases, 'dist_period' should be set to NA.
 }
+\examples{
+TO BE FILLED
+
+}

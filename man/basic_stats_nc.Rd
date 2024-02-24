@@ -36,3 +36,7 @@ A raster object containing basic statistics.
 This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
 It returns the statistics in raster format.
 }
+\examples{
+TO BE FILLED
+
+}

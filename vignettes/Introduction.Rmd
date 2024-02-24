@@ -299,7 +299,7 @@ monthly_fcheck$monthly_QQplot
 ```{r}
 file_path_nc <- system.file("extdata", "rr_ens_mean_0.25deg_reg_2011-2022_v27.0e.nc", package = "anyFit")
 
-data = nc2xts(filename = filename, varname = "rr", country = "Belgium")
+data = nc2xts(filename = file_path_nc, varname = "rr", country = "Belgium")
 data_raster = data$raster
 
 annual_data = period_apply_nc(data_raster, period = "years", FUN = "sum")

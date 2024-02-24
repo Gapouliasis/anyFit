@@ -20,3 +20,7 @@ A grid of monthly ECDF plots.
 This function takes a time series and generates a grid of monthly Empirical
 Cumulative Distribution Function (ECDF) plots for each month in the time series.
 }
+\examples{
+TO BE FILLED
+
+}
