@@ -106,7 +106,6 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
     geom_line(data = pp_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
     ggtitle('P-P Plot')
 
-  #diagnostics <- ggpubr::ggarrange(Probplot, QQplot, PPplot, nrow = 1, ncol = 3)
   diagnostics <-  patchwork::wrap_plots(QQplot, PPplot, nrow = 1, ncol = 2)
 
   #MLE <- sum(log(doeval(parse(text = dfunction))(x,par[1],par[2])))

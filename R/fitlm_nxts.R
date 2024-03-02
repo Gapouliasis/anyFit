@@ -67,10 +67,11 @@ fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
       temp_QQ <- QQ_plots[(1 + (i-1)*n_plots):ncol(ts)]
       temp_PP <- PP_plots[(1 + (i-1)*n_plots):ncol(ts)]
     }
-    QQ_panels <- c(QQ_panels, list(ggpubr::ggarrange(plotlist = temp_QQ, nrow = nrow, ncol = ncol,
-                                                             common.legend = TRUE, legend = 'bottom')))
-    PP_panels <- c(PP_panels, list(ggpubr::ggarrange(plotlist = temp_PP, nrow = nrow, ncol = ncol,
-                                                             common.legend = TRUE, legend = 'bottom')))
+    QQ_panels <- c(QQ_panels, list(patchwork::wrap_plots(plotlist = temp_QQ, nrow = nrow, ncol = ncol)+
+                                     plot_layout(guides = "collect") & theme(legend.position = 'bottom')))
+
+    PP_panels <- c(PP_panels, list(patchwork::wrap_plots(plotlist = temp_PP, nrow = nrow, ncol = ncol)+
+                                     plot_layout(guides = "collect") & theme(legend.position = 'bottom')))
   }
 
   return(list(params = params, diagnostic_plots = diagnostic_plots, QQ_plots = QQ_plots,

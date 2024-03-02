@@ -7,7 +7,7 @@
 #' @param title Logical, whether to add variable names as plot titles.
 #' @param legend.title The title for the color legend.
 #' @param viridis.option The viridis color palette option (e.g., "viridis", "magma", "plasma").
-#' @param ... Additional arguments to pass to 'ggarrange' function from the 'ggpubr' package.
+#' @param ... Additional arguments to pass to 'wrap_plots' function from the 'patchwork' package.
 #'
 #' @return A ggplot2 object representing the raster plot.
 #'
@@ -23,7 +23,6 @@
 #' @importFrom raster as.data.frame
 #' @importFrom raster raster
 #' @import viridis
-#' @import ggpubr
 #'
 #' @export
 
@@ -58,7 +57,7 @@ nc_ggplot = function(raster_file, title = FALSE, legend.title = NA, viridis.opti
     temp_list = c(temp_list, list(temp_plot))
   }
 
-  ncdf_plot = ggpubr::ggarrange(plotlist = temp_list, ...)
+  ncdf_plot = patchwork::wrap_plots(plotlist = temp_list, ...)
 
 
   return(ncdf_plot)

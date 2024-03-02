@@ -21,7 +21,7 @@ nc_ggplot(
 
 \item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
 
-\item{...}{Additional arguments to pass to 'ggarrange' function from the 'ggpubr' package.}
+\item{...}{Additional arguments to pass to 'wrap_plots' function from the 'patchwork' package.}
 }
 \value{
 A ggplot2 object representing the raster plot.

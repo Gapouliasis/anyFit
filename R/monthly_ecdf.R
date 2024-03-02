@@ -13,7 +13,6 @@
 #'
 #' @import ggplot2
 #' @import reshape2
-#' @import ggpubr
 #'
 #' @export
 monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
