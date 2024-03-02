@@ -107,7 +107,7 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
     ggtitle('P-P Plot')
 
   #diagnostics <- ggpubr::ggarrange(Probplot, QQplot, PPplot, nrow = 1, ncol = 3)
-  diagnostics <- ggpubr::ggarrange(QQplot, PPplot, nrow = 1, ncol = 2)
+  diagnostics <-  patchwork::wrap_plots(QQplot, PPplot, nrow = 1, ncol = 2)
 
   #MLE <- sum(log(doeval(parse(text = dfunction))(x,par[1],par[2])))
   #KS <- ks.test(x = q_emp, y = qq_fitted)

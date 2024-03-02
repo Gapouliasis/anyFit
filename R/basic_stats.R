@@ -42,6 +42,7 @@
 #'
 #' @import zoo
 #' @import ggplot2
+#' @import patchwork
 #'
 #' @examples
 #'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
@@ -120,7 +121,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   if (ignore_zeros == TRUE){ ts_df <- as.data.frame(ts_df[ts_df > zero_threshold,])}
   names(ts_df) <- 'X'
   plot_hist <- ggplot(ts_df , aes(x=X)) +
-    geom_histogram(aes(y=..density..), bins = nbins,     # Histogram with density instead of count on y-axis
+    geom_histogram(aes(y=after_stat(density)), bins = nbins,     # Histogram with density instead of count on y-axis
                    colour='black', fill='white') +
     geom_density(alpha=.2, fill='#FF6666') + # Overlay with transparent density plot
     labs(x = colnames(ts), y = 'Density') + ggtitle('PDF')
@@ -138,9 +139,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 
   plot_acf <- ggplot(acf2df, aes(x = Lag, y = ACF)) + geom_point() + geom_line() + ggtitle('ACF') #+ ylab(expression(rho_{t,t-1}))
 
-  combi_plot <- ggpubr::ggarrange(ggpubr::ggarrange(plot_rawts,plot_hist, widths = c(1.5,1), ncol = 2),
-                                  ggpubr::ggarrange(plot_ecdf,plot_acf, ncol = 2), nrow = 2)
-
+  combi_plot <- (plot_rawts + plot_hist +  plot_layout(widths = c(1.5, 1)))/(plot_ecdf + plot_acf)
 
   NumofData <- length(ts)
   NumofMisData <- length(ts[is.na(ts)])

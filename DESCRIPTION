@@ -1,5 +1,6 @@
 Package: anyFit
-Title: anyFit: Exploratory Data Analysis on xts timeseries objects and spatial netCDF objects
+Title: anyFit: Exploratory Data Analysis on xts timeseries objects and
+    spatial netCDF objects
 Version: 0.0.0.9000
 Authors@R: 
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
@@ -17,7 +18,6 @@ Imports:
     fitdistrplus,
     ggfortify,
     ggplot2,
-    ggpubr,
     ggridges,
     glue,
     gridExtra,
@@ -30,6 +30,7 @@ Imports:
     moments,
     ncdf4,
     parallel,
+    patchwork,
     PearsonDS,
     pracma,
     RANN,

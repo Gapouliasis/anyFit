@@ -87,7 +87,7 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
     geom_line(data = pp_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
     ggtitle('P-P Plot') + scale_color_brewer(palette='Set1')
 
-  combined <- ggpubr::ggarrange(QQplot,PPplot, nrow = 1, ncol = 2)
+  combined <-  patchwork::wrap_plots(QQplot,PPplot, nrow = 1, ncol = 2)
 
   names(params_list) <- unlist(candidates)
 

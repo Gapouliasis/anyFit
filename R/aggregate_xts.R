@@ -136,7 +136,7 @@ aggregate_xts <- function(ts, periods = NA, FUN = 'mean', period_multiplier = NA
 
   nperiods <- length(periods)
 
-  f_combined = ggpubr::ggarrange(plotlist = plot_list, nrow = (nperiods + 1), ncol = 1)
+  f_combined = patchwork::wrap_plots(plotlist = plot_list, nrow = (nperiods + 1), ncol = 1)
   list_out = c(list(f_combined), agg_list)
   names(list_out) = c('Combined_Plot', paste('list',periods,sep = '_'))
 

@@ -44,9 +44,9 @@ monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
     monthly_plots = c(monthly_plots, list(monthly_ecdf_plot))
   }
 
-  plot_ecdfs = ggpubr::ggarrange(plotlist = monthly_plots,
-                    nrow = 4, ncol = 3,
-                    common.legend = TRUE, legend = 'bottom')
+  plot_ecdfs = patchwork::wrap_plots(plotlist = monthly_plots,
+                    nrow = 4, ncol = 3) +
+    plot_layout(guides = "collect") & theme(legend.position = 'bottom')
   return(plot_ecdfs)
 }
 

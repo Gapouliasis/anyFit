@@ -116,7 +116,7 @@ correl_plots <- function(x,y, check_common = TRUE,ignore_zeros = FALSE,
     annotate("label", x = -2.5, y = 3.5, label = sprintf("rho==%1.2f",nrho4), parse = TRUE) +
     labs(color = 'Case', y = colnames(y), x = colnames(x)) + ggtitle("Standard Normal Plot") + xlim(-3.5, 3.5) + ylim(-3.5,3.5)
 
-  f <- ggpubr::ggarrange(plot11, plot12, plot13, ncol = 3 , nrow = 1)
+  f <-  patchwork::wrap_plots(plot11, plot12, plot13, ncol = 3 , nrow = 1)
   output_list <- list(combined = f, scatter_plot = plot11, copula_plot = plot12, normal_plot = plot13, correl_table = correl_table)
   return(output_list)
 }

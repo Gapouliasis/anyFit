@@ -59,10 +59,10 @@ fit_ACF_monthly <- function(ts,lag,type = list('CAS','HK','SRD'), nrow = 4, ncol
     }
   }
 
-  ACF_monthly_plot <- ggpubr::ggarrange(plot_1, plot_2, plot_3, plot_4,
+  ACF_monthly_plot <-  patchwork::wrap_plots(plot_1, plot_2, plot_3, plot_4,
                                         plot_5, plot_6, plot_7, plot_8,
-                                        plot_9, plot_10, plot_11, plot_12, nrow = nrow, ncol = ncol,
-                                        common.legend = TRUE, legend = "bottom")
+                                        plot_9, plot_10, plot_11, plot_12, nrow = nrow, ncol = ncol) +
+    plot_layout(guides = "collect") & theme(legend.position = 'bottom')
 
   out <- list("ACF_params_monthly" = ACF_params_monthly,
               "ACF_monthly_plot" = ACF_monthly_plot)

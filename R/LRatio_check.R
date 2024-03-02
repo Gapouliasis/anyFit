@@ -68,7 +68,7 @@ LRatio_check <- function(ts_lmoms){
   check_space$ExpWeibull$plot <- check_space$ExpWeibull$plot + ggtitle(names(r_space)[3])
   check_space$BurrXII$plot <- check_space$BurrXII$plot + ggtitle(names(r_space)[4])
 
-  vis_space_all <- ggpubr::ggarrange(plotlist  = sapply(check_space,function(x) x[2]))
+  vis_space_all <-  patchwork::wrap_plots(plotlist  = sapply(check_space,function(x) x[2]))
 
   list(test=check_space, multi_plots = vis_space_all)
 

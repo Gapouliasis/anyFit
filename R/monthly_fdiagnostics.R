@@ -71,12 +71,12 @@ monthly_fdiagnostics <- function(ts, distr, params, ignore_zeros = FALSE, zero_t
     }
   }
 
-  monthly_QQplot <- ggpubr::ggarrange(plotQQ_1, plotQQ_2, plotQQ_3, plotQQ_4,
+  monthly_QQplot <- patchwork::wrap_plots(plotQQ_1, plotQQ_2, plotQQ_3, plotQQ_4,
                                       plotQQ_5, plotQQ_6, plotQQ_7, plotQQ_8,
                                       plotQQ_9, plotQQ_10, plotQQ_11, plotQQ_12,
                                       nrow = nrow, ncol = ncol)
 
-  monthly_PPplot <- ggpubr::ggarrange(plotPP_1, plotPP_2, plotPP_3, plotPP_4,
+  monthly_PPplot <- patchwork::wrap_plots(plotPP_1, plotPP_2, plotPP_3, plotPP_4,
                                       plotPP_5, plotPP_6, plotPP_7, plotPP_8,
                                       plotPP_9, plotPP_10, plotPP_11, plotPP_12,
                                       nrow = nrow, ncol = ncol)
