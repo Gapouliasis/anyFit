@@ -99,10 +99,9 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
     scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Probability Dry') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Probability Dry - Base Scale')
 
-  fraw <- ggpubr::ggarrange(pltr_mean, pltr_stdev, pltr_skews, pltr_pdr, nrow = 2, ncol = 2)
+  fraw <- patchwork::wrap_plots(pltr_mean, pltr_stdev, pltr_skews, pltr_pdr, nrow = 2, ncol = 2)
   if (title == TRUE){
-    fraw <- ggpubr::annotate_figure(fraw, top = ggpubr::text_grob('Monthly Statistics on original scale',
-                                                                  face = 'bold', size = 14),fig.lab.pos = c('top.left'))
+    fraw <- fraw + plot_annotation(title = 'Monthly Statistics on original scale')
   }
 
 
@@ -162,10 +161,9 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
       scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Correlation') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Correlation')
 
-    faggre <- ggpubr::ggarrange(plt_mean, plt_stdev, plt_skews, plt_correls, nrow = 2, ncol = 2)
+    faggre <- patchwork::wrap_plots(plt_mean, plt_stdev, plt_skews, plt_correls, nrow = 2, ncol = 2)
     if (title == TRUE){
-      faggre <- ggpubr::annotate_figure(faggre, top = ggpubr::text_grob('Monthly Scale Statistics',
-                                                                        face = 'bold', size = 14),fig.lab.pos = c('top.left'))
+      faggre <- faggre + plot_annotation(title =  'Monthly Scale Statistics')
     }
   }
 
