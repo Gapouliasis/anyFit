@@ -8,6 +8,7 @@ nc_ggplot(
   raster_file,
   title = FALSE,
   legend.title = NA,
+  common.legend = FALSE,
   viridis.option = "viridis",
   ...
 )
@@ -18,6 +19,8 @@ nc_ggplot(
 \item{title}{Logical, whether to add variable names as plot titles.}
 
 \item{legend.title}{The title for the color legend.}
+
+\item{common.legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
 
 \item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
 
