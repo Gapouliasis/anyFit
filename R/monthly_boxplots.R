@@ -29,6 +29,10 @@ monthly_boxplots <- function(ts, palette = 'Set1', ignore_zeros = FALSE,
   ts <- coredata(ts)
   ts <- as.data.frame(ts)
   colnames(ts) <- varnames
+  if (is.null(varnames)){
+    varnames = rep('V', ncol(ts))
+    varnames = paste0(varnames,seq(1,ncol(ts)))
+  }
   ts$month <- factor(month.name[month_ID], levels = month.name)
   ts_melt <- reshape2::melt(ts, id.vars = (length(varnames) + 1))
   if (ignore_zeros == TRUE){

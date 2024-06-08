@@ -24,9 +24,6 @@
 
 monthly_violins <- function(ts,palette='Set3',ignore_zeros = FALSE,
                             zero_threshold = 0.01){
-  if (ignore_zeros == TRUE){
-    ts <- ts[ts > zero_threshold,]
-  }
   month_ID <- month(ts)
   varnames <- colnames(ts)
   ts <- coredata(ts)
@@ -38,6 +35,9 @@ monthly_violins <- function(ts,palette='Set3',ignore_zeros = FALSE,
   }
   ts$month <- factor(month.name[month_ID], levels = month.name)
   ts_melt <- reshape2::melt(ts, id.vars = (length(varnames) + 1))
+  if (ignore_zeros == TRUE){
+    ts_melt <- ts_melt[ts_melt$value > zero_threshold,]
+  }
 
   if (length(varnames) > 1){
     violin <- ggplot(data = ts_melt, aes(x=month, y=value, fill=variable)) +
