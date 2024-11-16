@@ -27,17 +27,33 @@
 #'
 #' @export
 
-nc_ggplot = function (raster_file, title = FALSE, legend.title = NA, common.legend = FALSE, viridis.option = "viridis",
+nc_ggplot = function (raster_file, title = FALSE, legend.title = NA, common_legend = FALSE, viridis.option = "viridis",
                        ...) {
   raster_df <- raster::as.data.frame(raster_file, xy = TRUE)
   rownames(raster_df) <- NULL
   low_lim = min(raster_df[, -c(1,2)], na.rm = TRUE)
   upp_lim = max(raster_df[, -c(1,2)], na.rm = TRUE)
+  raw_dates = colnames(raster_df)[-c(1,2)]
+  dates = gsub("X", replacement = "", x = raw_dates)
+  funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
+           "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
+           "mdy HMS", "ydm HMS")
+  flag = TRUE
+  dates = tryCatch({
+    dates =parse_date_time(dates, orders = funs)}, warning = function(w) {
+      if ( conditionMessage(w) == "All formats failed to parse. No formats found."){
+        return(FALSE)
+      }})
+
+  if (dates[1] != FALSE){
+    colnames(raster_df)[3:ncol(raster_df)] = as.character(dates)
+  }
+
   temp_list = list()
   for (i in 3:ncol(raster_df)) {
     temp_df = cbind(raster_df[, c(1, 2)], raster_df[, i])
     colnames(temp_df)[3] = colnames(raster_df)[i]
-    if (common.legend == TRUE){
+    if (common_legend == TRUE){
       temp_plot = ggplot(data = temp_df) + geom_raster(aes(x = x,
                                                            y = y, fill = !!sym(colnames(temp_df)[3]))) + coord_equal() +
         theme_void() + viridis::scale_fill_viridis(na.value = "white", option = viridis.option, limits = c(low_lim, upp_lim)) +
@@ -64,7 +80,7 @@ nc_ggplot = function (raster_file, title = FALSE, legend.title = NA, common.lege
     temp_list = c(temp_list, list(temp_plot))
   }
   ncdf_plot = patchwork::wrap_plots(plotlist = temp_list, ...)
-  if(common.legend == TRUE){
+  if(common_legend == TRUE){
     ncdf_plot = ncdf_plot + plot_layout(guides = "collect") & theme(legend.position = 'bottom')
   }
   return(ncdf_plot)

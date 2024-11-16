@@ -34,71 +34,69 @@
 #'
 #' @export
 
-#filename = "C:/Users/Admin/Downloads/rr_ens_mean_0.25deg_reg_2011-2022_v27.0e.nc"
-#filename = "C:/Users/Admin/Documents/ERA5/ERA5_2022_TotalPrecipitation_Europe.nc"
-
-nc2xts = function(filename, varname, shapefile = NA, country = NA, continent = NA){
+nc2xts = function (filename, varname, shapefile = NA, country = NA, continent = NA) {
   nc_data = ncdf4::nc_open(filename = filename)
-
-  #names(nc_data$var)
-
   nc_brick = raster::brick(filename, varname = varname, level = 1)
-
-  #world_data = readRDS("data/world_data.rds")
-  if (!is.na(country)){
+  if (!is.na(country)) {
     countries = world_data$name
-    if (country %in% countries){
-      mask = subset(world_data, name==country)
+    if (country %in% countries) {
+      mask = subset(world_data, name == country)
       r2 <- raster::crop(nc_brick, raster::extent(mask))
       r3 <- raster::mask(r2, mask = mask)
-    }else{
+    }
+    else {
       stop("Country name is incorrect")
     }
-  }else if(!is.na(continent)){
+  }
+  else if (!is.na(continent)) {
     continents = world_data$continent
-    if (continent %in% continents){
-      mask = subset(world_data, continent==continent)
+    if (continent %in% continents) {
+      mask = subset(world_data, continent == continent)
       r2 <- raster::crop(nc_brick, raster::extent(mask))
       r3 <- raster::mask(r2, mask = mask)
-    }else{
+    }
+    else {
       stop("Continent name is incorrect")
     }
-  }else if(!is.na(shapefile)){
+  }
+  else if (!is.na(shapefile)) {
     mask = raster::shapefile(shapefile)
     r2 <- raster::crop(nc_brick, raster::extent(mask))
     r3 <- raster::mask(r2, mask = mask)
-  }else{
+  }
+  else {
     r3 = nc_brick
   }
-
   t = raster::rasterToPoints(r3)
   tt = t(t)
-  coords = t(tt[c(1,2),])
-  tt = tt[-c(1,2),]
+  coords = t(tt[c(1, 2), ])
+  tt = tt[-c(1, 2), ]
 
-  dates = rownames(tt)
-  temp_dates = gsub("X",replacement = "",x=dates)
-  funs = c(ymd, ydm, mdy, myd, dmy, dym,
-           ymd_h, dmy_h, mdy_h, ydm_h,
-           ymd_hm, dmy_hm, mdy_hm, ydm_hm,
-           ymd_hms, dmy_hms, mdy_hms, ydm_hms)
-  for (tfun in funs){
-    param_list = list(data = temp_dates)
-    param_list$tz = 'UTC'
-    dates = tryCatch({do.call(tfun,param_list)},
-                     warning = function(w) {})
-    if (!is.null(dates)){
+  var_names = names(nc_data$dim)
+
+  time_var = NULL
+  for (var in var_names) {
+    attr_units = ncdf4::ncatt_get(nc_data, var, "units")$value
+    if (!is.null(attr_units) && grepl("since", attr_units)) {
+      time_var = var
+      base_date = as.POSIXct(sub(".*since ", "", attr_units), tz = "UTC")
+      base_time = sub(" since.*", "", attr_units)
       break
     }
   }
 
-  ncdf_xts = xts(x = tt,order.by = dates)
+  # Display the identified time variable
+  # print(paste0("Time variable name is:", time_var))
+  raw_dates = ncdf4::ncvar_get(nc_data, time_var)
+  dates = base_date + do.call(base_time, list(raw_dates))
 
-  list_out = list(raster = r3, ncdf_xts = ncdf_xts, dates = dates, coordinates = coords)
-
+  r4 = raster::setZ(r3, as.character(dates))
+  names(r4) = as.character(dates)
+  ncdf_xts = xts(x = tt, order.by = dates)
+  list_out = list(raster = r4, ncdf_xts = ncdf_xts, dates = dates,
+                  coordinates = coords)
   return(list_out)
 }
-
 
 
 

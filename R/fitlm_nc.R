@@ -40,19 +40,11 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
     tt = tt[-c(1,2),]
     dates = rownames(tt)
     temp_dates = gsub("X",replacement = "",x=dates)
-    funs = c(ymd, ydm, mdy, myd, dmy, dym,
-             ymd_h, dmy_h, mdy_h, ydm_h,
-             ymd_hm, dmy_hm, mdy_hm, ydm_hm,
-             ymd_hms, dmy_hms, mdy_hms, ydm_hms)
-    for (tfun in funs){
-      param_list = list(data = temp_dates)
-      param_list$tz = 'UTC'
-      dates = tryCatch({do.call(tfun,param_list)},
-                       warning = function(w) {})
-      if (!is.null(dates)){
-        break
-      }
-    }
+    funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
+             "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
+             "mdy HMS", "ydm HMS")
+
+    dates=parse_date_time(temp_dates, orders = funs)
     ncdf_xts = xts(x = tt,order.by = dates)
   }
 

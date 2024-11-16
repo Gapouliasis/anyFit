@@ -38,10 +38,6 @@
 delim2xts <- function(file_path,time_zone,date_index = 1,strict_step = TRUE,
                       delim = '\t', skip_rows = 0, col_names = TRUE,
                        no_value = NA, exc_leaps = TRUE,save_Xts = FALSE, filename = NA){
-  # library(xts)
-  # library(lubridate)
-  # library(rdwd)
-  # library(readr)
 
   RawData <- readr::read_delim(file_path, skip = skip_rows, col_names = col_names,
                           delim = delim, escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
@@ -54,21 +50,11 @@ delim2xts <- function(file_path,time_zone,date_index = 1,strict_step = TRUE,
     Data <- RawData
   }
 
+  funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
+           "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
+           "mdy HMS", "ydm HMS")
 
-  # create empty xts full series to put variables
-  funs = c(ymd, ydm, mdy, myd, dmy, dym,
-           ymd_h, dmy_h, mdy_h, ydm_h,
-           ymd_hm, dmy_hm, mdy_hm, ydm_hm,
-           ymd_hms, dmy_hms, mdy_hms, ydm_hms)
-  for (tfun in funs){
-    param_list = list(data = Data[, date_index, drop = TRUE])
-    param_list$tz = 'UTC'
-    dates = tryCatch({do.call(tfun,param_list)},
-                     warning = function(w) {})
-    if (!is.null(dates)){
-      break
-    }
-  }
+  dates = parse_date_time(Data[date_index, drop = TRUE], orders = funs, tz = time_zone)
 
   if (strict_step){
     starttime = min(dates)
