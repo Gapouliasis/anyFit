@@ -92,9 +92,8 @@ nc2xts = function (filename, varname, shapefile = NA, country = NA, continent = 
 
   r4 = raster::setZ(r3, as.character(dates))
   names(r4) = as.character(dates)
-  ncdf_xts = xts(x = tt, order.by = dates)
-  list_out = list(raster = r4, ncdf_xts = ncdf_xts, dates = dates,
-                  coordinates = coords)
+  ncdf_sxts <- sxts(data = tt, order.by = dates, coords = coords, projection = raster::projection(r4))
+  list_out = list(raster = r4, ncdf_sxts = ncdf_sxts)
   return(list_out)
 }
 

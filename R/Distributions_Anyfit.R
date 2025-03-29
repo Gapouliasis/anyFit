@@ -6,9 +6,9 @@ GOF_tests = function(x, fit, distribution){
   CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
   KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
 
-  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit))))
+  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit)) + 0.00001))
   plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles = -do.call(paste0('q',distribution), c(list(p = plotpos), fit))
+  theorquantiles = do.call(paste0('q',distribution), c(list(p = plotpos), fit))
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
   samplesort<-sort(x,decreasing=TRUE)[1:10]
 
