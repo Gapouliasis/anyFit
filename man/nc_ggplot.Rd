@@ -8,7 +8,7 @@ nc_ggplot(
   raster_file,
   title = FALSE,
   legend.title = NA,
-  common.legend = FALSE,
+  common_legend = FALSE,
   viridis.option = "viridis",
   ...
 )
@@ -20,11 +20,11 @@ nc_ggplot(
 
 \item{legend.title}{The title for the color legend.}
 
-\item{common.legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
-
 \item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
 
 \item{...}{Additional arguments to pass to 'wrap_plots' function from the 'patchwork' package.}
+
+\item{common.legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
 }
 \value{
 A ggplot2 object representing the raster plot.

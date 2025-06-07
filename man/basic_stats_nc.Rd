@@ -11,6 +11,7 @@ basic_stats_nc(
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
   parallel = FALSE,
+  ncores = 2,
   ...
 )
 }
