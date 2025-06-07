@@ -11,6 +11,7 @@
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
+#' @param ncores Number of cores to use in the case of parallel computations
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
@@ -27,7 +28,7 @@
 #'
 fitlm_nc = function(raster_file, filename = NA, varname = NA,
                     candidates = 'norm',ignore_zeros = FALSE, zero_threshold = 0.01 ,
-                    parallel = FALSE,...){
+                    parallel = FALSE, ncores = 2, ...){
 
   if (!is.na(filename)){
     temp = nc2xts(filename = filename, varname = varname,...)
@@ -50,12 +51,12 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
 
   if(Sys.info()['sysname'] == "Windows" & parallel){
     ncdf_fits = parallelsugar::mclapply(1:ncol(ncdf_xts),
-                       FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                    candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
+                                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
   }else if(parallel){
     ncdf_fits = parallel::mclapply(1:ncol(ncdf_xts),
-                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
+                                   FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
   }else{
     ncdf_fits = lapply(1:ncol(ncdf_xts),
                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
