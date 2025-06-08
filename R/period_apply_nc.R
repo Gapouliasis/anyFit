@@ -34,38 +34,28 @@
 #'
 
 #' @export
-period_apply_nc = function (raster_file, filename = NA, varname = NA, period = "months",
+period_apply_nc = function (data, filename = NA, varname = NA, period = "months",
                             period_multiplier = 1, FUN = "mean", ...){
   if (!is.na(filename)) {
     temp = nc2xts(filename = filename, varname = varname,
                   ...)
-    raster_file = temp$raster
-    ncdf_xts = temp$ncdf_xts
+    ncdf_sxts = temp$ncdf_sxts
   }
-  else {
-    start_time <- Sys.time()
-    t = raster::rasterToPoints(raster_file)
-    tt = t(t)
-    coords = t(tt[c(1, 2), ])
-    tt = tt[-c(1, 2), ]
-    dates = rownames(tt)
-    temp_dates = gsub("X", replacement = "", x = dates)
-    funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
-             "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
-             "mdy HMS", "ydm HMS")
+  else if ("raster" %in% class(data)){
+    ncdf_sxts <- rasterFromSxts.sxts(data)
+  } else {
+    ncdf_sxts <- data
+  }
 
-    dates=parse_date_time(temp_dates, orders = funs)
-    ncdf_xts = xts(x = tt, order.by = dates)
-  }
-  spec_period <- endpoints(ncdf_xts, on = period, k = period_multiplier)
-  ncdf_stats = lapply(1:ncol(ncdf_xts), FUN = function(x) {
-    period.apply(ncdf_xts[, x], spec_period, FUN = FUN)
+  spec_period <- endpoints(ncdf_sxts, on = period, k = period_multiplier)
+  ncdf_stats = lapply(1:ncol(ncdf_sxts), FUN = function(x) {
+    period.apply(ncdf_sxts[, x], spec_period, FUN = FUN)
   })
-  ncdf_stats = t(do.call(cbind, ncdf_stats))
-  ncdf_stats = cbind(coords, ncdf_stats)
-  raster_fun = raster::rasterFromXYZ(ncdf_stats)
-  projection(raster_fun) = raster::projection(raster_file)
-  return(raster_fun)
+  ncdf_stats = do.call(cbind, ncdf_stats)
+  # ncdf_stats = cbind(coords, ncdf_stats)
+  # raster_fun = raster::rasterFromXYZ(ncdf_stats)
+  # projection(raster_fun) = raster::projection(raster_file)
+  return(ncdf_stats)
 }
 
 
