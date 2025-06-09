@@ -10,6 +10,8 @@
 #' @param ncol Number of columns for plotting.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param parallel Logical, whether to use parallel processing.
+#' @param ncores Number of cores to use in the case of parallel computations
 #'
 #' @return A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.
 #'
@@ -29,15 +31,38 @@
 #' @export
 
 fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
-                       zero_threshold = 0.01){
+                       zero_threshold = 0.01, parallel = FALSE, ncores = 2){
   variables <- colnames(ts)
   ts_list <- list()
   for (i in 1:ncol(ts)){
     ts_list <- c(ts_list, list(na.omit(ts[,i])))
   }
 
-  multi_fits <- lapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
-                       zero_threshold = zero_threshold)
+
+  if(Sys.info()['sysname'] == "Windows" & parallel){
+    ncdf_fits = parallelsugar::mclapply(1:ncol(ncdf_xts),
+                                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
+  }else if(parallel){
+    ncdf_fits = parallel::mclapply(1:ncol(ncdf_xts),
+                                   FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
+  }else{
+    ncdf_fits = lapply(1:ncol(ncdf_xts),
+                       FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                    candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
+  }
+
+  if(Sys.info()['sysname'] == "Windows" & parallel){
+    multi_fits <- parallelsugar::mclapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
+                         zero_threshold = zero_threshold, mc.cores = ncores)
+  }else if(parallel){
+    multi_fits <- parallel::mclapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
+                                          zero_threshold = zero_threshold, mc.cores = ncores)
+  }else{
+    multi_fits <- lapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
+                         zero_threshold = zero_threshold)
+  }
 
   params <- list()
   diagnostic_plots <- list()

@@ -6,7 +6,7 @@ GOF_tests = function(x, fit, distribution){
   CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
   KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
 
-  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit)) + 0.00001))
+  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit)) + 0.000001))
   plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
   theorquantiles = do.call(paste0('q',distribution), c(list(p = plotpos), fit))
   theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
@@ -897,11 +897,6 @@ rgengamma=function(n,scale, shape1, shape2){
 #' @description Function for fitting the Generalized Gamma distribution using the L-Moments method
 #' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 #' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-#' In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
-#' 'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
-#' This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
-#' In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
-#' based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
 #'
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
@@ -911,100 +906,45 @@ rgengamma=function(n,scale, shape1, shape2){
 #' @export
 #'
 
-fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn')  {
+fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+  max_order = max(4,order)
   x <- na.omit(coredata(x))
+  PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
   }else{
     NZ=x
   }
 
-  lm=lmom::samlmu(NZ)[1:4]
-  pfunction=pgengamma
-  qfunction=qgengamma
-  dfunction = dgengamma
+  pfunction=anyFit::pgengamma
+  qfunction=anyFit::qgengamma
+  dfunction = anyFit::dgengamma
 
-  switch(method,
-         knn = {
-           sample_LM = Lmoments::Lcoefs(NZ, rmax = 4, na.rm = FALSE, trim = c(0, 0))
-           #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
-           init_values = as.data.frame(GenGamma_InitValues)
-           init_values$Lcv = init_values$L2/init_values$L1
-           target_LMs = data.frame(Lcv = sample_LM[2]/sample_LM[1], tau3 = sample_LM[3], tau4 = sample_LM[4])
-           I = RANN::nn2(init_values[,c('Lcv','tau3','tau4')],query = target_LMs,k = 50)$nn.idx
+  sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
+  #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
+  init_values = GG_InitValues
+  target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
+  I = RANN::nn2(init_values[,c('lcv','tau_3','tau_4')],query = target_LMs,k = 50)$nn.idx
+  start_matrix = init_values[I,]
+  i=1
+  params_optim <- function(params, target_LMs, order){
+    max_order = max(order)
+    scale = params[1]
+    shape1 = params[2]
+    shape2 = params[3]
+    temp_lms <- lmrq(qfunction, order = c(1:max_order),
+                     scale=scale, shape1=shape1, shape2=shape2,
+                     subdiv = 10^6,acc = 10^-3)
+    # temp_lms[5] =  temp_lms[2]/temp_lms[1]
+    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
+    temp_err <- sqrt(sum(temp_err))
+    return(temp_err)
+  }
+  all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
+              method = "L-BFGS-B", lower = c(1, 0.005, 0.05), upper = c(500,2000,200))
+  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-           start_matrix = init_values[I,c("init_scale","init_shape1","init_shape2")]
-
-           for (i in 1:50){
-             test_value <- tryCatch({
-               para = pelp(lmom = lm[1:3],
-                           pfunc = pfunction,
-                           start = as.numeric(start_matrix[i,]),
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)
-             },
-             warning=function(cond) {
-               return(params)},
-             error = function(cond) {
-               return(NA)
-               message(cond)})
-             if (!is.na(test_value[1])){
-               TheorLmom=lmrp(pfunction, bounds = c(0,Inf),order = c(1:4),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               break
-             }
-           }
-
-           if (is.na(test_value[1])){
-             stop('Choosing the starting values with knn could not converge to a solution.
-                  DEoptim could prove more succesful.')
-           }
-
-         },
-         DEoptim = {
-           itmax = 0
-           NP = 10*(length(formalArgs(dfunction)) - 1)
-           for (i in 1:10){
-             test_value <- tryCatch({
-               itmax = 40
-               start = DEoptim::DEoptim(MLE_fun, lower = c(0.001,0.001,0.001), upper = c(40,40,40), x_ts= NZ,
-                                        dfunction = dfunction, control=list(itermax=itmax, NP = NP,trace = FALSE,
-                                                                            F = 0.65, parallelType=1))
-               start = start$optim$bestmem
-               para = pelp(lmom = lm,
-                           pfunc = pfunction,
-                           start = start,
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)},
-               warning=function(cond) {
-                 return(para)},
-               error = function(cond) {
-                 return(NA)
-                 message(cond)})
-             if (is.na(test_value[1])){
-               itmax = itmax + 10
-               NP = NP + 10
-             }else{
-               TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               if (abs((lm[1]-TheorLmom[1])/lm[1])>0.1){
-                 itmax = itmax + 10
-                 NP = NP + 10
-               }else{
-                 para = test_value
-                 break
-               }
-             }
-           }
-         }
-  )
-
-
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
+  TheorLmom=lmrq(qfunction, order = c(1:5),
                  scale=params$scale, shape1=params$shape1, shape2=params$shape2,
                  subdiv = 10000,acc = 10^-2)
 
@@ -1016,7 +956,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 
   Res$Distribution<-list(FXs="qgengamma")
   Res$Param<-params
   Res$TheorLMom<-TheorLmom
-  Res$DataLMom<-lm
+  Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
   #Res$Diag = c(itmax,NP)
 
@@ -1068,11 +1008,6 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #' @description Function for fitting the Generalized Gamma with location distribution using the L-Moments method.
 #' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 #' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-#' In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
-#' 'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
-#' This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
-#' In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
-#' based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
 #'
 #' @param x A xts object containing the time series data.
 #' @param location The location parameter of the distribution
@@ -1084,116 +1019,32 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #'
 
 
-fitlm_gengamma_loc=function(x,location,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn')  {
+fitlm_gengamma=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+  max_order = max(4,order)
   x <- na.omit(coredata(x))
+  PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
   }else{
     NZ=x
   }
 
-  NZ = NZ - location
+  sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
 
-  lm=lmom::samlmu(NZ)[1:3]
-  pfunction=pgengamma
-  qfunction=qgengamma_loc
-  dfunction = dgengamma
+  temp_fit = fitlm_gengamma(x = NZ - location, ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, order = order)
 
-  switch(method,
-         knn = {
-           sample_LM = Lmoments::Lcoefs(NZ, rmax = 4, na.rm = FALSE, trim = c(0, 0))
-           #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
-           init_values = as.data.frame(GenGamma_InitValues)
-           init_values$Lcv = init_values$L2/init_values$L1
-           target_LMs = data.frame(Lcv = sample_LM[2]/sample_LM[1], tau3 = sample_LM[3], tau4 = sample_LM[4])
-           I = RANN::nn2(init_values[,c('Lcv','tau3','tau4')],query = target_LMs,k = 50)$nn.idx
+  TheorLmom= temp_fit$TheorLmom
+  TheorLmom$lambda_1 = TheorLmom$lambda_1 + location
 
-           start_matrix = init_values[I,c("init_scale","init_shape1","init_shape2")]
-
-           for (i in 1:50){
-             test_value <- tryCatch({
-               para = pelp(lmom = lm[1:3],
-                           pfunc = pfunction,
-                           start = as.numeric(start_matrix[i,]),
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)
-             },
-             warning=function(cond) {
-               return(params)},
-             error = function(cond) {
-               return(NA)
-               message(cond)})
-             if (!is.na(test_value[1])){
-               TheorLmom=lmrp(pfunction, bounds = c(0,Inf),order = c(1:4),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               break
-             }
-           }
-
-           if (is.na(test_value[1])){
-             stop('Choosing the starting values with knn could not converge to a solution.
-                  DEoptim could prove more succesful.')
-           }
-
-         },
-         DEoptim = {
-           itmax = 0
-           NP = 10*(length(formalArgs(dfunction)) - 1)
-           for (i in 1:10){
-             test_value <- tryCatch({
-               itmax = 40
-               start = DEoptim::DEoptim(MLE_fun, lower = c(0.001,0.001,0.001), upper = c(40,40,40), x_ts= NZ,
-                                        dfunction = dfunction, control=list(itermax=itmax, NP = NP,trace = FALSE,
-                                                                            F = 0.65, parallelType=1))
-               start = start$optim$bestmem
-               para = pelp(lmom = lm,
-                           pfunc = pfunction,
-                           start = start,
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)},
-               warning=function(cond) {
-                 return(para)},
-               error = function(cond) {
-                 return(NA)
-                 message(cond)})
-             if (is.na(test_value[1])){
-               itmax = itmax + 10
-               NP = NP + 10
-             }else{
-               TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               if (abs((lm[1]-TheorLmom[1])/lm[1])>0.1){
-                 itmax = itmax + 10
-                 NP = NP + 10
-               }else{
-                 para = test_value
-                 break
-               }
-             }
-           }
-         }
-  )
-
-
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
-                 scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                 subdiv = 10000,acc = 10^-2)
-
-  fit = c(list(location = location), params)
-
-  GoF <- GOF_tests(x = NZ, fit = fit, distribution = 'gengamma_loc')
+  GoF <- GOF_tests(x = NZ, fit = temp_fit$params, distribution = 'gengamma_loc')
 
   #para$PW=PW
 
   Res<-list()
   Res$Distribution<-list(FXs="qgengamma_loc")
-  Res$Param<-fit
+  Res$Param<-temp_fit$params
   Res$TheorLMom<-TheorLmom
-  Res$DataLMom<-lm
+  Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
   #Res$Diag = c(itmax,NP)
 
@@ -1283,11 +1134,6 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @description Function for fitting the Burr Type XII distribution using the L-Moments method
 #' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 #' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-#' In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
-#' 'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
-#' This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
-#' In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
-#' based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
 #'
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
@@ -1297,7 +1143,8 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @export
 #'
 
-fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn')  {
+fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+  max_order = max(4,order)
   x <- na.omit(coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
@@ -1306,92 +1153,35 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn
     NZ=x
   }
 
-  lm=lmom::samlmu(NZ)[1:4]
-  pfunction=pburr
-  qfunction=qburr
-  dfunction = dburr
+  pfunction=anyFit::pburr
+  qfunction=anyFit::qburr
+  dfunction = anyFit::dburr
 
-  switch(method,
-         knn = {
-           sample_LM = Lmoments::Lcoefs(NZ, rmax = 4, na.rm = FALSE, trim = c(0, 0))
-           #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
-           init_values = as.data.frame(Burr_InitValues)
-           init_values$Lcv = init_values$L2/init_values$L1
-           target_LMs = data.frame(Lcv = sample_LM[2]/sample_LM[1], tau3 = sample_LM[3], tau4 = sample_LM[4])
-           I = RANN::nn2(init_values[,c('Lcv','tau3','tau4')],query = target_LMs,k = 50)$nn.idx
+  sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
+  #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
+  init_values = Burr_InitValues
+  target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
+  I = RANN::nn2(init_values[,c('lcv','tau_3','tau_4')],query = target_LMs,k = 50)$nn.idx
+  start_matrix = init_values[I,]
+  i=1
+  params_optim <- function(params, target_LMs, order){
+    max_order = max(order)
+    scale = params[1]
+    shape1 = params[2]
+    shape2 = params[3]
+    temp_lms <- lmrp(pfunction, bounds = c(0,Inf),order = c(1:max_order),
+                     scale=scale, shape1=shape1, shape2=shape2,
+                     subdiv = 10000,acc = 10^-3)
+    # temp_lms[5] =  temp_lms[2]/temp_lms[1]
+    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
+    temp_err <- sqrt(sum(temp_err))
+    return(temp_err)
+  }
+  all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
+              method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
+  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-           start_matrix = init_values[I,c("init_scale","init_shape1","init_shape2")]
-
-           for (i in 1:50){
-             test_value <- tryCatch({
-               para = pelp(lmom = lm[1:3],
-                           pfunc = pfunction,
-                           start = as.numeric(start_matrix[i,]),
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)
-             },
-             warning=function(cond) {
-               return(params)},
-             error = function(cond) {
-               return(NA)
-               message(cond)})
-             if (!is.na(test_value[1])){
-               TheorLmom=lmrp(pfunction, bounds = c(0,Inf),order = c(1:4),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               break
-             }
-           }
-
-           if (is.na(test_value[1])){
-             stop('Choosing the starting values with knn could not converge to a solution.
-                  DEoptim could prove more succesful.')
-           }
-
-         },
-         DEoptim = {
-           itmax = 0
-           NP = 10*(length(formalArgs(dfunction)) - 1)
-           for (i in 1:10){
-             test_value <- tryCatch({
-               itmax = 40
-               start = DEoptim::DEoptim(MLE_fun, lower = c(0.001,0.001,0.001), upper = c(40,40,40), x_ts= NZ,
-                                        dfunction = dfunction, control=list(itermax=itmax, NP = NP,trace = FALSE,
-                                                                            F = 0.65, parallelType=1))
-               start = start$optim$bestmem
-               para = pelp(lmom = lm,
-                           pfunc = pfunction,
-                           start = start,
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)},
-               warning=function(cond) {
-                 return(para)},
-               error = function(cond) {
-                 return(NA)
-                 message(cond)})
-             if (is.na(test_value[1])){
-               itmax = itmax + 10
-               NP = NP + 10
-             }else{
-               TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               if (abs((lm[1]-TheorLmom[1])/lm[1])>0.1){
-                 itmax = itmax + 10
-                 NP = NP + 10
-               }else{
-                 para = test_value
-                 break
-               }
-             }
-           }
-         }
-  )
-
-
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:4),
+  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
                  scale=params$scale, shape1=params$shape1, shape2=params$shape2,
                  subdiv = 10000,acc = 10^-2)
 
@@ -1403,7 +1193,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn
   Res$Distribution<-list(FXs="qburr")
   Res$Param<-params
   Res$TheorLMom<-TheorLmom
-  Res$DataLMom<-lm
+  Res$DataLMom<-sample_LM
   Res$GoF<-GoF
   #Res$Diag = c(itmax,NP)
 
@@ -1462,11 +1252,6 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @description Function for fitting the Dagum distribution using the L-Moments method.
 #' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 #' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-#' In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
-#' 'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
-#' This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
-#' In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
-#' based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
 #'
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
@@ -1476,7 +1261,8 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @export
 #'
 
-fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'knn')  {
+fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+  max_order = max(4,order)
   x <- na.omit(coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
@@ -1485,107 +1271,53 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, method = 'kn
     NZ=x
   }
 
-  lm=lmom::samlmu(NZ)[1:4]
-  pfunction=pdagum
-  qfunction=qdagum
-  dfunction = ddagum
+  pfunction=anyFit::pdagum
+  qfunction=anyFit::qdagum
+  dfunction = anyFit::ddagum
 
-  switch(method,
-         knn = {
-           sample_LM = Lmoments::Lcoefs(NZ, rmax = 4, na.rm = FALSE, trim = c(0, 0))
-           #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
-           init_values = as.data.frame(Dagum_InitValues)
-           init_values$Lcv = init_values$L2/init_values$L1
-           target_LMs = data.frame(Lcv = sample_LM[2]/sample_LM[1], tau3 = sample_LM[3], tau4 = sample_LM[4])
-           I = RANN::nn2(init_values[,c('Lcv','tau3','tau4')],query = target_LMs,k = 50)$nn.idx
+  sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
+  #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
+  init_values = Dagum_InitValues
+  target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
+  I = RANN::nn2(init_values[,c('lcv','tau_3','tau_4')],query = target_LMs,k = 50)$nn.idx
+  start_matrix = init_values[I,]
+  i=1
+  params_optim <- function(params, target_LMs, order){
+    max_order = max(order)
+    scale = params[1]
+    shape1 = params[2]
+    shape2 = params[3]
+    temp_lms <- lmrp(pfunction, bounds = c(0,Inf),order = c(1:max_order),
+                     scale=scale, shape1=shape1, shape2=shape2,
+                     subdiv = 10000,acc = 10^-3)
+    # temp_lms[5] =  temp_lms[2]/temp_lms[1]
+    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
+    temp_err <- sqrt(sum(temp_err))
+    return(temp_err)
+  }
+  all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
+              method = "L-BFGS-B", lower = c(0.5, 0.0001, 0.000001), upper = c(1000,500,0.5))
+  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-           start_matrix = init_values[I,c("init_scale","init_shape1","init_shape2")]
-
-           for (i in 1:50){
-             test_value <- tryCatch({
-               para = pelp(lmom = lm[1:3],
-                           pfunc = pfunction,
-                           start = as.numeric(start_matrix[i,]),
-                           bounds = c(0, Inf),
-                           type = 's')
-               params = as.list(para$para)
-             },
-             warning=function(cond) {
-               return(params)},
-             error = function(cond) {
-               return(NA)
-               message(cond)})
-             if (!is.na(test_value[1])){
-               TheorLmom=lmrp(pfunction, bounds = c(0,Inf),order = c(1:4),
-                              scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                              subdiv = 10000,acc = 10^-2)
-               break
-             }
-           }
-
-           if (is.na(test_value[1])){
-             stop('Choosing the starting values with knn could not converge to a solution.
-                  DEoptim could prove more succesful.')
-           }
-
-         },
-         DEoptim = {
-          itmax = 0
-          NP = 10*(length(formalArgs(dfunction)) - 1)
-          for (i in 1:10){
-            test_value <- tryCatch({
-              itmax = 40
-              start = DEoptim::DEoptim(MLE_fun, lower = c(0.001,0.001,0.001), upper = c(40,40,40), x_ts= NZ,
-                                       dfunction = dfunction, control=list(itermax=itmax, NP = NP,trace = FALSE,
-                                                                           F = 0.65, parallelType=1))
-              start = start$optim$bestmem
-              para = pelp(lmom = lm,
-                          pfunc = pfunction,
-                          start = start,
-                          bounds = c(0, Inf),
-                          type = 's')
-              params = as.list(para$para)},
-              warning=function(cond) {
-                return(para)},
-              error = function(cond) {
-                return(NA)
-                message(cond)})
-            if (is.na(test_value[1])){
-              itmax = itmax + 10
-              NP = NP + 10
-            }else{
-              TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:3),
-                             scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                             subdiv = 10000,acc = 10^-2)
-              if (abs((lm[1]-TheorLmom[1])/lm[1])>0.1){
-                itmax = itmax + 10
-                NP = NP + 10
-              }else{
-                para = test_value
-                break
-              }
-            }
-          }
-         }
-  )
-
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:4),
+  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
                  scale=params$scale, shape1=params$shape1, shape2=params$shape2,
                  subdiv = 10000,acc = 10^-2)
 
   GoF <- GOF_tests(x = NZ, fit = params, distribution = 'dagum')
+
   #para$PW=PW
 
   Res<-list()
   Res$Distribution<-list(FXs="qdagum")
   Res$Param<-params
   Res$TheorLMom<-TheorLmom
-  Res$DataLMom<-lm
+  Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
   #Res$Diag = c(itmax,NP)
 
   return(Res)
 }
+
 
 # Exponentiated Weibull (Generalized Weibull) Distribution-----------------------------
 # Cumulative distribution function
