@@ -729,28 +729,42 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 #'
 
 dgev=function(x,location,scale,shape) {
-  fx=FAdist::dgev(x=x,shape=shape,scale=scale,location=location)
+  if (shape != 0){
+    fx=1/scale*(1+shape*((x-location)/scale))^(-1/shape-1)*exp(-(1+shape*((x-location)/scale))^(-1/shape))
+  }else{
+    fx=exp(-(x - location)/scale)*exp(-exp(-(x - location)/scale))
+  }
+
   return(fx)
 }
 
 #' @rdname GEV
 #' @export
 pgev=function(q,location,scale,shape) {
-  FX=FAdist::pgev(q=q,shape=shape,scale=scale,location=location)
+  if (shape != 0){
+    FX= exp(-(1+shape*((q-location)/scale))^(-1/shape))
+  }else{
+    FX= exp(-exp(-(q - location)/scale))
+  }
   return(FX)
 }
 
 #' @rdname GEV
 #' @export
-qgev=function(p,location,scale,shape) {
-  x=FAdist::qgev(p=p,shape=shape,scale=scale,location=location)
-  return(x)
-}
+qgev = function(p,shape,scale,location){
+    if (shape != 0){
+      x <- location + scale/shape * ((-log(p))^(-shape) - 1)
+    }else{
+      x <- location - scale * log(-log(p))
+    }
+
+    return(x)
+  }
 
 #' @rdname GEV
 #' @export
 rgev=function(n,location,scale,shape) {
-  x=FAdist::rgev(n=n,shape=shape,scale=scale,location=location)
+  x=qgev(runif(n), location = location, scale = scale, shape = shape)
   return(x)
 }
 
