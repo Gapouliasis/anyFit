@@ -38,6 +38,7 @@ LRatio_check <- function(ts_lmoms){
                   ExpWeibull=ExpWeibull_LSpace,
                   BurrXII=BurrXII_LSpace)
 
+
   # Read L-moments ----------------------------------------------------------
   ltest <- data.frame(CV = as.numeric(ts_lmoms[5,]),
                       skew = as.numeric(ts_lmoms[3,]))
@@ -62,17 +63,20 @@ LRatio_check <- function(ts_lmoms){
 
   }
 
+
+  p_simple <- ggplot(data = LMom_LSpace, aes(x = `L-CV`, y = `L-Skewness`, color = Dist)) + geom_line(linewidth = 1.0) +
+    geom_point(data=ltest, aes(CV,skew),color='red') + ggtitle("2-parametric distributions")
+
   check_space <-  lapply(r_space,FUN = lratio_check, ltest=ltest)
   check_space$Dagum$plot <- check_space$Dagum$plot + ggtitle(names(r_space)[1])
   check_space$GGamma$plot <- check_space$GGamma$plot + ggtitle(names(r_space)[2])
   check_space$ExpWeibull$plot <- check_space$ExpWeibull$plot + ggtitle(names(r_space)[3])
   check_space$BurrXII$plot <- check_space$BurrXII$plot + ggtitle(names(r_space)[4])
+  check_space$other$plot <- p_simple
 
-  vis_space_all <-  patchwork::wrap_plots(plotlist  = sapply(check_space,function(x) x[2]))
+  vis_space_all <-  patchwork::wrap_plots(plotlist  = lapply(check_space,function(x) x$plot))
 
-  list(test=check_space, multi_plots = vis_space_all)
-
-
+  list(distributions=check_space, multi_plots = vis_space_all)
 }
 
 
