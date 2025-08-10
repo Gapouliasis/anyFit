@@ -22,6 +22,7 @@
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
+#' @param ncores Number of cores to use in the case of parallel computations
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A raster object containing basic statistics.
