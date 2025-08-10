@@ -41,21 +41,23 @@ period_apply_nc = function (raster_file, filename = NA, varname = NA, period = "
                   ...)
     raster_file = temp$raster
     ncdf_xts = temp$ncdf_xts
-  }
-  else {
-    start_time <- Sys.time()
+  }else if (is.list(eobs_data) & all(c("ncdf_xts", "coordinates") %in% names(eobs_data))){
+    ncdf_xts = eobs_data$ncdf_xts
+    coords = eobs_data$coordinates
+    dates = eobs_data$dates
+  }else{
     t = raster::rasterToPoints(raster_file)
     tt = t(t)
-    coords = t(tt[c(1, 2), ])
-    tt = tt[-c(1, 2), ]
+    coords = t(tt[c(1,2),])
+    tt = tt[-c(1,2),]
     dates = rownames(tt)
-    temp_dates = gsub("X", replacement = "", x = dates)
+    temp_dates = gsub("X",replacement = "",x=dates)
     funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
              "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
              "mdy HMS", "ydm HMS")
 
     dates=parse_date_time(temp_dates, orders = funs)
-    ncdf_xts = xts(x = tt, order.by = dates)
+    ncdf_xts = xts(x = tt,order.by = dates)
   }
   spec_period <- endpoints(ncdf_xts, on = period, k = period_multiplier)
   ncdf_stats = lapply(1:ncol(ncdf_xts), FUN = function(x) {

@@ -38,21 +38,6 @@ fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
     ts_list <- c(ts_list, list(na.omit(ts[,i])))
   }
 
-
-  if(Sys.info()['sysname'] == "Windows" & parallel){
-    ncdf_fits = parallelsugar::mclapply(1:ncol(ncdf_xts),
-                                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
-  }else if(parallel){
-    ncdf_fits = parallel::mclapply(1:ncol(ncdf_xts),
-                                   FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                                candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
-  }else{
-    ncdf_fits = lapply(1:ncol(ncdf_xts),
-                       FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                    candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
-  }
-
   if(Sys.info()['sysname'] == "Windows" & parallel){
     multi_fits <- parallelsugar::mclapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
                          zero_threshold = zero_threshold, mc.cores = ncores)

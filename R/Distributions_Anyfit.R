@@ -1033,7 +1033,7 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #'
 
 
-fitlm_gengamma=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
   x <- na.omit(coredata(x))
   PW = 1

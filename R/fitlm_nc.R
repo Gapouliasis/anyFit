@@ -34,6 +34,9 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
     temp = nc2xts(filename = filename, varname = varname,...)
     raster_file = temp$raster
     ncdf_xts = temp$ncdf_xts
+  }else if (is.list(eobs_data) & all(c("ncdf_xts", "coordinates") %in% names(eobs_data))){
+      ncdf_xts = eobs_data$ncdf_xts
+      coords = eobs_data$coordinates
   }else{
     t = raster::rasterToPoints(raster_file)
     tt = t(t)
@@ -49,47 +52,36 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
     ncdf_xts = xts(x = tt,order.by = dates)
   }
 
-  if(Sys.info()['sysname'] == "Windows" & parallel){
-    ncdf_fits = parallelsugar::mclapply(1:ncol(ncdf_xts),
-                                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
-  }else if(parallel){
-    ncdf_fits = parallel::mclapply(1:ncol(ncdf_xts),
-                                   FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                                candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
-  }else{
-    ncdf_fits = lapply(1:ncol(ncdf_xts),
-                       FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                    candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
-  }
+  ncdf_fits = fitlm_nxts(ncdf_xts, ignore_zeros = ignore_zeros,
+                           candidates = candidates, zero_threshold = zero_threshold, parallel = parallel, ncores = ncores)$params
 
   result_list <- list()
   gof_list <- list()
 
   for (candidate in candidates){
     ncdf_params = lapply(ncdf_fits, function(x) {
-      unlist(x[[1]][[candidate]]$Param)
+      unlist(x$params[[candidate]]$Param)
     })
     ncdf_params = t(do.call(cbind, ncdf_params))
     ncdf_params = cbind(coords, ncdf_params)
     raster_params = raster::rasterFromXYZ(ncdf_params)
     projection(raster_params) = projection(raster_file)
     ncdf_TheorLMom = lapply(ncdf_fits, function(x) {
-      unlist(x[[1]][[candidate]]$TheorLMom)
+      unlist(x$params[[candidate]]$TheorLMom)
     })
     ncdf_TheorLMom = t(do.call(cbind, ncdf_TheorLMom))
     ncdf_TheorLMom = cbind(coords, ncdf_TheorLMom)
     raster_TheorLMom = raster::rasterFromXYZ(ncdf_TheorLMom)
     projection(raster_TheorLMom) = projection(raster_file)
     ncdf_DataLMom = lapply(ncdf_fits, function(x) {
-      unlist(x[[1]][[candidate]]$DataLMom)
+      unlist(x$params[[candidate]]$DataLMom)
     })
-    ncdf_DataLMom = t(do.call(cbind, ncdf_DataLMom))
+    ncdf_DataLMom = do.call(rbind, ncdf_DataLMom)
     ncdf_DataLMom = cbind(coords, ncdf_DataLMom)
     raster_DataLMom = raster::rasterFromXYZ(ncdf_DataLMom)
     projection(raster_DataLMom) = projection(raster_file)
     ncdf_GoF = lapply(ncdf_fits, function(x) {
-      unlist(x[[1]][[candidate]]$GoF)
+      unlist(x$params[[candidate]]$GoF)
     })
     ncdf_GoF = t(do.call(cbind, ncdf_GoF))
     ncdf_GoF = cbind(coords, ncdf_GoF)
