@@ -39,8 +39,8 @@ delim2xts <- function(file_path,time_zone,date_index = 1,strict_step = TRUE,
                       delim = '\t', skip_rows = 0, col_names = TRUE,
                        no_value = NA, exc_leaps = TRUE,save_Xts = FALSE, filename = NA){
 
-  RawData <- readr::read_delim(file_path, skip = skip_rows, col_names = col_names,
-                          delim = delim, escape_double = FALSE, trim_ws = TRUE, show_col_types = FALSE)
+  RawData <- read.table(file_path, skip = skip_rows, header = col_names,
+                        sep = delim,  strip.white = FALSE)
 
   if (length(which(RawData == no_value))>0){
     Rawdata[RawData == no_value] <- NA
@@ -54,7 +54,7 @@ delim2xts <- function(file_path,time_zone,date_index = 1,strict_step = TRUE,
            "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
            "mdy HMS", "ydm HMS")
 
-  dates = parse_date_time(Data[date_index, drop = TRUE], orders = funs, tz = time_zone)
+  dates = parse_date_time(Data[, date_index], orders = funs, tz = time_zone, train = FALSE)
 
   if (strict_step){
     starttime = min(dates)

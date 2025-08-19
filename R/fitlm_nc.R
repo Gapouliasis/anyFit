@@ -34,9 +34,9 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
     temp = nc2xts(filename = filename, varname = varname,...)
     raster_file = temp$raster
     ncdf_xts = temp$ncdf_xts
-  }else if (is.list(eobs_data) & all(c("ncdf_xts", "coordinates") %in% names(eobs_data))){
-      ncdf_xts = eobs_data$ncdf_xts
-      coords = eobs_data$coordinates
+  }else if (is.list(raster_file) & all(c("ncdf_xts", "coordinates") %in% names(raster_file))){
+      ncdf_xts = raster_file$ncdf_xts
+      coords = raster_file$coordinates
   }else{
     t = raster::rasterToPoints(raster_file)
     tt = t(t)
@@ -50,10 +50,11 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
 
     dates=parse_date_time(temp_dates, orders = funs)
     ncdf_xts = xts(x = tt,order.by = dates)
+    rm(t, tt)
   }
 
   ncdf_fits = fitlm_nxts(ncdf_xts, ignore_zeros = ignore_zeros,
-                           candidates = candidates, zero_threshold = zero_threshold, parallel = parallel, ncores = ncores)$params
+                           candidates = candidates, zero_threshold = zero_threshold, parallel = parallel, ncores = ncores, diagnostic_plots = FALSE)$params
 
   result_list <- list()
   gof_list <- list()

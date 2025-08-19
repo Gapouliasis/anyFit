@@ -243,8 +243,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
     stats_table <- data.frame(Value=c(NumofData,NumofMisData,PercOfMissingData,MinNonZero,MaxNonZero,MeanNonZero,
                                       VarNonZero,StDevNonZero,VariationNonZero,Mom3NonZero,SkewnessNonZero,
                                       KurtosisNonZero,LMean,LScale,L3,L4,LVariation,LSkewness,Lkurtosis,
-                                      Pdr,Q5NonZero,Q25NonZero,Q50NonZero,Q75NonZero,Q95NonZero,IQRNonZero,
-                                      MeanDAfterZero,VarDAfterZero,MeanDBeforeZero,VarDBeforeZero,MeanDAfterD,VarDAfterD))
+                                      Pdr,Q5NonZero,Q25NonZero,Q50NonZero,Q75NonZero,Q95NonZero,IQRNonZero))
 
     rownames(stats_table) <- c('NumofData','NumofMisData','PercOfMissingData','Min','Max','Mean','Var','StDev',
                                'Variation','Mom3','Skewness','Kurtosis','Lmean','LScale','L3','L4',

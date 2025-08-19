@@ -41,10 +41,10 @@ period_apply_nc = function (raster_file, filename = NA, varname = NA, period = "
                   ...)
     raster_file = temp$raster
     ncdf_xts = temp$ncdf_xts
-  }else if (is.list(eobs_data) & all(c("ncdf_xts", "coordinates") %in% names(eobs_data))){
-    ncdf_xts = eobs_data$ncdf_xts
-    coords = eobs_data$coordinates
-    dates = eobs_data$dates
+  }else if (is.list(raster_file) & all(c("ncdf_xts", "coordinates") %in% names(raster_file))){
+    ncdf_xts = raster_file$ncdf_xts
+    coords = raster_file$coordinates
+    dates = raster_file$dates
   }else{
     t = raster::rasterToPoints(raster_file)
     tt = t(t)
