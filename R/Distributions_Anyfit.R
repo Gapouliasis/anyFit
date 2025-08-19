@@ -915,7 +915,7 @@ rgengamma=function(n,scale, shape1, shape2){
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
@@ -1027,7 +1027,7 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #' @param location The location parameter of the distribution
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
@@ -1152,7 +1152,7 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
@@ -1270,7 +1270,7 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'

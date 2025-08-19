@@ -21,7 +21,7 @@ fitlm_gengamma_loc(
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
-\item{method}{The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.}
+\item{order}{Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4}
 }
 \description{
 Function for fitting the Generalized Gamma with location distribution using the L-Moments method.

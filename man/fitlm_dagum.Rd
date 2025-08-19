@@ -13,7 +13,7 @@ fitlm_dagum(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
-\item{method}{The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.}
+\item{order}{Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4}
 }
 \description{
 Function for fitting the Dagum distribution using the L-Moments method.
