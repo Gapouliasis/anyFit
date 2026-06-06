@@ -12,7 +12,8 @@ fitlm_nxts(
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
   parallel = FALSE,
-  ncores = 2
+  ncores = 2,
+  diagnostic_plots = TRUE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ fitlm_nxts(
 \item{parallel}{Logical, whether to use parallel processing.}
 
 \item{ncores}{Number of cores to use in the case of parallel computations}
+
+\item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
 }
 \value{
 A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.

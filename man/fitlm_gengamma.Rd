@@ -4,39 +4,19 @@
 \alias{fitlm_gengamma}
 \title{fitlm_gengamma}
 \usage{
-fitlm_gengamma(
-  x,
-  location,
-  ignore_zeros = FALSE,
-  zero_threshold = 0.01,
-  order = c(1:5)
-)
-
-fitlm_gengamma(
-  x,
-  location,
-  ignore_zeros = FALSE,
-  zero_threshold = 0.01,
-  order = c(1:5)
-)
+fitlm_gengamma(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 }
 \arguments{
 \item{x}{A xts object containing the time series data.}
-
-\item{location}{The location parameter of the distribution}
 
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
-\item{method}{The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.}
+\item{order}{Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4}
 }
 \description{
 Function for fitting the Generalized Gamma distribution using the L-Moments method
-Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-
-Function for fitting the Generalized Gamma with location distribution using the L-Moments method.
 Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
 }

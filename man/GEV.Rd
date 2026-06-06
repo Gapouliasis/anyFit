@@ -12,7 +12,7 @@ dgev(x, location, scale, shape)
 
 pgev(q, location, scale, shape)
 
-qgev(p, location, scale, shape)
+qgev(p, shape, scale, location)
 
 rgev(n, location, scale, shape)
 }

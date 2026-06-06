@@ -28,6 +28,8 @@ basic_stats_nc(
 
 \item{parallel}{Logical, whether to use parallel processing.}
 
+\item{ncores}{Number of cores to use in the case of parallel computations}
+
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }
 \value{

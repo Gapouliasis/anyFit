@@ -4,7 +4,13 @@
 \alias{fitlm_multi}
 \title{fitlm_multi}
 \usage{
-fitlm_multi(ts, candidates, ignore_zeros = FALSE, zero_threshold = 0.01)
+fitlm_multi(
+  ts,
+  candidates,
+  ignore_zeros = FALSE,
+  zero_threshold = 0.01,
+  diagnostic_plots = TRUE
+)
 }
 \arguments{
 \item{ts}{A xts object containing the time series data.}
@@ -14,6 +20,8 @@ fitlm_multi(ts, candidates, ignore_zeros = FALSE, zero_threshold = 0.01)
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+
+\item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
 }
 \value{
 A list containing the fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.

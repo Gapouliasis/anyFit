@@ -729,28 +729,42 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 #'
 
 dgev=function(x,location,scale,shape) {
-  fx=FAdist::dgev(x=x,shape=shape,scale=scale,location=location)
+  if (shape != 0){
+    fx=1/scale*(1+shape*((x-location)/scale))^(-1/shape-1)*exp(-(1+shape*((x-location)/scale))^(-1/shape))
+  }else{
+    fx=exp(-(x - location)/scale)*exp(-exp(-(x - location)/scale))
+  }
+
   return(fx)
 }
 
 #' @rdname GEV
 #' @export
 pgev=function(q,location,scale,shape) {
-  FX=FAdist::pgev(q=q,shape=shape,scale=scale,location=location)
+  if (shape != 0){
+    FX= exp(-(1+shape*((q-location)/scale))^(-1/shape))
+  }else{
+    FX= exp(-exp(-(q - location)/scale))
+  }
   return(FX)
 }
 
 #' @rdname GEV
 #' @export
-qgev=function(p,location,scale,shape) {
-  x=FAdist::qgev(p=p,shape=shape,scale=scale,location=location)
-  return(x)
-}
+qgev = function(p,shape,scale,location){
+    if (shape != 0){
+      x <- location + scale/shape * ((-log(p))^(-shape) - 1)
+    }else{
+      x <- location - scale * log(-log(p))
+    }
+
+    return(x)
+  }
 
 #' @rdname GEV
 #' @export
 rgev=function(n,location,scale,shape) {
-  x=FAdist::rgev(n=n,shape=shape,scale=scale,location=location)
+  x=qgev(runif(n), location = location, scale = scale, shape = shape)
   return(x)
 }
 
@@ -902,7 +916,7 @@ rgengamma=function(n,scale, shape1, shape2){
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
@@ -1014,13 +1028,13 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #' @param location The location parameter of the distribution
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
 
 
-fitlm_gengamma=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
+fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
   x <- na.omit(coredata(x))
   PW = 1
@@ -1139,7 +1153,7 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'
@@ -1257,7 +1271,7 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param method The method to determine the starting values for the fitting. Can be 'knn' or 'DEoptim'. Default is 'knn'. See description for details.
+#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
 #' @export
 #'

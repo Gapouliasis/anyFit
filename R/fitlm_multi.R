@@ -8,6 +8,7 @@
 #' @param candidates A list of distribution to fit.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param diagnostic_plots A logical value, controls the output of diagnostic plots
 #'
 #' @return A list containing the fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.
 #'
@@ -27,7 +28,7 @@
 #' @export
 #'
 
-fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01){
+fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01, diagnostic_plots = TRUE){
   x <- na.omit(coredata(ts))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
@@ -91,6 +92,12 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
 
   names(params_list) <- unlist(candidates)
 
-  return(list('parameter_list' = params_list, 'GoF_summary' = GoF,
-              'diagnostics' = combined, 'QQplot' = QQplot, 'PPplot' = PPplot))
+  if (diagnostic_plots){
+    list_out <- list('parameter_list' = params_list, 'GoF_summary' = GoF,
+                     'diagnostics' = combined, 'QQplot' = QQplot, 'PPplot' = PPplot)
+  }else{
+    list_out <- list('parameter_list' = params_list, 'GoF_summary' = GoF)
+  }
+
+  return(list_out)
 }
