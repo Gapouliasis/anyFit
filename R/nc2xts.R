@@ -37,36 +37,7 @@
 nc2xts = function (filename, varname, shapefile = NA, country = NA, continent = NA) {
   nc_data = ncdf4::nc_open(filename = filename)
   nc_brick = raster::brick(filename, varname = varname, level = 1)
-  if (!is.na(country)) {
-    countries = world_data$name
-    if (country %in% countries) {
-      mask = subset(world_data, name == country)
-      r2 <- raster::crop(nc_brick, raster::extent(mask))
-      r3 <- raster::mask(r2, mask = mask)
-    }
-    else {
-      stop("Country name is incorrect")
-    }
-  }
-  else if (!is.na(continent)) {
-    continents = world_data$continent
-    if (continent %in% continents) {
-      mask = subset(world_data, continent == continent)
-      r2 <- raster::crop(nc_brick, raster::extent(mask))
-      r3 <- raster::mask(r2, mask = mask)
-    }
-    else {
-      stop("Continent name is incorrect")
-    }
-  }
-  else if (!is.na(shapefile)) {
-    mask = raster::shapefile(shapefile)
-    r2 <- raster::crop(nc_brick, raster::extent(mask))
-    r3 <- raster::mask(r2, mask = mask)
-  }
-  else {
-    r3 = nc_brick
-  }
+  r3 = nc_brick
   t = raster::rasterToPoints(r3)
   tt = t(t)
   coords = t(tt[c(1, 2), ])
@@ -92,9 +63,39 @@ nc2xts = function (filename, varname, shapefile = NA, country = NA, continent = 
 
   r4 = raster::setZ(r3, as.character(dates))
   names(r4) = as.character(dates)
-  ncdf_xts = xts(x = tt, order.by = dates)
-  list_out = list(raster = r4, ncdf_xts = ncdf_xts, dates = dates,
-                  coordinates = coords)
+  ncdf_sxts <- sxts(data = tt, order.by = dates, coords = coords, projection = raster::projection(r4))
+
+  if (!is.na(country)) {
+    countries = world_data$name
+    if (country %in% countries) {
+      mask = subset(world_data, name == country)
+      masked_sxts = mask.sxts(ncdf_sxts, mask = mask)
+    }
+    else {
+      stop("Country name is incorrect")
+    }
+  }
+  else if (!is.na(continent)) {
+    continents = world_data$continent
+    if (continent %in% continents) {
+      mask = subset(world_data, continent == continent)
+      r2 <- raster::crop(nc_brick, raster::extent(mask))
+      r3 <- raster::mask(r2, mask = mask)
+    }
+    else {
+      stop("Continent name is incorrect")
+    }
+  }
+  else if (!is.na(shapefile)) {
+    mask = raster::shapefile(shapefile)
+    r2 <- raster::crop(nc_brick, raster::extent(mask))
+    r3 <- raster::mask(r2, mask = mask)
+  }
+  else {
+    r3 = nc_brick
+  }
+
+  list_out = list(ncdf_sxts = ncdf_sxts)
   return(list_out)
 }
 

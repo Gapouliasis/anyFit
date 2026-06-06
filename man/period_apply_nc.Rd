@@ -5,7 +5,7 @@
 \title{period_apply_nc}
 \usage{
 period_apply_nc(
-  raster_file,
+  data,
   filename = NA,
   varname = NA,
   period = "months",
@@ -15,8 +15,6 @@ period_apply_nc(
 )
 }
 \arguments{
-\item{raster_file}{A raster file}
-
 \item{filename}{(optional) A NetCDF file name to import if raster_file is not provided.}
 
 \item{varname}{(optional) The name of the variable to extract from 'filename'.}
@@ -28,6 +26,8 @@ period_apply_nc(
 \item{FUN}{The summary function to apply (e.g., "mean", "sum").}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
+
+\item{raster_file}{A raster file}
 }
 \value{
 A raster object with the summary statistics for the specified time periods.

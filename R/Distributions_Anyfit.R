@@ -780,6 +780,7 @@ rgev=function(n,location,scale,shape) {
 #'
 
 
+
 fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
   if (ignore_zeros == TRUE){
