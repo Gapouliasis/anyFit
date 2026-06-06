@@ -40,9 +40,10 @@
 #'
 #' @return A list which contains the combined timeseries, PDF, ECDF and autocorrelation plot and the statistics table.
 #'
-#' @import zoo
-#' @import ggplot2
-#' @import patchwork
+#' @importFrom ggplot2 ggplot aes geom_histogram geom_density labs ggtitle stat_ecdf scale_y_continuous geom_point geom_line annotate annotation_custom xlab theme element_text after_stat
+#' @importFrom patchwork plot_layout
+#' @importFrom scales trans_breaks trans_format math_format
+#' @importFrom zoo autoplot.zoo
 #'
 #' @examples
 #'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")

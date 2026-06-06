@@ -45,8 +45,6 @@ MLE_fun = function(trial = c(par1,par2,par3),x_ts,dfunction){
 #'
 #' @description Exponential distribution
 #'
-#' @import lmom
-#'
 #' @export
 #'
 
@@ -1155,12 +1153,13 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
+#' @importFrom lmom lmrp
 #' @export
 #'
 
 fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
-  x <- na.omit(coredata(x))
+  x <- na.omit(zoo::coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -1196,7 +1195,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
               method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
+  TheorLmom=lmom::lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
                  scale=params$scale, shape1=params$shape1, shape2=params$shape2,
                  subdiv = 10000,acc = 10^-2)
 
@@ -1273,6 +1272,7 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
+#' @importFrom lmom lmrp
 #' @export
 #'
 

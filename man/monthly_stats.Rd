@@ -10,7 +10,8 @@ monthly_stats(
   FUN = "mean",
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
-  title = FALSE
+  title = FALSE,
+  time_zone = "UTC"
 )
 }
 \arguments{

@@ -14,15 +14,21 @@
 \alias{elements.sxts}
 \alias{[.sxts}
 \alias{is.sxts}
+\alias{lag.sxts}
+\alias{diff.sxts}
+\alias{Ops.sxts}
+\alias{mask.sxts}
+\alias{rasterFromSxts.sxts}
+\alias{sxtsFromRaster.sxts}
 \title{sxts Class - Spatial eXtensible Time Series}
 \usage{
 sxts(data, order.by, coords = NULL, projection = NULL)
 
 \method{str}{sxts}(object, ...)
 
-summary.sxts(obj, ...)
+\method{summary}{sxts}(obj, ...)
 
-print.sxts(x, ...)
+\method{print}{sxts}(x, ...)
 
 attributes.sxts(obj)
 
@@ -41,6 +47,18 @@ elements(x)
 \method{[}{sxts}(x, i, j, drop = FALSE, ...)
 
 is.sxts(x)
+
+\method{lag}{sxts}(x, k = 1, ...)
+
+\method{diff}{sxts}(x, lag = 1, differences = 1, ...)
+
+\method{Ops}{sxts}(e1, e2)
+
+mask.sxts(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
+
+rasterFromSxts.sxts(obj, ...)
+
+sxtsFromRaster.sxts(raster, ...)
 }
 \arguments{
 \item{data}{Matrix or data.frame of time series data}

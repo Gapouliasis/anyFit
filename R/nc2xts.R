@@ -27,10 +27,7 @@
 #' result <- nc2xts(filename = nc_file, varname = "tp", country = "France")
 #' nc_ggplot(result$raster)
 #'
-#' @import ncdf4
-#' @import raster
-#' @import xts
-#' @importFrom lubridate ymd ydm mdy myd dmy dym ymd_h dmy_h mdy_h ydm_h ymd_hm dmy_hm mdy_hm ydm_hm ymd_hms dmy_hms mdy_hms ydm_hms
+#' @importFrom ncdf4 nc_open ncatt_get ncvar_get
 #'
 #' @export
 

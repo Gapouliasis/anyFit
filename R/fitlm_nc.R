@@ -19,10 +19,11 @@
 #'
 #' @examples TO BE FILLED
 #'
-#' @import raster
-#' @import xts
-#' @importFrom lubridate ymd ydm mdy myd dmy dym ymd_h dmy_h mdy_h ydm_h ymd_hm dmy_hm mdy_hm ydm_hm ymd_hms dmy_hms mdy_hms ydm_hms
+#' @importFrom ggplot2 ggplot aes geom_density theme_bw facet_wrap vars
+#' @importFrom lubridate parse_date_time
 #' @importFrom parallel mclapply
+#' @importFrom raster projection
+#' @importFrom xts xts
 #'
 #' @export
 #'

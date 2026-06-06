@@ -27,10 +27,7 @@
 #' result <- period_apply_nc(filename = nc_file, varname = "tp", period = "months", FUN = "sum")
 #' nc_ggplot(result)
 #'
-#' @import raster
-#' @import xts
-#' @importFrom xts endpoints
-#' @importFrom lubridate ymd ydm mdy myd dmy dym ymd_h dmy_h mdy_h ydm_h ymd_hm dmy_hm mdy_hm ydm_hm ymd_hms dmy_hms mdy_hms ydm_hms
+#' @importFrom xts endpoints period.apply
 #'
 
 #' @export

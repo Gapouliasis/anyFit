@@ -20,10 +20,10 @@
 #' plot <- nc_ggplot(nc_file, "temperature")
 #' plot
 #'
-#' @import ggplot2
+#' @importFrom ggplot2 ggplot aes geom_raster coord_equal theme_void theme element_text ggtitle labs
+#' @importFrom lubridate parse_date_time
+#' @importFrom patchwork wrap_plots plot_layout
 #' @importFrom raster as.data.frame
-#' @importFrom raster raster
-#' @import viridis
 #'
 #' @export
 

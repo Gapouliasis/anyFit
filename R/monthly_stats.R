@@ -35,7 +35,7 @@
 
 #Function to calculate the seasonal statistics in aggregated and original (base) timescale.
 #Correlations are calculated backwards. i.e January == cor(December, January)
-monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FALSE, zero_threshold = 0.01, title = FALSE){
+monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FALSE, zero_threshold = 0.01, title = FALSE, time_zone = "UTC"){
 # base_scale <- TRUE
 # FUN = 'mean'
 #ts <- ts[which(!is.na(ts)),]

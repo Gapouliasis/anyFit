@@ -11,8 +11,11 @@
 #'
 #' @examples TO BE FILLED
 #'
-#' @import ggplot2
-#' @import reshape2
+#' @importFrom ggplot2 ggplot aes geom_point ggtitle scale_color_brewer labs theme element_text
+#' @importFrom lubridate month
+#' @importFrom patchwork wrap_plots plot_layout
+#' @importFrom reshape2 melt
+#' @importFrom zoo coredata
 #'
 #' @export
 monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){

@@ -28,8 +28,10 @@
 #'data <- delim2xts(file_path = file_path,
 #'                  time_zone = "UTC", delim = " ", strict_step = TRUE)
 #'
-#' @import xts
-#' @import lubridate
+#' @importFrom lubridate parse_date_time
+#' @importFrom xts xts
+#' @importFrom zoo write.zoo
+#' @importFrom stats time
 #'
 #' @export
 

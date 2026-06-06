@@ -16,7 +16,9 @@
 #'
 #' @examples TO BE FILLED
 #'
-#' @import xts
+#' @importFrom lubridate month
+#' @importFrom xts xts rbind.xts
+#' @importFrom zoo coredata index
 #'
 #' @export
 

@@ -23,7 +23,9 @@
 #'
 #'fcheck <- fit_diagnostics(data[,4], distr = 'gamma3', params = fit$parameter_list[[1]], ignore_zeros = TRUE)
 #'
-#' @import scales
+#' @importFrom ggplot2 ggplot aes geom_point geom_line labs ggtitle xlim ylim
+#' @importFrom patchwork wrap_plots
+#' @importFrom scales trans_new format_format
 #'
 #' @export
 #'

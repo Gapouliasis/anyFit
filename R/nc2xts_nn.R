@@ -16,8 +16,8 @@
 #'
 #' rnd_xts = nc2xts_nn(filename = filename, varname = "rr", coords = coords)
 #'
-#' @import xts
-#' @import raster
+#' @importFrom xts xts
+#' @importFrom lubridate parse_date_time
 #'
 #' @export
 
