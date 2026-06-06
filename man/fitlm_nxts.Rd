@@ -10,7 +10,9 @@ fitlm_nxts(
   nrow = 5,
   ncol = 4,
   ignore_zeros = FALSE,
-  zero_threshold = 0.01
+  zero_threshold = 0.01,
+  parallel = FALSE,
+  ncores = 2
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ fitlm_nxts(
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+
+\item{parallel}{Logical, whether to use parallel processing.}
+
+\item{ncores}{Number of cores to use in the case of parallel computations}
 }
 \value{
 A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.

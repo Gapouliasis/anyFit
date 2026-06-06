@@ -12,6 +12,7 @@ fitlm_nc(
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
   parallel = FALSE,
+  ncores = 2,
   ...
 )
 }
@@ -29,6 +30,8 @@ fitlm_nc(
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
 \item{parallel}{Logical, whether to use parallel processing.}
+
+\item{ncores}{Number of cores to use in the case of parallel computations}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }

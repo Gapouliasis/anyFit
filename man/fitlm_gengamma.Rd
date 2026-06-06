@@ -4,10 +4,26 @@
 \alias{fitlm_gengamma}
 \title{fitlm_gengamma}
 \usage{
-fitlm_gengamma(x, ignore_zeros = FALSE, zero_threshold = 0.01, method = "knn")
+fitlm_gengamma(
+  x,
+  location,
+  ignore_zeros = FALSE,
+  zero_threshold = 0.01,
+  order = c(1:5)
+)
+
+fitlm_gengamma(
+  x,
+  location,
+  ignore_zeros = FALSE,
+  zero_threshold = 0.01,
+  order = c(1:5)
+)
 }
 \arguments{
 \item{x}{A xts object containing the time series data.}
+
+\item{location}{The location parameter of the distribution}
 
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
@@ -19,9 +35,8 @@ fitlm_gengamma(x, ignore_zeros = FALSE, zero_threshold = 0.01, method = "knn")
 Function for fitting the Generalized Gamma distribution using the L-Moments method
 Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
 For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
-In the present function two methods are provided to set the initial parameters, 'knn' and 'DEoptim'.
-'knn' takes chooses the 50 "nearest" parameter sets based on the sample Lcv, tau3 and tau3 from a pre-determined dataset.
-This option is fast, however, if your sample L-moments are not covered by the existing dataset then it may converge.
-In that case you can use method 'DEoptim'. This method performs a global optimization to location the initial parameters
-based on the likelihood function. Bacause of the global optimization is very slow, but is (almost) guaranteed to converge.
+
+Function for fitting the Generalized Gamma with location distribution using the L-Moments method.
+Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
+For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
 }

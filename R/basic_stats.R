@@ -248,8 +248,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 
     rownames(stats_table) <- c('NumofData','NumofMisData','PercOfMissingData','Min','Max','Mean','Var','StDev',
                                'Variation','Mom3','Skewness','Kurtosis','Lmean','LScale','L3','L4',
-                               'LVariation','LSkewness','LKurtosis','Pdr','Q5','Q25','Q50','Q75','Q95','IQR',
-                               'MeanDAfterZero','VarDAfterZero','MeanDBeforeZero','VarDBeforeZero','MeanDAfterD','VarDAfterD')
+                               'LVariation','LSkewness','LKurtosis','Pdr','Q5','Q25','Q50','Q75','Q95','IQR')
   }
 
   list_out <- list(plot = combi_plot,stats_table = stats_table)

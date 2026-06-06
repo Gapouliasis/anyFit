@@ -11,6 +11,7 @@
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
+#' @param ncores Number of cores to use in the case of parallel computations
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
@@ -27,7 +28,7 @@
 #'
 fitlm_nc = function(raster_file, filename = NA, varname = NA,
                     candidates = 'norm',ignore_zeros = FALSE, zero_threshold = 0.01 ,
-                    parallel = FALSE,...){
+                    parallel = FALSE, ncores = 2, ...){
 
   if (!is.na(filename)){
     temp = nc2xts(filename = filename, varname = varname,...)
@@ -50,49 +51,64 @@ fitlm_nc = function(raster_file, filename = NA, varname = NA,
 
   if(Sys.info()['sysname'] == "Windows" & parallel){
     ncdf_fits = parallelsugar::mclapply(1:ncol(ncdf_xts),
-                       FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                    candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
+                                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
   }else if(parallel){
     ncdf_fits = parallel::mclapply(1:ncol(ncdf_xts),
-                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
-                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
+                                   FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
+                                                                candidates = candidates, zero_threshold = zero_threshold)$params[[1]]}, mc.cores = ncores)
   }else{
     ncdf_fits = lapply(1:ncol(ncdf_xts),
                        FUN = function(x){fitlm_nxts(ncdf_xts[,x],ignore_zeros = ignore_zeros,
                                                     candidates = candidates, zero_threshold = zero_threshold)$params[[1]]})
   }
 
-  ncdf_params = lapply(ncdf_fits, function(x){unlist(x[[1]][[1]]$Param)})
-  ncdf_params = t(do.call(cbind,ncdf_params))
-  ncdf_params = cbind(coords,ncdf_params)
-  #rownames(ncdf_fits) = as.character(dates)
-  raster_params = raster::rasterFromXYZ(ncdf_params)
-  projection(raster_params) = projection(raster_file)
+  result_list <- list()
+  gof_list <- list()
 
-  ncdf_TheorLMom = lapply(ncdf_fits, function(x){unlist(x[[1]][[1]]$TheorLMom)})
-  ncdf_TheorLMom = t(do.call(cbind,ncdf_TheorLMom))
-  ncdf_TheorLMom = cbind(coords,ncdf_TheorLMom)
-  #rownames(ncdf_fits) = as.character(dates)
-  raster_TheorLMom = raster::rasterFromXYZ(ncdf_TheorLMom)
-  projection(raster_TheorLMom) = projection(raster_TheorLMom)
+  for (candidate in candidates){
+    ncdf_params = lapply(ncdf_fits, function(x) {
+      unlist(x[[1]][[candidate]]$Param)
+    })
+    ncdf_params = t(do.call(cbind, ncdf_params))
+    ncdf_params = cbind(coords, ncdf_params)
+    raster_params = raster::rasterFromXYZ(ncdf_params)
+    projection(raster_params) = projection(raster_file)
+    ncdf_TheorLMom = lapply(ncdf_fits, function(x) {
+      unlist(x[[1]][[candidate]]$TheorLMom)
+    })
+    ncdf_TheorLMom = t(do.call(cbind, ncdf_TheorLMom))
+    ncdf_TheorLMom = cbind(coords, ncdf_TheorLMom)
+    raster_TheorLMom = raster::rasterFromXYZ(ncdf_TheorLMom)
+    projection(raster_TheorLMom) = projection(raster_file)
+    ncdf_DataLMom = lapply(ncdf_fits, function(x) {
+      unlist(x[[1]][[candidate]]$DataLMom)
+    })
+    ncdf_DataLMom = t(do.call(cbind, ncdf_DataLMom))
+    ncdf_DataLMom = cbind(coords, ncdf_DataLMom)
+    raster_DataLMom = raster::rasterFromXYZ(ncdf_DataLMom)
+    projection(raster_DataLMom) = projection(raster_file)
+    ncdf_GoF = lapply(ncdf_fits, function(x) {
+      unlist(x[[1]][[candidate]]$GoF)
+    })
+    ncdf_GoF = t(do.call(cbind, ncdf_GoF))
+    ncdf_GoF = cbind(coords, ncdf_GoF)
+    raster_GoF = raster::rasterFromXYZ(ncdf_GoF)
+    projection(raster_GoF) = projection(raster_file)
+    ncdf_GoF <- as.data.frame(ncdf_GoF)
+    ncdf_GoF$Distribution = as.factor(candidate)
+    gof_list[[candidate]] = ncdf_GoF
+    result_list[[candidate]] = list(raster_params = raster_params, raster_TheorLMom = raster_TheorLMom,
+                                    raster_DataLMom = raster_DataLMom, raster_GoF = raster_GoF)
+  }
 
-  ncdf_DataLMom = lapply(ncdf_fits, function(x){unlist(x[[1]][[1]]$DataLMom)})
-  ncdf_DataLMom = t(do.call(cbind,ncdf_DataLMom))
-  ncdf_DataLMom = cbind(coords,ncdf_DataLMom)
-  #rownames(ncdf_fits) = as.character(dates)
-  raster_DataLMom = raster::rasterFromXYZ(ncdf_DataLMom)
-  projection(raster_DataLMom) = projection(raster_DataLMom)
+  gof_df = do.call(rbind, gof_list)
+  gof_df = gof_df[, c("MLE", "CM" ,"KS" ,"MSEquant", "DiffOfMax", "MeanDiffOf10Max", "Distribution")]
+  gof_long = reshape2::melt(gof_df, id.vars = "Distribution")
+  gof_plot = ggplot(data = gof_long, aes(x=value)) + geom_density(alpha=0.3, aes(fill = Distribution)) +
+    theme_bw() + facet_wrap(vars(variable),  scales = "free")
 
-  ncdf_GoF = lapply(ncdf_fits, function(x){unlist(x[[1]][[1]]$GoF)})
-  ncdf_GoF = t(do.call(cbind,ncdf_GoF))
-  ncdf_GoF = cbind(coords,ncdf_GoF)
-  #rownames(ncdf_fits) = as.character(dates)
-  raster_GoF = raster::rasterFromXYZ(ncdf_GoF)
-  projection(raster_GoF) = projection(raster_GoF)
-
-  list_out = list(raster_params = raster_params, raster_TheorLMom = raster_TheorLMom,
-                  raster_DataLMom = raster_DataLMom, raster_GoF = raster_GoF)
-
+  list_out <- list(fit_results = result_list, gof_plots = gof_plot)
   return(list_out)
 }
 

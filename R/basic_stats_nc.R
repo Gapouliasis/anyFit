@@ -37,7 +37,7 @@
 #'
 basic_stats_nc = function(raster_file, filename = NA, varname = NA,
                     ignore_zeros = FALSE, zero_threshold = 0.01 ,
-                    parallel = FALSE,...){
+                    parallel = FALSE, ncores = 2, ...){
 
   if (!is.na(filename)){
     temp = nc2xts(filename = filename, varname = varname,...)
@@ -59,9 +59,9 @@ basic_stats_nc = function(raster_file, filename = NA, varname = NA,
   }
 
   if(Sys.info()['sysname'] == "Windows" & parallel){
-    ncdf_stats = parallelsugar::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table})
+    ncdf_stats = parallelsugar::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table}, mc.cores = ncores)
   }else if(parallel){
-    ncdf_stats = parallel::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table})
+    ncdf_stats = parallel::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table}, mc.cores = ncores)
   }else{
     ncdf_stats = lapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table})
   }
