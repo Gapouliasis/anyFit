@@ -4,40 +4,51 @@
 \alias{nc2xts}
 \title{nc2xts}
 \usage{
-nc2xts(filename, varname, shapefile = NA, country = NA, continent = NA)
+nc2xts(
+  filename,
+  varname,
+  shapefile = NA,
+  country = NA,
+  continent = NA,
+  projection = NA
+)
 }
 \arguments{
-\item{filename}{The path to the NetCDF file.}
+\item{filename}{Path to the NetCDF file.}
 
-\item{varname}{The name of the variable to extract from the NetCDF file.}
+\item{varname}{Name of the variable to extract.}
 
-\item{shapefile}{(optional) The path to a shapefile for masking.}
+\item{shapefile}{(optional) Path to a shapefile for masking.}
 
-\item{country}{(optional) The name of a country for masking.}
+\item{country}{(optional) Country name for masking (matches world_data$name).}
 
-\item{continent}{(optional) The name of a continent for masking.}
+\item{continent}{(optional) Continent name for masking (matches world_data$continent).}
+
+\item{projection}{(optional) CRS string (PROJ4 or WKT) used as a fallback when
+the NetCDF file contains no projection metadata.  If the file does contain CRS
+metadata both values are compared and the function errors on disagreement.
+Defaults to \code{NA}.}
 }
 \value{
-A list containing the raster, xts object, dates, and coordinates.
+A list with element \code{ncdf_sxts}: an sxts object with rows = time
+steps and columns = spatial locations.
 }
 \description{
-This function reads a NetCDF raster file, optionally masks it by country, continent, or user defined shapefile,
-and converts it into an xts object for further analysis.
+Reads a NetCDF file and converts it into an sxts object.
+Optionally masks the result by country, continent, or a user-supplied shapefile.
+Reads data directly with ncdf4 — no raster intermediate — making it
+substantially faster and more memory-efficient for large files.
+
+The CRS is detected automatically from the NetCDF metadata (grid_mapping
+variable attributes or global crs_wkt/spatial_ref attributes). If no CRS
+is found in the file the \code{projection} argument must be supplied.
+When both sources are present they are compared and an error is raised if
+they disagree.
 }
 \examples{
-# Load required libraries
-library(ncdf4)
-library(raster)
-library(xts)
-
-# Example usage 1: Convert NetCDF raster to xts object
-nc_file <-"data/ncfile.nc"
-result <- nc2xts(filename = nc_file, varname = "tp")
-nc_ggplot(result$raster)
-
-# Example usage 2: Spatial subsetting by country
-nc_file <-"data/ncfile.nc"
-result <- nc2xts(filename = nc_file, varname = "tp", country = "France")
-nc_ggplot(result$raster)
+result <- nc2xts(filename = "data/ncfile.nc", varname = "tp",
+                 projection = "+proj=longlat +datum=WGS84")
+result <- nc2xts(filename = "data/ncfile.nc", varname = "tp", country = "France",
+                 projection = "+proj=longlat +datum=WGS84")
 
 }

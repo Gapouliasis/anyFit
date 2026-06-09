@@ -16,8 +16,8 @@
 #' \item Transition probability from a dry to a dry state
 #' }
 #'
-#' @param raster_file A raster file
-#' @param filename (optional) A NetCDF file name to import if raster_file is not provided.
+#' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
+#' @param filename (optional) A NetCDF file name to import if data is not provided.
 #' @param varname (optional) The name of the variable to extract from 'filename'.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
@@ -31,50 +31,52 @@
 #'
 #' @importFrom lubridate parse_date_time
 #' @importFrom parallel mclapply
-#' @importFrom raster projection
 #' @importFrom xts xts
 #'
 #' @export
 #'
-basic_stats_nc = function(raster_file, filename = NA, varname = NA,
-                    ignore_zeros = FALSE, zero_threshold = 0.01 ,
+basic_stats_nc = function(data = NULL, filename = NA, varname = NA,
+                    ignore_zeros = FALSE, zero_threshold = 0.01,
                     parallel = FALSE, ncores = 2, ...){
 
-  if (!is.na(filename)){
-    temp = nc2xts(filename = filename, varname = varname,...)
-    raster_file = temp$raster
-    ncdf_xts = temp$ncdf_xts
-  }else if (is.list(raster_file) & all(c("ncdf_xts", "coordinates") %in% names(raster_file))){
-    ncdf_xts = raster_file$ncdf_xts
-    coords = raster_file$coordinates
-    dates = raster_file$dates
-  }else{
-    t = raster::rasterToPoints(raster_file)
-    tt = t(t)
-    coords = t(tt[c(1,2),])
-    tt = tt[-c(1,2),]
-    dates = rownames(tt)
-    temp_dates = gsub("X",replacement = "",x=dates)
-    funs = c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
-             "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
-             "mdy HMS", "ydm HMS")
+  if (!is.na(filename)) {
+    temp      <- nc2xts(filename = filename, varname = varname, ...)
+    ncdf_sxts <- temp$ncdf_sxts
+    coords    <- coords(ncdf_sxts)
+    proj_str  <- projection(ncdf_sxts)
 
-    dates=parse_date_time(temp_dates, orders = funs)
-    ncdf_xts = xts(x = tt,order.by = dates)
+  } else if (is.sxts(data)) {
+    ncdf_sxts <- data
+    coords    <- coords(ncdf_sxts)
+    proj_str  <- projection(ncdf_sxts)
+
+  } else {
+    t         <- raster::rasterToPoints(data)
+    tt        <- t(t)
+    coords    <- t(tt[c(1, 2), ])
+    tt        <- tt[-c(1, 2), ]
+    dates     <- rownames(tt)
+    temp_dates <- gsub("X", replacement = "", x = dates)
+    funs <- c("ymd", "ydm", "mdy", "myd", "dmy", "dym", "ymd H", "dmy H", "mdy H",
+              "ydm H", "ymd HM", "dmy HM", "mdy HM", "ydm HM", "ymd HMS", "dmy HMS",
+              "mdy HMS", "ydm HMS")
+    dates     <- parse_date_time(temp_dates, orders = funs)
+    ncdf_sxts <- xts(x = tt, order.by = dates)
+    proj_str  <- raster::projection(data)
   }
 
-  if(Sys.info()['sysname'] == "Windows" & parallel){
-    ncdf_stats = parallelsugar::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table}, mc.cores = ncores)
-  }else if(parallel){
-    ncdf_stats = parallel::mclapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table}, mc.cores = ncores)
-  }else{
-    ncdf_stats = lapply(1:ncol(ncdf_xts), FUN = function(x){basic_stats(ncdf_xts[,x])$stats_table})
+  if (Sys.info()['sysname'] == "Windows" & parallel) {
+    ncdf_stats <- parallelsugar::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table }, mc.cores = ncores)
+  } else if (parallel) {
+    ncdf_stats <- parallel::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table }, mc.cores = ncores)
+  } else {
+    ncdf_stats <- lapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table })
   }
-  ncdf_stats = t(do.call(cbind,ncdf_stats))
-  ncdf_stats = cbind(coords,ncdf_stats)
-  #rownames(ncdf_stats) = as.character(dates)
-  raster_stats = raster::rasterFromXYZ(ncdf_stats)
-  projection(raster_stats) = projection(raster_file)
+
+  ncdf_stats  <- t(do.call(cbind, ncdf_stats))
+  ncdf_stats  <- cbind(coords, ncdf_stats)
+  raster_stats <- raster::rasterFromXYZ(ncdf_stats)
+  raster::projection(raster_stats) <- proj_str
 
   return(raster_stats)
 }

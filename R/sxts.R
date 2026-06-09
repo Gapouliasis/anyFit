@@ -43,10 +43,10 @@ str.sxts <- function(object, ...) {
   cat(" Description: ", attr(object, "description"), "\n")
   cat(" Projection: ", attr(object, "projection"), "\n")
   cat(" Elements: ", attr(object, "elements"), " spatial locations\n")
-  cat("Spatial extent is:", min(attr(obj, "coords")[,1]), ",", max(attr(obj, "coords")[,1]), ",",
-      min(attr(obj, "coords")[,2]), ",", max(attr(obj, "coords")[,2]), " (xmin, xmax, ymin, ymax)", "\n")
+  cat("Spatial extent is:", min(attr(object, "coords")[,1]), ",", max(attr(object, "coords")[,1]), ",",
+      min(attr(object, "coords")[,2]), ",", max(attr(object, "coords")[,2]), " (xmin, xmax, ymin, ymax)", "\n")
   cat(" Time series data:\n")
-  cat("Range of dates is from:", as.character(min(index(obj))), "to:",  as.character(max(index(obj))), "\n")
+  cat("Range of dates is from:", as.character(min(index(object))), "to:",  as.character(max(index(object))), "\n")
   # NextMethod("str")
 }
 
@@ -161,7 +161,7 @@ elements.sxts <- function(x) {
   result <- NextMethod("[")
 
   # Preserve sxts class and attributes if still valid
-  if (is.xts(result)) {
+  if (xts::is.xts(result)) {
     class(result) <- c("sxts", class(result))
     attr(result, "description") <- attr(x, "description")
     attr(result, "projection") <- attr(x, "projection")
@@ -188,6 +188,17 @@ elements.sxts <- function(x) {
 #' @export
 is.sxts <- function(x) {
   inherits(x, "sxts")
+}
+
+restore_sxts <- function(result, original) {
+  if (xts::is.xts(result)) {
+    class(result) <- c("sxts", class(result))
+    attr(result, "description") <- attr(original, "description")
+    attr(result, "projection")  <- attr(original, "projection")
+    attr(result, "coords")      <- attr(original, "coords")
+    attr(result, "elements")    <- attr(original, "elements")
+  }
+  result
 }
 
 # S3 Methods (these work with NextMethod)
@@ -220,25 +231,50 @@ Ops.sxts <- function(e1, e2) {
 
 #' Simple mask for sxts
 #' @rdname sxts
+#' @importFrom sf st_crs st_transform st_as_sf st_within st_union st_coordinates NA_crs_
 #' @export
 #'
-mask.sxts <- function(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA){
+mask.sxts <- function(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA) {
   obj.coords <- coords.sxts(obj)
 
-  if (is.na(shapefile)){
-    Ix <- obj.coords[,'x'] >= min(xlim) & obj.coords[,'x'] <= max(xlim)
-    Iy <- obj.coords[,'y'] >= min(ylim) & obj.coords[,'y'] <= max(ylim)
-    Imask <- which(Ix & Iy)
-    masked_obj <- obj[,Imask]
-  }else{
-    if (!is.na(shapefile_name)){
-      mask = raster::shapefile(shapefile_name)
+  if (!all(is.na(xlim)) && !all(is.na(ylim))) {
+    # Bounding-box masking — no CRS alignment needed
+    Ix <- obj.coords[, 'x'] >= min(xlim) & obj.coords[, 'x'] <= max(xlim)
+    Iy <- obj.coords[, 'y'] >= min(ylim) & obj.coords[, 'y'] <= max(ylim)
+    masked_obj <- obj[, which(Ix & Iy)]
+
+  } else {
+    # Spatial mask: load from file path or accept a directly supplied sf/Spatial* object
+    if (!is.na(shapefile_name)) {
+      mask <- sf::st_read(shapefile_name, quiet = TRUE)
+    } else if (identical(mask, NA)) {
+      stop("Provide xlim/ylim for bounding-box masking, a shapefile_name, or a mask object.")
     }
-    mask.xy <- raster::geom(mask)
-    Imask <- sp::point.in.polygon(point.x = obj.coords[,'x'], point.y = obj.coords[,'y'],
-                                  pol.x = mask.xy[, 'x'], pol.y = mask.xy[, 'y'])
-    masked_obj <- obj[,which(Imask > 0)]
+
+    # Normalise mask to sf
+    mask_sf <- if (inherits(mask, "sf")) mask else sf::st_as_sf(mask)
+
+    # CRS alignment
+    sxts_proj <- attr(obj, "projection")
+    sxts_crs  <- tryCatch(
+      if (!is.null(sxts_proj) && !is.na(sxts_proj)) sf::st_crs(sxts_proj) else sf::NA_crs_,
+      error = function(e) sf::NA_crs_
+    )
+    mask_crs <- sf::st_crs(mask_sf)
+
+    if (!is.na(sxts_crs) && !is.na(mask_crs)) {
+      if (sxts_crs != mask_crs) {
+        mask_sf <- sf::st_transform(mask_sf, sxts_crs)
+      }
+      # Point-in-polygon via sf spatial predicate (handles multipolygons correctly)
+      pts_sf <- sf::st_as_sf(as.data.frame(obj.coords), coords = c("x", "y"), crs = sxts_crs)
+      within <- sf::st_within(pts_sf, sf::st_union(mask_sf), sparse = FALSE)
+      Imask  <- which(within)
+    }
+
+    masked_obj <- obj[, Imask]
   }
+
   return(masked_obj)
 }
 
@@ -286,4 +322,112 @@ sxtsFromRaster.sxts <- function(raster, ...){
   projection <- raster::projection(raster)
 
   new_sxts <- sxts(data = tt, order.by = dates, coords = coords, projection = projection)
+}
+
+
+#' Aggregate sxts over shapefile polygons (zonal statistics)
+#'
+#' @description For each polygon, finds all sxts spatial points that fall
+#' within it and aggregates them row-wise (per time step) using \code{FUN}.
+#' Returns a plain \code{xts} with polygon names as column names. Points that
+#' do not fall within any polygon are silently dropped.
+#'
+#' The polygon source can be supplied in three ways (mutually exclusive):
+#' \itemize{
+#'   \item \code{shapefile} — an \code{sf}/\code{Spatial*} object or a file path;
+#'         \code{name_col} must also be given.
+#'   \item \code{country} — a country name matching \code{world_data$name};
+#'         yields one output column named after the country.
+#'   \item \code{continent} — a continent name matching \code{world_data$continent};
+#'         yields one output column per country within the continent.
+#' }
+#'
+#' @param x An \code{sxts} object
+#' @param shapefile An \code{sf} object, \code{Spatial*} object, or file path to a shapefile
+#' @param name_col Character; column in \code{shapefile} whose values become output column names
+#' @param country Character; country name (matches \code{world_data$name})
+#' @param continent Character; continent name (matches \code{world_data$continent})
+#' @param FUN Aggregation function applied row-wise within each polygon (default: \code{mean})
+#' @param ... Additional arguments forwarded to \code{FUN} (e.g. \code{na.rm = TRUE})
+#' @return A plain \code{xts} with one column per polygon that contains at least one sxts point
+#' @importFrom sf st_read st_as_sf st_crs st_transform st_within NA_crs_
+#' @export
+zonal_stats <- function(x, ...) {
+  UseMethod("zonal_stats")
+}
+
+#' @rdname zonal_stats
+#' @export
+zonal_stats.sxts <- function(x, shapefile = NULL, name_col = NULL,
+                              country = NA, continent = NA, FUN = mean, ...) {
+  # Resolve polygon source
+  if (!is.na(country)) {
+    if (!country %in% world_data$name) {
+      stop("Country '", country, "' not found. Check world_data$name for valid names.")
+    }
+    mask_sf  <- world_data[world_data$name == country, ]
+    mask_sf  <- if (inherits(mask_sf, "sf")) mask_sf else sf::st_as_sf(mask_sf)
+    name_col <- "name"
+  } else if (!is.na(continent)) {
+    if (!continent %in% world_data$continent) {
+      stop("Continent '", continent, "' not found. Check world_data$continent for valid names.")
+    }
+    mask_sf  <- world_data[world_data$continent == continent, ]
+    mask_sf  <- if (inherits(mask_sf, "sf")) mask_sf else sf::st_as_sf(mask_sf)
+    name_col <- "name"
+  } else {
+    if (is.null(shapefile)) {
+      stop("Supply one of: shapefile, country, or continent.")
+    }
+    if (is.character(shapefile)) {
+      shapefile <- sf::st_read(shapefile, quiet = TRUE)
+    }
+    mask_sf <- if (inherits(shapefile, "sf")) shapefile else sf::st_as_sf(shapefile)
+    if (is.null(name_col)) {
+      stop("name_col must be specified when using a shapefile.")
+    }
+  }
+
+  if (!name_col %in% names(mask_sf)) {
+    avail <- paste(setdiff(names(mask_sf), attr(mask_sf, "sf_column")), collapse = ", ")
+    stop(sprintf("Column '%s' not found in shapefile. Available columns: %s", name_col, avail))
+  }
+
+  obj_coords <- coords.sxts(x)
+  sxts_proj  <- attr(x, "projection")
+  sxts_crs   <- tryCatch(
+    if (!is.null(sxts_proj) && !is.na(sxts_proj)) sf::st_crs(sxts_proj) else sf::NA_crs_,
+    error = function(e) sf::NA_crs_
+  )
+  mask_crs <- sf::st_crs(mask_sf)
+  if (!is.na(sxts_crs) && !is.na(mask_crs) && sxts_crs != mask_crs) {
+    mask_sf <- sf::st_transform(mask_sf, sxts_crs)
+  }
+
+  pts_sf <- if (!is.na(sxts_crs)) {
+    sf::st_as_sf(as.data.frame(obj_coords), coords = c("x", "y"), crs = sxts_crs)
+  } else {
+    sf::st_as_sf(as.data.frame(obj_coords), coords = c("x", "y"))
+  }
+
+  n_polys     <- nrow(mask_sf)
+  result_list <- vector("list", n_polys)
+  valid_polys <- logical(n_polys)
+
+  for (i in seq_len(n_polys)) {
+    within_idx <- which(sf::st_within(pts_sf, mask_sf[i, ], sparse = FALSE)[, 1])
+    if (length(within_idx) == 0L) next
+    valid_polys[i]   <- TRUE
+    masked           <- x[, within_idx]
+    result_list[[i]] <- apply(masked, 1, FUN, ...)
+  }
+
+  valid_idx <- which(valid_polys)
+  if (length(valid_idx) == 0L) {
+    stop("No sxts points fall within any polygon.")
+  }
+
+  result_matrix           <- do.call(cbind, result_list[valid_idx])
+  colnames(result_matrix) <- as.character(mask_sf[[name_col]][valid_idx])
+  return(xts::xts(result_matrix, order.by = zoo::index(x)))
 }

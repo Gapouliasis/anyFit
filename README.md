@@ -1,4 +1,4 @@
-# anyFit
+﻿# anyFit
 
 Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that complicate their study. For example:
 
@@ -16,15 +16,17 @@ Importantly, many of these physical characteristics act on different scales, ran
 * Be able to handle large sets of data from multiple stations/locations efficiently
 * Be able to work with NetCDF files
 
-AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. Moreover, all visualization functions are implemented in ggplot2 package. AnyFit is developed with practitioners and researchers in mind. In this manner it streamlines the EDA with the stochastic modelling of hydrocliamtic variables using the anySim package, thus setting the foundations for a timeseries analysis and modeling ecosystem. Notable examples of anyFit functionality include:
+AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. For spatial time series data, anyFit introduces the **sxts** (spatial xts) class — an S3 extension of xts that stores spatial attributes (coordinates, projection) alongside the time series data, enabling seamless spatial operations without external raster intermediates. All visualization functions are implemented in ggplot2. AnyFit is developed with practitioners and researchers in mind, streamlining the EDA with the stochastic modelling of hydroclimatic variables using the anySim package and setting the foundations for a timeseries analysis and modeling ecosystem. Notable examples of anyFit functionality include:
 
-* Read directly from delimited files to xts format
+* Read directly from delimited files to xts format and from NetCDF to sxts format
 * Identify gaps in data
 * Produce summary statistics at various temporal scales (e.g. monthly, annual) with ease
 * Perform distribution fitting at various temporal scales (e.g. monthly, annual) with ease
 * Provides support for some "exotic" distributions, such as the Dagum and BurXII
-* Extent summary statistics and distribution fitting functionality directly to spatial data and produce NetCDF files with results
-* Streamline the visualisation of spatial statistics
+* Extend summary statistics and distribution fitting functionality directly to spatial data and produce NetCDF files with results
+* Streamline the visualisation of spatial statistics and raster maps
+* Spatial masking of sxts objects by bounding box, shapefile, country, or continent
+* Zonal statistics — aggregate sxts point data over polygon boundaries (shapefile, countries, or continents)
 
 In detail the distributions supported by anyFit are the following:
 * Exponential

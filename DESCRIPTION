@@ -41,13 +41,15 @@ Imports:
     rmarkdown,
     scales,
     sp,
+    sf,
     stats,
     VGAM,
     viridis,
     xts,
     zoo
 Suggests:
-    parallelsugar
+    parallelsugar,
+    testthat (>= 3.0.0)
 VignetteBuilder: 
     knitr
 Encoding: UTF-8

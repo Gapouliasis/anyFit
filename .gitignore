@@ -5,3 +5,6 @@ AGENTS.md
 test_ncdf.R
 .kilo
 .kilo/*
+paper
+paper/*
+.claude

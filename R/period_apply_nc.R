@@ -1,58 +1,56 @@
 #' @title period_apply_nc
 #'
-#' @description This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
-#' over specified time periods (e.g., months, years).
+#' @description This function applies a summary function (e.g., mean, sum) to spatiotemporal data
+#' over specified time periods (e.g., months, years). Accepts an sxts object, a raster file,
+#' or a NetCDF file path. When the input is an sxts object the output preserves spatial
+#' metadata (coordinates, projection) and is returned as an sxts object.
 #'
-#' @param raster_file A raster file
-#' @param filename (optional) A NetCDF file name to import if raster_file is not provided.
+#' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
+#' @param filename (optional) A NetCDF file name to import if data is not provided.
 #' @param varname (optional) The name of the variable to extract from 'filename'.
 #' @param period The time period to apply the function (e.g., "months", "years").
 #' @param period_multiplier a multiplier to define arbitrary periods based on the period argument
 #' @param FUN The summary function to apply (e.g., "mean", "sum").
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
-#' @return A raster object with the summary statistics for the specified time periods.
+#' @return An sxts object (when input is sxts or NetCDF) or an xts object (when input is raster)
+#'   with the summary statistics for the specified time periods.
 #'
 #' @examples
-#' # Load required libraries
-#' library(raster)
-#' library(xts)
-#'
-#' # Example usage 1: Using a raster file directly
-#' result <- period_apply_nc(raster, period = "months", FUN = "mean")
-#' nc_ggplot(result)
+#' # Example usage 1: Using an sxts object directly
+#' result <- period_apply_nc(ncdf_sxts, period = "months", FUN = "mean")
 #'
 #' # Example usage 2: Using a filename and variable name
-#' nc_file <-"data/ncfile.nc"
+#' nc_file <- "data/ncfile.nc"
 #' result <- period_apply_nc(filename = nc_file, varname = "tp", period = "months", FUN = "sum")
 #' nc_ggplot(result)
 #'
 #' @importFrom xts endpoints period.apply
 #'
-
 #' @export
-period_apply_nc = function (data, filename = NA, varname = NA, period = "months",
-                            period_multiplier = 1, FUN = "mean", ...){
+period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "months",
+                            period_multiplier = 1, FUN = "mean", ...) {
+
   if (!is.na(filename)) {
-    temp = nc2xts(filename = filename, varname = varname,
-                  ...)
-    ncdf_sxts = temp$ncdf_sxts
-  }
-  else if ("raster" %in% class(data)){
-    ncdf_sxts <- rasterFromSxts.sxts(data)
-  } else {
+    temp      <- nc2xts(filename = filename, varname = varname, ...)
+    ncdf_sxts <- temp$ncdf_sxts
+
+  } else if (is.sxts(data)) {
     ncdf_sxts <- data
+
+  } else {
+    ncdf_sxts <- sxtsFromRaster.sxts(data)
   }
 
   spec_period <- endpoints(ncdf_sxts, on = period, k = period_multiplier)
-  ncdf_stats = lapply(1:ncol(ncdf_sxts), FUN = function(x) {
+  ncdf_stats  <- lapply(1:ncol(ncdf_sxts), FUN = function(x) {
     period.apply(ncdf_sxts[, x], spec_period, FUN = FUN)
   })
-  ncdf_stats = do.call(cbind, ncdf_stats)
-  # ncdf_stats = cbind(coords, ncdf_stats)
-  # raster_fun = raster::rasterFromXYZ(ncdf_stats)
-  # projection(raster_fun) = raster::projection(raster_file)
+  ncdf_stats <- do.call(cbind, ncdf_stats)
+
+  if (is.sxts(ncdf_sxts)) {
+    ncdf_stats <- restore_sxts(ncdf_stats, ncdf_sxts)
+  }
+
   return(ncdf_stats)
 }
-
-
