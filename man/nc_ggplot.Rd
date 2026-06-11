@@ -14,7 +14,7 @@ nc_ggplot(
 )
 }
 \arguments{
-\item{raster_file}{A raster file.}
+\item{raster_file}{A raster file or an sxts object.}
 
 \item{title}{Logical, whether to add variable names as plot titles.}
 
@@ -30,7 +30,7 @@ nc_ggplot(
 A ggplot2 object representing the raster plot.
 }
 \description{
-This function takes a NetCDF raster file and generates
+This function takes a NetCDF raster file or an sxts object and generates
 a ggplot2 raster plot. Supports RasterBricks e.g. Timeseries of rasters
 }
 \examples{

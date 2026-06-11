@@ -35,7 +35,7 @@ normalise_xts = function(ts, dist_period = 'monthly',
       ts <- ts[-Izeros,]
     }
 
-    if (dist_period == 'monthly'){
+    if (isTRUE(dist_period == 'monthly')){
       temp_list = list()
       for (i in 1:12){
         I <- which(month(ts) == i)
@@ -59,7 +59,6 @@ normalise_xts = function(ts, dist_period = 'monthly',
     }else{
       temp_data = coredata(ts)
       u_emp = rank(temp_data, na.last = NA, ties.method = "average")/(length(temp_data)+1)
-      u_emp = do.call(cbind, u_emp)
       z_emp = stats::qnorm(p = u_emp, mean = 0, sd = 1)
       normal_xts = xts(x = z_emp, order.by = index(ts))
     }

@@ -52,7 +52,7 @@ correl_plots <- function(x,y, check_common = TRUE,ignore_zeros = FALSE,
       x <- x[x > zero_threshold,]
       y <- y[y > zero_threshold,]
     }
-    cdata <- merge.xts(x,y, join = "inner")
+    cdata <- xts::merge.xts(x,y, join = "inner")
     data <- as.data.frame(coredata(cdata))
     #code that does the same. More generic
     # a <- data[,1]
@@ -97,19 +97,19 @@ correl_plots <- function(x,y, check_common = TRUE,ignore_zeros = FALSE,
   label_y <- (max(data$Y, na.rm = TRUE) -min(data$Y, na.rm = TRUE))*1.05 + min(data$Y, na.rm = TRUE)
 
   plot11 <- ggplot(data = data, aes(x=X, y=Y)) + geom_point( size = 2) +
-    scale_shape_manual(values = c(15,16)) + scale_color_manual(values = c("black","red")) +
+    ggplot2::scale_shape_manual(values = c(15,16)) + ggplot2::scale_color_manual(values = c("black","red")) +
     annotate("label", x = label_x, y = label_y, label = sprintf("rho==%1.2f",rho_pearson), parse = TRUE) +
     labs(color = 'Case', y = colnames(y), x = colnames(x)) + ggtitle("Scatter Plot")
 
   plot12 <- ggplot(data = pso_data, aes(x=X, y=Y)) + geom_point( size = 2) +
-    scale_shape_manual(values = c(15,16)) + scale_color_manual(values = c("black","red")) +
+    ggplot2::scale_shape_manual(values = c(15,16)) + ggplot2::scale_color_manual(values = c("black","red")) +
     annotate("label", x = 0.15, y = 1, label = sprintf("r==%1.2f",rho), parse = TRUE) +
     labs(color = 'Case', y = colnames(y), x = colnames(x)) + ggtitle("Copula Plot") + xlim(0, 1)
 
   plot13 <- ggplot(data = norm_data, aes(x=X, y=Y)) + geom_point( size = 2) +
     geom_line(data = dots, aes(x=X,y=Y), linetype = "dashed") +
     geom_line(data = dots, aes(x=Y,y=X), linetype = "dashed") +
-    scale_shape_manual(values = c(15,16)) + scale_color_manual(values = c("black","red")) +
+    ggplot2::scale_shape_manual(values = c(15,16)) + ggplot2::scale_color_manual(values = c("black","red")) +
     annotate("label", x = 2.5, y = 3.5, label = sprintf("rho==%1.2f",nrho1), parse = TRUE) +
     annotate("label", x = 2.5, y = -3.5, label = sprintf("rho==%1.2f",nrho2), parse = TRUE) +
     annotate("label", x = -2.5, y = -3.5, label = sprintf("rho==%1.2f",nrho3), parse = TRUE) +

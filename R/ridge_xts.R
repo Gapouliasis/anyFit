@@ -35,7 +35,7 @@ ridge_plots <- function(ts,palette='Set3', ignore_zeros = FALSE,
   # Plot all the stations
   ridge_plot_all <- ggplot(ts, aes(x = `value`, y = `variable`, fill = ..x..)) +
     ggridges::geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01)+
-    viridis::scale_fill_viridis()+ylab('')+xlab('')+theme(legend.position = 'none')
+    viridis::scale_fill_viridis()+ggplot2::ylab('')+xlab('')+theme(legend.position = 'none')
   #scale_fill_brewer(palette=palette)
   #viridis::scale_fill_viridis()
   #Plot monthly ridge plots for every station
@@ -48,7 +48,7 @@ ridge_plots <- function(ts,palette='Set3', ignore_zeros = FALSE,
 
     ridge_plot_month[[station]]<- ggplot(dt, aes(x = `value`, y = `month`, fill = ..x..)) +
       ggridges::geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01)+
-      viridis::scale_fill_viridis()+ylab('Month')+xlab('')+ggtitle(station) + theme(legend.position = 'none')
+      viridis::scale_fill_viridis()+ggplot2::ylab('Month')+xlab('')+ggtitle(station) + theme(legend.position = 'none')
 
   }
 

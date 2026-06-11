@@ -89,7 +89,7 @@ nc2xts <- function(filename, varname, shapefile = NA, country = NA, continent = 
   lons      <- ncdf4::ncvar_get(nc_data, lon_var)
   lats      <- ncdf4::ncvar_get(nc_data, lat_var)
   raw_times <- ncdf4::ncvar_get(nc_data, time_var)
-  dates     <- base_date + do.call(base_time, list(raw_times))
+  dates     <- base_date + get(base_time, envir = asNamespace("lubridate"))(raw_times)
 
   # --- 3. Read variable array; ncdf4 automatically applies scale/offset and _FillValue->NA ---
   data_array <- ncdf4::ncvar_get(nc_data, varname)

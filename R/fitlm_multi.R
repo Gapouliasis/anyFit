@@ -81,11 +81,11 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
   pp_line <- data.frame(x = seq(0,1, by = 0.05), y = seq(0,1, by = 0.05))
 
   QQplot <- ggplot() + geom_point(data = qq_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) +
-    geom_line(data = qq_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
+    geom_line(data = qq_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
     ggtitle('Q-Q Plot') + scale_color_brewer(palette='Set1')
 
   PPplot <- ggplot() + geom_point(data = pp_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) + xlim(0,1) + ylim(0,1) +
-    geom_line(data = pp_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
+    geom_line(data = pp_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
     ggtitle('P-P Plot') + scale_color_brewer(palette='Set1')
 
   combined <-  patchwork::wrap_plots(QQplot,PPplot, nrow = 1, ncol = 2)

@@ -19,7 +19,7 @@
 \alias{Ops.sxts}
 \alias{mask.sxts}
 \alias{rasterFromSxts.sxts}
-\alias{sxtsFromRaster.sxts}
+\alias{sxtsFromRaster}
 \title{sxts Class - Spatial eXtensible Time Series}
 \usage{
 sxts(data, order.by, coords = NULL, projection = NULL)
@@ -56,9 +56,9 @@ is.sxts(x)
 
 mask.sxts(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
 
-rasterFromSxts.sxts(obj, ...)
+\method{rasterFromSxts}{sxts}(obj, ...)
 
-sxtsFromRaster.sxts(raster, ...)
+sxtsFromRaster(raster, ...)
 }
 \arguments{
 \item{data}{Matrix or data.frame of time series data}

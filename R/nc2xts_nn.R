@@ -40,7 +40,7 @@ nc2xts_nn = function(filename, varname, coords){
   temp_list = list()
   for (file in filename){
     temp_xts2 = lapply(varname, FUN = get_xts, filename = filename)
-    temp_xts2 = do.call(cbind.xts, temp_xts2)
+    temp_xts2 = do.call(xts::cbind.xts, temp_xts2)
     if (nrow(coords) > 1){
       temp_names = lapply(paste0('Var',seq(1,length(varname))),function(x){paste(paste0('Point', seq(nrow(coords))),x,sep = '.')})
       colnames(temp_xts2) = unlist(temp_names)

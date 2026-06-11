@@ -58,11 +58,11 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
     raw_stdev[i,2] <- as.numeric(stats$stats_table[8,])
     raw_skews[i,2] <- as.numeric(stats$stats_table[11,])
     raw_pdr[i,2] <- as.numeric(stats$stats_table[13,])
-    lag_date <- as.POSIXct(format(index(ts[I-1]) %m+% months(1), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
+    lag_date <- as.POSIXct(format(lubridate::`%m+%`(index(ts[I-1]), months(1)), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
     lag_xts <- xts(zoo::coredata(ts[I-1]), order.by = lag_date)
     t0_date <- as.POSIXct(format(index(ts[I]), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
     t0_xts <-  xts(zoo::coredata(ts[I]), order.by = t0_date)
-    alligned_xts <- merge.xts(t0_xts, lag_xts,join = 'inner')
+    alligned_xts <- xts::merge.xts(t0_xts, lag_xts,join = 'inner')
     raw_correls[i,2] <- round(stats::cor(zoo::coredata(alligned_xts[,1]),zoo::coredata(alligned_xts[,2]), method = 'pearson', use = 'complete.obs'), digits = 2)
 
     # if (i==1){
@@ -75,28 +75,28 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
   #names(raw_list) <- month.name[seq(1,12)]
 
   raw_means$Month <- factor(x = month.name[raw_means$Month], levels = month.name)
-  pltr_mean <- ggplot() + geom_bar(data = raw_means, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-    scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Average') +
+  pltr_mean <- ggplot() + ggplot2::geom_bar(data = raw_means, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+    ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Average') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Average - Base Scale')
 
   raw_stdev$Month <- factor(x = month.name[raw_means$Month], levels = month.name)
-  pltr_stdev <- ggplot() + geom_bar(data = raw_stdev, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-    scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('St. Devation') +
+  pltr_stdev <- ggplot() + ggplot2::geom_bar(data = raw_stdev, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+    ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('St. Devation') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Standard Devation - Base Scale')
 
   raw_skews$Month <- factor(x = month.name[raw_means$Month], levels = month.name)
-  pltr_skews <- ggplot() + geom_bar(data = raw_skews, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-    scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Skewness') +
+  pltr_skews <- ggplot() + ggplot2::geom_bar(data = raw_skews, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+    ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Skewness') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Skewness - Base Scale')
 
   raw_correls$Month <- factor(x = month.name[raw_means$Month], levels = month.name)
-  pltr_correls <- ggplot() + geom_bar(data = raw_correls, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-    scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Correlation') +
+  pltr_correls <- ggplot() + ggplot2::geom_bar(data = raw_correls, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+    ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Correlation') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Correlation - Base Scale')
 
   raw_pdr$Month <- factor(x = month.name[raw_means$Month], levels = month.name)
-  pltr_pdr <- ggplot() + geom_bar(data = raw_pdr, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-    scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Probability Dry') +
+  pltr_pdr <- ggplot() + ggplot2::geom_bar(data = raw_pdr, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+    ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Probability Dry') +
     theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Probability Dry - Base Scale')
 
   fraw <- patchwork::wrap_plots(pltr_mean, pltr_stdev, pltr_skews, pltr_pdr, nrow = 2, ncol = 2)
@@ -107,7 +107,7 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
 
 
   if (aggregated == TRUE){
-    monthly_ts <- apply.monthly(ts, FUN = eval(FUN))
+    monthly_ts <- xts::apply.monthly(ts, FUN = eval(FUN))
     agg_means <- data.frame(Month = 1:12, Value = rep(0,12))
     agg_stdev <- data.frame(Month = 1:12, Value = rep(0,12))
     agg_skews <- data.frame(Month = 1:12, Value = rep(0,12))
@@ -125,11 +125,11 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
       agg_means[i,2] <- as.numeric(stats$stats_table[6,])
       agg_stdev[i,2] <- as.numeric(stats$stats_table[8,])
       agg_skews[i,2] <- as.numeric(stats$stats_table[11,])
-      lag_date <- as.POSIXct(format(index(monthly_ts[I-1]) %m+% months(1), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
+      lag_date <- as.POSIXct(format(lubridate::`%m+%`(index(monthly_ts[I-1]), months(1)), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
       lag_xts <- xts(zoo::coredata(monthly_ts[I-1]), order.by = lag_date)
       t0_date <- as.POSIXct(format(index(monthly_ts[I]), format = '%m/%Y'), format = '%d/%Y', tz = time_zone)
       t0_xts <-  xts(zoo::coredata(monthly_ts[I]), order.by = t0_date)
-      alligned_xts <- merge.xts(t0_xts, lag_xts,join = 'inner')
+      alligned_xts <- xts::merge.xts(t0_xts, lag_xts,join = 'inner')
       agg_correls[i,2] <- round(stats::cor(zoo::coredata(alligned_xts[,1]),zoo::coredata(alligned_xts[,2]), method = 'pearson', use = 'complete.obs'), digits = 2)
 
       # if (i==1){
@@ -142,23 +142,23 @@ monthly_stats <- function(ts,aggregated = FALSE, FUN = 'mean', ignore_zeros = FA
     #names(agg_list) <- month.name[seq(1,12)]
 
     agg_means$Month <- factor(x = month.name[agg_means$Month], levels = month.name)
-    plt_mean <- ggplot() + geom_bar(data = agg_means, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-      scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Average') +
+    plt_mean <- ggplot() + ggplot2::geom_bar(data = agg_means, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+      ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Average') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Average')
 
     agg_stdev$Month <- factor(x = month.name[agg_means$Month], levels = month.name)
-    plt_stdev <- ggplot() + geom_bar(data = agg_stdev, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-      scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('St. Devation') +
+    plt_stdev <- ggplot() + ggplot2::geom_bar(data = agg_stdev, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+      ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('St. Devation') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Standard Devation')
 
     agg_skews$Month <- factor(x = month.name[agg_means$Month], levels = month.name)
-    plt_skews <- ggplot() + geom_bar(data = agg_skews, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-      scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Skewness') +
+    plt_skews <- ggplot() + ggplot2::geom_bar(data = agg_skews, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+      ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Skewness') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Skewness')
 
     agg_correls$Month <- factor(x = month.name[agg_means$Month], levels = month.name)
-    plt_correls <- ggplot() + geom_bar(data = agg_correls, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
-      scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ylab('Correlation') +
+    plt_correls <- ggplot() + ggplot2::geom_bar(data = agg_correls, aes(x = Month, y= Value, fill = as.factor(Value)), color='black', stat = 'identity') +
+      ggplot2::scale_fill_grey(start=0.9,end =0) + theme(legend.position = 'none') + ggplot2::ylab('Correlation') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))#+ ggtitle('Monthly Correlation')
 
     faggre <- patchwork::wrap_plots(plt_mean, plt_stdev, plt_skews, plt_correls, nrow = 2, ncol = 2)

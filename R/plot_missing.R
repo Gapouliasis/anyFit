@@ -26,14 +26,14 @@
 plot_missing <- function(ts){
   ylabel <- colnames(ts)
   INA <- which(is.na(ts))
-  ts_df <- fortify.zoo(ts)
+  ts_df <- zoo::fortify.zoo(ts)
   names(ts_df) <- c('Index','Values')
   data_mean <- mean(ts_df$Values, na.rm = TRUE)
   ts_df$Legend <- 'Measured'
   ts_df[INA,3] <- 'Missing'
   ts_df[INA,2] <- data_mean
   f <- ggplot(data = ts_df, aes(x = Index, y = Values, colour = Legend)) + geom_point() +
-    scale_color_manual(values = c('black','red')) + ylab(ylabel) +
+    ggplot2::scale_color_manual(values = c('black','red')) + ggplot2::ylab(ylabel) +
     xlab('Date') + ggtitle('Missing Values check')
   return(f)
 }

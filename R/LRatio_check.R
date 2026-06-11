@@ -53,9 +53,11 @@ LRatio_check <- function(ts_lmoms){
 
     perc_in <- round(sum(check)/length(check),2)*100
 
-    plot <- ggplot(dist, aes(x = dist@polygons[[1]]@Polygons[[1]]@coords[,1],
-                             y = dist@polygons[[1]]@Polygons[[1]]@coords[,2]))+
-      geom_polygon(colour='black', fill=NA)+xlab('L-CV') + ylab('L-Skewness')+
+    poly_df <- data.frame(x = dist@polygons[[1]]@Polygons[[1]]@coords[,1],
+                          y = dist@polygons[[1]]@Polygons[[1]]@coords[,2])
+
+    plot <- ggplot(poly_df, aes(x = x, y = y))+
+      ggplot2::geom_polygon(colour='black', fill=NA)+xlab('L-CV') + ggplot2::ylab('L-Skewness')+
       geom_point(data=ltest, aes(CV,skew),color='red') + ylim(-0.5,1) +
       annotate('label', y = -0.1, x = 0.85,label = paste0(sprintf('In = %2.0f',perc_in),'%'))
 

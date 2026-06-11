@@ -10,7 +10,7 @@ nc2xts(
   shapefile = NA,
   country = NA,
   continent = NA,
-  projection = NA
+  projection = "+proj=longlat +datum=WGS84"
 )
 }
 \arguments{

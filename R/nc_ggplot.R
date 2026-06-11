@@ -66,13 +66,13 @@ nc_ggplot = function (raster_file, title = FALSE, legend.title = NA, common_lege
     colnames(temp_df)[3] <- colnames(raster_df)[i]
     if (common_legend == TRUE) {
       temp_plot <- ggplot(data = temp_df) +
-        geom_raster(aes(x = x, y = y, fill = !!sym(colnames(temp_df)[3]))) +
+        geom_raster(aes(x = x, y = y, fill = !!rlang::sym(colnames(temp_df)[3]))) +
         coord_equal() + theme_void() +
         viridis::scale_fill_viridis(na.value = "white", option = viridis.option, limits = c(low_lim, upp_lim)) +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")
     } else {
       temp_plot <- ggplot(data = temp_df) +
-        geom_raster(aes(x = x, y = y, fill = !!sym(colnames(temp_df)[3]))) +
+        geom_raster(aes(x = x, y = y, fill = !!rlang::sym(colnames(temp_df)[3]))) +
         coord_equal() + theme_void() +
         viridis::scale_fill_viridis(na.value = "white", option = viridis.option) +
         theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom")

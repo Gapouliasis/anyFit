@@ -267,7 +267,7 @@ fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   Res<-list()
   Res$Distribution<-list(FXs="qgamma")
   Res$Param<-fit
-  Res$TheorLMom<-lmrgam(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrgam(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 
@@ -358,6 +358,19 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 # x<-quaglo(runif(10000), c(0,1,-0.5))
 
+dgenlogi <- function(x, location, scale, shape) {
+  para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
+  lmomco::pdfglo(x, para)
+}
+pgenlogi <- function(q, location, scale, shape) {
+  para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
+  lmomco::cdfglo(q, para)
+}
+qgenlogi <- function(p, location, scale, shape) {
+  para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
+  lmomco::quaglo(p, para)
+}
+
 #' @title fitlm_genlogi
 #'
 #' @description Function for fitting the Generalized Logistic distribution using the L-Moments method
@@ -384,12 +397,14 @@ fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   fit$scale = par[2]
   fit$shape = par[3]
 
-  GoF <- GOF_tests(x = x, fit = fit, distribution = 'gamma3')
+  GoF <- GOF_tests(x = x, fit = fit, distribution = 'genlogi')
 
   Res<-list()
+  Res$Distribution<-list(FXs="qgenlogi")
   Res$Param<-fit
-  Res$TheorLMom<-lmrglo(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrglo(par,nmom=4)
   Res$DataLMom<-sam
+  Res$GoF<-GoF
 
   return(Res)
 }
@@ -545,7 +560,7 @@ fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   Res<-list()
   Res$Distribution<-list(FXs="qweibull",bound=bound)
   Res$Param<-fit
-  Res$TheorLMom<-lmrwei(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrwei(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 
@@ -704,7 +719,7 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
   Res<-list()
   Res$Distribution<-list(FXs="qlnorm",bound=bound)
   Res$Param<-fit
-  Res$TheorLMom<-lmrln3(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrln3(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 
@@ -798,7 +813,7 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   Res<-list()
   Res$Distribution<-list(FXs="qgev")
   Res$Param<-fit
-  Res$TheorLMom<-lmrgev(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrgev(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF = GoF
 
@@ -822,7 +837,7 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @export
 #'
 
-fitlm_GPD=function(x,bound=NULL) {
+fitlm_GPD=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
   x <- na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
@@ -839,25 +854,13 @@ fitlm_GPD=function(x,bound=NULL) {
   print("Shape parameter must be >-1/2 for finite variance")
   print("Shape parameter must be >-1/3 for finite skewness")
   print("Shape parameter must be >-1/4 for finite kurtosis")
-
-  MLE<--sum(log(dgpd(x,location=fit$location,scale=fit$scale,shape=fit$shape)))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles<-qgpd(p=plotpos,location=fit$location,scale=fit$scale,shape=fit$shape)
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
-
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
-  GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS,MLE=MLE,
-              MSEquant=MSEquant,DiffOfMax=DiffOfMax,MeanDiffOf10Max=MeanDiffOf10Max)
-
+  
   GoF <- GOF_tests(x = x, fit = fit, distribution = 'gpd')
 
   Res<-list()
   Res$Distribution<-list(FXs="qgpd")
   Res$Param<-fit
-  Res$TheorLMom<-lmrgpa(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrgpa(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF = GoF
 
@@ -945,7 +948,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
     scale = params[1]
     shape1 = params[2]
     shape2 = params[3]
-    temp_lms <- lmrq(qfunction, order = c(1:max_order),
+    temp_lms <- lmom::lmrq(qfunction, order = c(1:max_order),
                      scale=scale, shape1=shape1, shape2=shape2,
                      subdiv = 10^6,acc = 10^-3)
     # temp_lms[5] =  temp_lms[2]/temp_lms[1]
@@ -957,7 +960,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
               method = "L-BFGS-B", lower = c(1, 0.005, 0.05), upper = c(500,2000,200))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-  TheorLmom=lmrq(qfunction, order = c(1:5),
+  TheorLmom=lmom::lmrq(qfunction, order = c(1:5),
                  scale=params$scale, shape1=params$shape1, shape2=params$shape2,
                  subdiv = 10000,acc = 10^-2)
 
@@ -1138,7 +1141,7 @@ qburr=function(p, scale, shape1, shape2, PW=1) {
 #' @export
 rburr=function(n, scale, shape1, shape2, PW=1) {
   p=runif(n)
-  q=qburrDK2(p = p, scale=scale, shape1=shape1, shape2=shape2, PW=PW)
+  q=qburr(p = p, scale=scale, shape1=shape1, shape2=shape2, PW=PW)
   return(q)
 }
 
@@ -1421,6 +1424,8 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   Res<-list()
   Res$Distribution<-list(FXs="qexpweibull")
   Res$Param<-fit
+  Res$TheorLMom<-lmom::lmrq(qexpweibull, scale=fit$scale, shape1=fit$shape1, shape2=fit$shape2)
+  Res$DataLMom<-lm
   Res$GoF<-GoF
 
   return(Res)

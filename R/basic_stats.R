@@ -136,7 +136,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   ts_clean <- ts[!is.na(ts),]
   if (ignore_zeros == TRUE){ts_clean <- ts_clean[which(ts_clean > zero_threshold),]}
   acf_dirty <- stats::acf(ts_clean, lag.max = 10, plot = FALSE)
-  acf2df <- data.frame(ACF=acf_dirty$acf, Lag = seq(from = 0, to = 10))
+  acf2df <- data.frame(ACF=acf_dirty$acf, Lag = seq(from = 0, length.out = nrow(acf_dirty$acf)))
 
   plot_acf <- ggplot(acf2df, aes(x = Lag, y = ACF)) + geom_point() + geom_line() + ggtitle('ACF') #+ ylab(expression(rho_{t,t-1}))
 

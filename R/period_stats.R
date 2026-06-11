@@ -46,12 +46,12 @@ period_stats <-function(ts, period = 'months', period_multiplier = 1){
   Kurtosis <- round(period.apply(ts, spec_period, FUN = moments::kurtosis),2)
 
   #L-moments
-  lmom <- round(period.apply(ts, spec_period, FUN = lmom::samlmu, nmom = 4, ratios = FALSE, trim = 0),2)
+  lmom <- round(period.apply(ts, spec_period, FUN = function(x) lmom::samlmu(as.numeric(x), nmom = 4, ratios = FALSE, trim = 0)),2)
   LMean<-round(lmom[,1],2)
   LScale<-round(lmom[,2],2)
   L3<-round(lmom[,3],2)
   L4<-round(lmom[,4],2)
-  lmom_ratios<-round(period.apply(ts, spec_period, FUN = lmom::samlmu, nmom = 4, ratios = TRUE, trim = 0),2)
+  lmom_ratios<-round(period.apply(ts, spec_period, FUN = function(x) lmom::samlmu(as.numeric(x), nmom = 4, ratios = TRUE, trim = 0)),2)
   LVariation<-round(LScale/LMean,2)
   LSkewness<-round(lmom_ratios[,3],2)
   Lkurtosis<-round(lmom_ratios[,4],2)
@@ -65,11 +65,11 @@ period_stats <-function(ts, period = 'months', period_multiplier = 1){
   Q95 <- round(period.apply(ts, spec_period, FUN = quantile,probs=c(0.95),na.rm=TRUE,names=FALSE),2)
   IQR<-abs(Q75-Q25)
 
-  period_stats <- cbind.xts(NumofData,NumofMisData,PercOfMissingData,Min,Max,Mean,Var,StDev,Variation,Mom3,Skewness,
-                            Kurtosis,LMean,LScale,L3,L4,LVariation,LSkewness,Lkurtosis,Pdr,Q5,Q25,Q50,Q75,Q95,IQR)
+  period_stats <- xts::cbind.xts(NumofData,NumofMisData,PercOfMissingData,Min,Max,Mean,Var,StDev,Variation,Mom3,Skewness,
+                            Kurtosis,LMean,LScale,L3,L4,LVariation,LSkewness,Lkurtosis,Q5,Q25,Q50,Q75,Q95,IQR)
   colnames(period_stats) <- c('NumofData','NumofMisData','PercOfMissingData','Min','Max','Mean','Var','StDev',
                              'Variation','Mom3','Skewness','Kurtosis','Lmean','LScale','L3','L4',
-                             'LVariation','LSkewness','LKurtosis','Pdr','Q5','Q25','Q50','Q75','Q95','IQR')
+                             'LVariation','LSkewness','LKurtosis','Q5','Q25','Q50','Q75','Q95','IQR')
   return(period_stats)
 }
 

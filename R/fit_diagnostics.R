@@ -98,14 +98,14 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
   qq_line <- data.frame(x = seq(min(x),max(x), by = (max(x)-min(x))/1000), y = seq(min(x),max(x), by = (max(x)-min(x))/1000))
 
   QQplot <- ggplot() + geom_point(data = qq_data, aes(x=fit, y=emp), shape = 1, size = 2, stroke = 2) +
-    geom_line(data = qq_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
+    geom_line(data = qq_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
     ggtitle('Q-Q Plot')
 
   pp_data <- data.frame(emp = u_emp, fit = pp_fitted)
   pp_line <- data.frame(x = seq(0,1, by = 0.05), y = seq(0,1, by = 0.05))
 
   PPplot <- ggplot() + geom_point(data = pp_data, aes(x=fit, y=emp), shape = 1, size = 2, stroke = 2) + xlim(0,1) + ylim(0,1) +
-    geom_line(data = pp_line, aes(x=x, y=y), size = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
+    geom_line(data = pp_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
     ggtitle('P-P Plot')
 
   diagnostics <-  patchwork::wrap_plots(QQplot, PPplot, nrow = 1, ncol = 2)

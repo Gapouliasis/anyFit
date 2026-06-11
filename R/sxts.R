@@ -280,25 +280,29 @@ mask.sxts <- function(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
 
 
 
+# S3 generic for sxts -> raster conversion
+#' @export
+rasterFromSxts <- function(x, ...) UseMethod("rasterFromSxts")
+
 # Add a sxts to raster method
 #' @rdname sxts
 #' @export
 rasterFromSxts.sxts <- function(obj, ...){
   coords <- attr(obj, "coords")
-  projection <- attr(obj, "projection")
+  proj_str <- attr(obj, "projection")
   dates <- index(obj)
   temp_matrix <- cbind(coords, t(coredata(obj)))
   new_raster <- raster::rasterFromXYZ(temp_matrix)
-  projection(new_raster) <- projection
+  raster::projection(new_raster) <- proj_str
   new_raster <- raster::setZ(new_raster, as.character(dates))
   names(new_raster) <- as.character(dates)
   return(new_raster)
 }
 
-# Add a raster to sxts method
+# Convert a Raster object to an sxts object
 #' @rdname sxts
 #' @export
-sxtsFromRaster.sxts <- function(raster, ...){
+sxtsFromRaster <- function(raster, ...){
   t = raster::rasterToPoints(raster)
   tt = t(t)
   coords = t(tt[c(1, 2), ])

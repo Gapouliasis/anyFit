@@ -41,14 +41,14 @@ monthly_violins <- function(ts,palette='Set3',ignore_zeros = FALSE,
 
   if (length(varnames) > 1){
     violin <- ggplot(data = ts_melt, aes(x=month, y=value, fill=variable)) +
-      geom_violin(trim = FALSE) + scale_fill_brewer(palette=palette) +
-      xlab('Month') + ylab('Data') + labs(fill = 'Legend')
+      ggplot2::geom_violin(trim = FALSE) + ggplot2::scale_fill_brewer(palette=palette) +
+      xlab('Month') + ggplot2::ylab('Data') + labs(fill = 'Legend')
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
   }else{
     violin <- ggplot(data = ts_melt, aes(x=month, y=value, fill=month)) +
-      geom_violin(trim = FALSE) +
-      geom_boxplot(width=0.1) + scale_fill_brewer(palette=palette) +
-      xlab('Month') + ylab('Data') +
+      ggplot2::geom_violin(trim = FALSE) +
+      ggplot2::geom_boxplot(width=0.1) + ggplot2::scale_fill_brewer(palette=palette) +
+      xlab('Month') + ggplot2::ylab('Data') +
       theme(legend.position = 'none', axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
   }
 

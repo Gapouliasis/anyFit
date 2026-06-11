@@ -41,13 +41,13 @@ monthly_boxplots <- function(ts, palette = 'Set1', ignore_zeros = FALSE,
 
   if (length(varnames) > 1){
     boxes <- ggplot(data = ts_melt, aes(x=month, y=value, fill=variable)) +
-      geom_boxplot(width=0.8) + scale_fill_brewer(palette= palette) +
-      xlab('Month') + ylab('Data') + labs(fill = 'Legend') +
+      ggplot2::geom_boxplot(width=0.8) + ggplot2::scale_fill_brewer(palette= palette) +
+      xlab('Month') + ggplot2::ylab('Data') + labs(fill = 'Legend') +
       theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
   }else{
     boxes <- ggplot(data = ts_melt, aes(x=month, y=value, fill=month)) +
-      geom_boxplot(width=0.8) + scale_fill_brewer(palette= palette) +
-      xlab('Month') + ylab('Data') +
+      ggplot2::geom_boxplot(width=0.8) + ggplot2::scale_fill_brewer(palette= palette) +
+      xlab('Month') + ggplot2::ylab('Data') +
       theme(legend.position = 'none', axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5))
   }
 

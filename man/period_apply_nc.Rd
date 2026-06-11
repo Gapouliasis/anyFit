@@ -5,7 +5,7 @@
 \title{period_apply_nc}
 \usage{
 period_apply_nc(
-  data,
+  data = NULL,
   filename = NA,
   varname = NA,
   period = "months",
@@ -15,7 +15,9 @@ period_apply_nc(
 )
 }
 \arguments{
-\item{filename}{(optional) A NetCDF file name to import if raster_file is not provided.}
+\item{data}{An sxts object, or a raster file. Leave NULL when supplying filename/varname.}
+
+\item{filename}{(optional) A NetCDF file name to import if data is not provided.}
 
 \item{varname}{(optional) The name of the variable to extract from 'filename'.}
 
@@ -26,27 +28,23 @@ period_apply_nc(
 \item{FUN}{The summary function to apply (e.g., "mean", "sum").}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
-
-\item{raster_file}{A raster file}
 }
 \value{
-A raster object with the summary statistics for the specified time periods.
+An sxts object (when input is sxts or NetCDF) or an xts object (when input is raster)
+with the summary statistics for the specified time periods.
 }
 \description{
-This function applies a summary function (e.g., mean, sum) to a NetCDF raster file
-over specified time periods (e.g., months, years).
+This function applies a summary function (e.g., mean, sum) to spatiotemporal data
+over specified time periods (e.g., months, years). Accepts an sxts object, a raster file,
+or a NetCDF file path. When the input is an sxts object the output preserves spatial
+metadata (coordinates, projection) and is returned as an sxts object.
 }
 \examples{
-# Load required libraries
-library(raster)
-library(xts)
-
-# Example usage 1: Using a raster file directly
-result <- period_apply_nc(raster, period = "months", FUN = "mean")
-nc_ggplot(result)
+# Example usage 1: Using an sxts object directly
+result <- period_apply_nc(ncdf_sxts, period = "months", FUN = "mean")
 
 # Example usage 2: Using a filename and variable name
-nc_file <-"data/ncfile.nc"
+nc_file <- "data/ncfile.nc"
 result <- period_apply_nc(filename = nc_file, varname = "tp", period = "months", FUN = "sum")
 nc_ggplot(result)
 

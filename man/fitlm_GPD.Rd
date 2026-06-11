@@ -4,7 +4,7 @@
 \alias{fitlm_GPD}
 \title{fitlm_GPD}
 \usage{
-fitlm_GPD(x, bound = NULL)
+fitlm_GPD(x, bound = NULL, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
 \item{x}{A xts object containing the time series data.}

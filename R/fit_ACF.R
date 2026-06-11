@@ -83,8 +83,8 @@ fit_ACF <- function(ts,lag_max,type = list('CAS','HK','SRD'),ignore_zeros = FALS
   long_ACF <- reshape2::melt(ACF_fitted, id = c('lag'))
 
   ACF_plot <- ggplot() + geom_point(data = auto, aes(x=lag,y=auto),shape = 1, size = 2, stroke = 2) +
-    geom_line(data = long_ACF, aes(x=lag, y=value, color = variable),size = 1) +
-    ylab('ACF') + labs(color = 'Legend') + scale_color_brewer(palette='Set1')
+    geom_line(data = long_ACF, aes(x=lag, y=value, color = variable),linewidth = 1) +
+    ggplot2::ylab('ACF') + labs(color = 'Legend') + scale_color_brewer(palette='Set1')
 
   return(list('ACF_params' = ACF_params, 'ACF_fitted' = ACF_fitted
               , 'ACF_plot' = ACF_plot))

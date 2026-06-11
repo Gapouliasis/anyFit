@@ -5,7 +5,7 @@
 \title{basic_stats_nc}
 \usage{
 basic_stats_nc(
-  raster_file,
+  data = NULL,
   filename = NA,
   varname = NA,
   ignore_zeros = FALSE,
@@ -16,9 +16,9 @@ basic_stats_nc(
 )
 }
 \arguments{
-\item{raster_file}{A raster file}
+\item{data}{An sxts object, or a raster file. Leave NULL when supplying filename/varname.}
 
-\item{filename}{(optional) A NetCDF file name to import if raster_file is not provided.}
+\item{filename}{(optional) A NetCDF file name to import if data is not provided.}
 
 \item{varname}{(optional) The name of the variable to extract from 'filename'.}
 
