@@ -189,5 +189,5 @@ nc2xts <- function(filename, varname, shapefile = NA, country = NA, continent = 
     ncdf_sxts <- mask.sxts(ncdf_sxts, mask = mask)
   }
 
-  list(ncdf_sxts = ncdf_sxts)
+  return(ncdf_sxts)
 }

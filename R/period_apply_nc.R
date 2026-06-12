@@ -39,14 +39,24 @@ period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "m
     ncdf_sxts <- data
 
   } else {
-    ncdf_sxts <- sxtsFromRaster.sxts(data)
+    ncdf_sxts <- sxtsFromRaster(data)
   }
 
   spec_period <- endpoints(ncdf_sxts, on = period, k = period_multiplier)
-  ncdf_stats  <- lapply(1:ncol(ncdf_sxts), FUN = function(x) {
-    period.apply(ncdf_sxts[, x], spec_period, FUN = FUN)
-  })
-  ncdf_stats <- do.call(cbind, ncdf_stats)
+
+  # For mean/sum use the column-wise functions, which apply to all columns in a
+  # single pass and are much faster than looping column by column.
+  if (identical(FUN, "mean") || identical(FUN, mean)) {
+    ncdf_stats <- xts::period.apply(ncdf_sxts, spec_period,
+                                    FUN = function(x) colMeans(x, na.rm = TRUE))
+  } else if (identical(FUN, "sum") || identical(FUN, sum)) {
+    ncdf_stats <- xts::period.apply(ncdf_sxts, spec_period,
+                                    FUN = function(x) colSums(x, na.rm = TRUE))
+  } else {
+    ncdf_stats <- do.call(cbind, lapply(1:ncol(ncdf_sxts), FUN = function(x) {
+      period.apply(ncdf_sxts[, x], spec_period, FUN = FUN)
+    }))
+  }
 
   if (is.sxts(ncdf_sxts)) {
     ncdf_stats <- restore_sxts(ncdf_stats, ncdf_sxts)
