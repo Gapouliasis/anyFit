@@ -10,6 +10,8 @@ nc2xts(
   shapefile = NA,
   country = NA,
   continent = NA,
+  xlim = NA,
+  ylim = NA,
   projection = "+proj=longlat +datum=WGS84"
 )
 }
@@ -24,14 +26,20 @@ nc2xts(
 
 \item{continent}{(optional) Continent name for masking (matches world_data$continent).}
 
+\item{xlim}{(optional) Numeric length-2 vector giving the longitude/x range to
+read, expressed in the grid's own coordinate units. Used as an alternative to a
+polygon mask to restrict the read to a bounding box. Requires \code{ylim}.}
+
+\item{ylim}{(optional) Numeric length-2 vector giving the latitude/y range to
+read, expressed in the grid's own coordinate units. Requires \code{xlim}.}
+
 \item{projection}{(optional) CRS string (PROJ4 or WKT) used as a fallback when
 the NetCDF file contains no projection metadata.  If the file does contain CRS
 metadata both values are compared and the function errors on disagreement.
 Defaults to \code{NA}.}
 }
 \value{
-A list with element \code{ncdf_sxts}: an sxts object with rows = time
-steps and columns = spatial locations.
+An sxts object with rows = time steps and columns = spatial locations.
 }
 \description{
 Reads a NetCDF file and converts it into an sxts object.
@@ -44,6 +52,14 @@ variable attributes or global crs_wkt/spatial_ref attributes). If no CRS
 is found in the file the \code{projection} argument must be supplied.
 When both sources are present they are compared and an error is raised if
 they disagree.
+}
+\details{
+For large files, supplying a \code{country}, \code{continent},
+\code{shapefile}, or \code{xlim}/\code{ylim} restricts the NetCDF read to the
+bounding box of the requested region, so only that hyperslab is loaded from disk
+rather than the whole grid. For polygon masks the bounding box is computed in the
+grid's own CRS, so the prefilter is correct for both geographic and projected
+grids. The prefilter is skipped (full read, with a warning) for rotated-pole grids.
 }
 \examples{
 result <- nc2xts(filename = "data/ncfile.nc", varname = "tp",

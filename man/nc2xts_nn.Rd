@@ -2,26 +2,30 @@
 % Please edit documentation in R/nc2xts_nn.R
 \name{nc2xts_nn}
 \alias{nc2xts_nn}
-\title{nc2xts}
+\title{nc2xts_nn}
 \usage{
 nc2xts_nn(filename, varname, coords)
 }
 \arguments{
-\item{filename}{The path to the NetCDF file. It can be a character vector of multiple NetCDF files.
-This is useful when data are downloaded in time chunks. The function will automatically order by date.}
+\item{filename}{Path to the NetCDF file. May be a character vector of multiple files (e.g. data
+downloaded in time chunks); the results are row-bound and ordered by date.}
 
-\item{varname}{A character vector of variable names to extract.}
+\item{varname}{Name of the variable to extract (a single variable name).}
 
-\item{coords}{A matrix or data.frame of coordinates (longitude and latitude) for extraction.}
+\item{coords}{A matrix or data.frame of coordinates; the first two columns are taken as
+x (longitude) and y (latitude).}
 }
 \value{
-An xts time series object containing the extracted variables.
+An xts time series object with one column per supplied coordinate.
 }
 \description{
-This function extracts one or more variables from NetCDF files from one or more locations at specified coordinates
-and creates an xts time series. This function performs no interpolation/extrapolation of the data.
-It return the values of the cell which contains the point coordinates. If the specified points fall outside of the dataset
-it will return NANs.
+Extracts a point (nearest-neighbour) time series for one variable from one or
+more NetCDF files at the supplied coordinates and returns a plain \code{xts}. No
+interpolation/extrapolation is performed: the value of the grid cell nearest to each point is
+returned. Points falling outside the grid extent yield an all-\code{NA} column.
+
+Data are read directly with \code{ncdf4} (no \code{raster} intermediate): only the requested
+cells are read from disk via an indexed hyperslab, and dates are parsed from the CF time units.
 }
 \examples{
 

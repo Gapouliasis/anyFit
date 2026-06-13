@@ -10,8 +10,6 @@ basic_stats_nc(
   varname = NA,
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
-  parallel = FALSE,
-  ncores = 2,
   ...
 )
 }
@@ -25,12 +23,6 @@ basic_stats_nc(
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
-
-\item{parallel}{Logical, whether to compute statistics one grid cell at a time
-across cores instead of the default single vectorised pass. Retained for
-benchmarking; usually slower than the vectorised default. Default is FALSE.}
-
-\item{ncores}{Number of cores to use in the case of parallel computations}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }
@@ -55,12 +47,6 @@ It returns the following statistics in raster format.
 \item Transition probability from a dry to a dry state
 }
 }
-
-By default the statistics are computed for the whole grid in a single
-vectorised pass via the wide \code{\link{basic_stats}} (every grid cell is a
-column). The per-column \code{parallel} path is retained only as an optional
-fallback for benchmarking and is generally unnecessary with the vectorised
-engine.
 }
 \examples{
 TO BE FILLED

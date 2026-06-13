@@ -30,8 +30,7 @@ fitlm_nc = function(data = NULL, filename = NA, varname = NA,
                     parallel = FALSE, ncores = 2, ...){
 
   if (!is.na(filename)) {
-    temp      <- nc2xts(filename = filename, varname = varname, ...)
-    ncdf_sxts <- temp$ncdf_sxts
+    ncdf_sxts <- nc2xts(filename = filename, varname = varname, ...)
     coords    <- coords(ncdf_sxts)
     proj_str  <- projection(ncdf_sxts)
 

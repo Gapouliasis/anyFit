@@ -259,9 +259,8 @@ same function can conveniently clip the data on loading, using a country name, a
 continent or a user-supplied shapefile.
 
 ```{r}
-loaded   <- nc2xts(filename = nc_file, varname = "rr",
-                   projection = "+proj=longlat +datum=WGS84")
-rain_grid <- loaded$ncdf_sxts
+rain_grid <- nc2xts(filename = nc_file, varname = "rr",
+                    projection = "+proj=longlat +datum=WGS84")
 rain_grid
 ```
 

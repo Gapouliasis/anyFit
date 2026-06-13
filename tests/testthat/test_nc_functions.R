@@ -37,32 +37,31 @@ make_tmp_nc <- function() {
 # ---------------------------------------------------------------------------
 # nc2xts — NetCDF to sxts conversion
 # ---------------------------------------------------------------------------
-test_that("nc2xts() returns list with 'ncdf_sxts' element", {
+test_that("nc2xts() returns an sxts object", {
   skip_if_not_installed("ncdf4")
   tmp <- make_tmp_nc()
   on.exit(if (file.exists(tmp)) file.remove(tmp))
   res <- nc2xts(tmp, varname = "precip",
                 projection = "+proj=longlat +datum=WGS84")
-  expect_type(res, "list")
-  expect_true("ncdf_sxts" %in% names(res))
+  expect_true(inherits(res, "sxts"))
 })
 
-test_that("nc2xts() ncdf_sxts inherits sxts class", {
+test_that("nc2xts() inherits sxts class", {
   skip_if_not_installed("ncdf4")
   tmp <- make_tmp_nc()
   on.exit(if (file.exists(tmp)) file.remove(tmp))
   res <- nc2xts(tmp, varname = "precip",
                 projection = "+proj=longlat +datum=WGS84")
-  expect_true(inherits(res$ncdf_sxts, "sxts"))
+  expect_true(inherits(res, "sxts"))
 })
 
-test_that("nc2xts() ncdf_sxts has correct time steps", {
+test_that("nc2xts() has correct time steps", {
   skip_if_not_installed("ncdf4")
   tmp <- make_tmp_nc()
   on.exit(if (file.exists(tmp)) file.remove(tmp))
   res <- nc2xts(tmp, varname = "precip",
                 projection = "+proj=longlat +datum=WGS84")
-  expect_equal(nrow(res$ncdf_sxts), 5L)
+  expect_equal(nrow(res), 5L)
 })
 
 test_that("nc2xts() errors on non-existent variable name", {
@@ -85,7 +84,65 @@ test_that("nc2xts() with country filter returns fewer spatial columns", {
   # Belgium filter: coords (4.0–4.5, 50.0–50.5) are inside Belgium
   belgium <- nc2xts(tmp, varname = "precip", country = "Belgium",
                     projection = "+proj=longlat +datum=WGS84")
-  expect_lte(ncol(belgium$ncdf_sxts), ncol(full$ncdf_sxts))
+  expect_lte(ncol(belgium), ncol(full))
+})
+
+# ---------------------------------------------------------------------------
+# nc2xts — bounding-box prefilter (slab read) correctness
+# ---------------------------------------------------------------------------
+
+# A larger regular grid so a sub-window is a strict subset of the full grid.
+make_tmp_nc_grid <- function() {
+  skip_if_not_installed("ncdf4")
+  tmp  <- tempfile(fileext = ".nc")
+  lon  <- ncdf4::ncdim_def("lon", "degrees_east",  seq(0, 9), longname = "longitude")
+  lat  <- ncdf4::ncdim_def("lat", "degrees_north", seq(40, 49), longname = "latitude")
+  time <- ncdf4::ncdim_def("time", "hours since 2020-01-01 00:00:00 UTC",
+                           0:3, unlim = TRUE)
+  var  <- ncdf4::ncvar_def("precip", "mm", list(lon, lat, time), -9999)
+  set.seed(72)
+  nc   <- ncdf4::nc_create(tmp, var)
+  ncdf4::ncvar_put(nc, var, array(runif(10 * 10 * 4, 0, 10), dim = c(10, 10, 4)))
+  ncdf4::nc_close(nc)
+  tmp
+}
+
+test_that("nc2xts() xlim/ylim slab read matches full read + bbox mask", {
+  skip_if_not_installed("ncdf4")
+  tmp <- make_tmp_nc_grid()
+  on.exit(if (file.exists(tmp)) file.remove(tmp))
+
+  full <- nc2xts(tmp, varname = "precip",
+                 projection = "+proj=longlat +datum=WGS84")
+  ref  <- mask.sxts(full, xlim = c(2, 5), ylim = c(42, 45))
+
+  slab <- nc2xts(tmp, varname = "precip", xlim = c(2, 5), ylim = c(42, 45),
+                 projection = "+proj=longlat +datum=WGS84")
+
+  # Same locations selected (order-independent) and same values
+  ref_coords  <- coords(ref)[order(coords(ref)$y,  coords(ref)$x), ]
+  slab_coords <- coords(slab)[order(coords(slab)$y, coords(slab)$x), ]
+  expect_equal(ref_coords$x, slab_coords$x)
+  expect_equal(ref_coords$y, slab_coords$y)
+  expect_equal(unname(sum(zoo::coredata(slab))),
+               unname(sum(zoo::coredata(ref))))
+})
+
+test_that("nc2xts() country slab read matches full read + country mask", {
+  skip_if_not_installed("ncdf4")
+  tmp <- make_tmp_nc_grid()  # spans lon 0-9, lat 40-49: covers part of Europe
+  on.exit(if (file.exists(tmp)) file.remove(tmp))
+
+  full <- nc2xts(tmp, varname = "precip",
+                 projection = "+proj=longlat +datum=WGS84")
+  ref  <- mask.sxts(full, mask = world_data[world_data$name == "France", ])
+
+  slab <- nc2xts(tmp, varname = "precip", country = "France",
+                 projection = "+proj=longlat +datum=WGS84")
+
+  expect_equal(ncol(slab), ncol(ref))
+  expect_equal(unname(sum(zoo::coredata(slab))),
+               unname(sum(zoo::coredata(ref))))
 })
 
 # ---------------------------------------------------------------------------
@@ -108,6 +165,35 @@ test_that("nc2xts_nn() returns one column per supplied coordinate", {
                    dimnames = list(NULL, c("lon", "lat")))
   res    <- nc2xts_nn(filename = tmp, varname = "precip", coords = coords)
   expect_equal(ncol(res), nrow(coords))
+})
+
+test_that("nc2xts_nn() matches raster::extract on a multi-cell grid", {
+  skip_if_not_installed("ncdf4")
+  skip_if_not_installed("raster")
+  tmp <- make_tmp_nc_grid()  # lon 0-9, lat 40-49, 4 time steps
+  on.exit(if (file.exists(tmp)) file.remove(tmp))
+
+  pts <- matrix(c(2.2, 42.3, 7.4, 47.8), ncol = 2, byrow = TRUE)
+  res <- nc2xts_nn(filename = tmp, varname = "precip", coords = pts)
+
+  brick <- raster::brick(tmp, varname = "precip")
+  ref   <- t(raster::extract(brick, pts, method = "simple"))
+
+  expect_equal(unname(zoo::coredata(res)), unname(ref))
+})
+
+test_that("nc2xts_nn() returns an all-NA column for a point outside the grid", {
+  skip_if_not_installed("ncdf4")
+  tmp <- make_tmp_nc_grid()
+  on.exit(if (file.exists(tmp)) file.remove(tmp))
+
+  # First point inside the grid, second well outside (lon/lat range is 0-9 / 40-49)
+  pts <- matrix(c(3.0, 44.0, 100.0, 100.0), ncol = 2, byrow = TRUE)
+  res <- nc2xts_nn(filename = tmp, varname = "precip", coords = pts)
+
+  expect_equal(ncol(res), 2L)
+  expect_false(all(is.na(zoo::coredata(res)[, 1])))
+  expect_true(all(is.na(zoo::coredata(res)[, 2])))
 })
 
 # ---------------------------------------------------------------------------

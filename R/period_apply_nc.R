@@ -33,8 +33,7 @@ period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "m
                             period_multiplier = 1, FUN = "mean", ...) {
 
   if (!is.na(filename)) {
-    temp      <- nc2xts(filename = filename, varname = varname, ...)
-    ncdf_sxts <- temp$ncdf_sxts
+    ncdf_sxts <- nc2xts(filename = filename, varname = varname, ...)
 
   } else if (is.sxts(data)) {
     ncdf_sxts <- data
