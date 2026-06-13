@@ -17,7 +17,8 @@ basic_stats(
   ypos_table = 0.15,
   nbins = 30,
   ignore_zeros = FALSE,
-  zero_threshold = 0.01
+  zero_threshold = 0.01,
+  plot = FALSE
 )
 }
 \arguments{
@@ -51,10 +52,15 @@ the probability dry is plotted together with the timeseries. Default is true.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
-\item{title}{A logical value, if TRUE then a title will be added to the plots. Default is FALSE.}
+\item{plot}{A logical value, if TRUE the timeseries/PDF/ECDF/ACF panel is built. Default is FALSE.
+For a multi-column input one panel is built per column.}
 }
 \value{
-A list which contains the combined timeseries, PDF, ECDF and autocorrelation plot and the statistics table.
+A list with two elements: \code{stats_table}, a data.frame of statistics
+(rows are the statistics, columns are the input series - named after the input columns
+when more than one is supplied, otherwise \code{"Value"}); and \code{plot}, which is
+\code{NULL} when \code{plot = FALSE}, a single combined plot for a single-column input,
+or a named list of one combined plot per column for a multi-column input.
 }
 \description{
 This function provides basic statistics and plots of a timeseries in xts format.
@@ -87,9 +93,14 @@ data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
 
 bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
-show_label = FALSE, ignore_zeros = TRUE)
+show_label = FALSE, ignore_zeros = TRUE, plot = TRUE)
 
 bstats$plot
 bstats$stats_table
+
+# Wide input: one column of statistics per series, plus one plot per series
+wstats <- basic_stats(data[, 1:4], plot = TRUE)
+wstats$stats_table          # columns named after the input series
+wstats$plot[[1]]            # plot for the first series
 
 }

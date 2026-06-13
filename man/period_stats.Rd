@@ -15,7 +15,14 @@ period_stats(ts, period = "months", period_multiplier = 1)
 E.g. 2 months, 3 years etc. Default is 1.}
 }
 \value{
-a xts object containing the period-based statistics for the time series data.
+A named list with one element per statistic (\code{NumofData},
+\code{NumofMisData}, \code{PercOfMissingData}, \code{Min}, \code{Max},
+\code{Mean}, \code{Var}, \code{StDev}, \code{Variation}, \code{Mom3},
+\code{Skewness}, \code{Kurtosis}, \code{LMean}, \code{LScale}, \code{L3},
+\code{L4}, \code{LVariation}, \code{LSkewness}, \code{LKurtosis}, \code{Q5},
+\code{Q25}, \code{Q50}, \code{Q75}, \code{Q95}, \code{IQR}). Each element is an
+xts with one row per period and one column per input series (columns named
+after the input).
 }
 \description{
 Function to calculate period based basic statistics. Specifically, the number of data points,
@@ -23,6 +30,10 @@ number of missing data, percentage of missing data, min, max, mean, variance,
 standard deviation, variation, 3rd moment, skewness, kurtosis, l-statistics, i.e. mean, scale,
 3rd and 4th order l-moments, l-moment variation, l-moment skewness, l-moment kurtosis,
 quantiles of 5, 25, 50, 75 and 95, and the inter quartile range.
+
+Accepts a multi-column (wide) xts: every statistic is computed column-wise for
+each period using single-pass \code{matrixStats} reducers (NA-robust, i.e.
+\code{na.rm = TRUE}). The result is one xts per statistic.
 }
 \examples{
 file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
@@ -32,6 +43,9 @@ time_step <- "1 day"
 data <- delim2xts(file_path = file_path,
                  time_zone = "UTC", delim = " ", time_step = time_step)
 
-period_stats(ts, period = "months", period_multiplier = 3)
+# Wide input: statistics computed per column, per period
+pstats <- period_stats(data[, 1:4], period = "months", period_multiplier = 3)
+pstats$Mean   # xts of period means, one column per series
+pstats$Q95
 
 }

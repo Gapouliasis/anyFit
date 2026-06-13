@@ -98,42 +98,43 @@ test_that("aggregate_xts() runs without error when input contains NAs", {
 # ---------------------------------------------------------------------------
 # period_stats — return type and columns
 # ---------------------------------------------------------------------------
-test_that("period_stats() returns an xts object", {
+test_that("period_stats() returns a named list of xts objects", {
   ts  <- make_hourly_ts()
   res <- period_stats(ts, period = "months")
-  expect_true(inherits(res, "xts"))
+  expect_type(res, "list")
+  expect_true(all(vapply(res, xts::is.xts, logical(1))))
 })
 
-test_that("period_stats() contains core statistic columns", {
+test_that("period_stats() contains core statistics", {
   ts       <- make_hourly_ts()
   res      <- period_stats(ts, period = "months")
   required <- c("NumofData", "PercOfMissingData", "Mean", "Var", "Q50")
-  expect_true(all(required %in% colnames(res)))
+  expect_true(all(required %in% names(res)))
 })
 
 test_that("period_stats() monthly aggregation has correct row count", {
   ts  <- make_hourly_ts()
   res <- period_stats(ts, period = "months")
   # 3 years × 12 months
-  expect_equal(nrow(res), 36L)
+  expect_equal(nrow(res$Mean), 36L)
 })
 
 test_that("period_stats() yearly aggregation has correct row count", {
   ts  <- make_hourly_ts()
   res <- period_stats(ts, period = "years")
-  expect_equal(nrow(res), 3L)
+  expect_equal(nrow(res$Mean), 3L)
 })
 
 test_that("period_stats() PercOfMissingData is positive when NAs are present", {
   ts  <- make_na_ts()
   res <- period_stats(ts, period = "years")
-  expect_gt(sum(res[, "PercOfMissingData"]), 0)
+  expect_gt(sum(res$PercOfMissingData), 0)
 })
 
 test_that("period_stats() statistic values are all numeric", {
   ts  <- make_hourly_ts()
   res <- period_stats(ts, period = "months")
-  expect_true(all(sapply(as.data.frame(res), is.numeric)))
+  expect_true(all(vapply(res, function(x) is.numeric(zoo::coredata(x)), logical(1))))
 })
 
 # ---------------------------------------------------------------------------

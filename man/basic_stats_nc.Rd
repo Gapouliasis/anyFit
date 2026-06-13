@@ -26,7 +26,9 @@ basic_stats_nc(
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
-\item{parallel}{Logical, whether to use parallel processing.}
+\item{parallel}{Logical, whether to compute statistics one grid cell at a time
+across cores instead of the default single vectorised pass. Retained for
+benchmarking; usually slower than the vectorised default. Default is FALSE.}
 
 \item{ncores}{Number of cores to use in the case of parallel computations}
 
@@ -53,6 +55,12 @@ It returns the following statistics in raster format.
 \item Transition probability from a dry to a dry state
 }
 }
+
+By default the statistics are computed for the whole grid in a single
+vectorised pass via the wide \code{\link{basic_stats}} (every grid cell is a
+column). The per-column \code{parallel} path is retained only as an optional
+fallback for benchmarking and is generally unnecessary with the vectorised
+engine.
 }
 \examples{
 TO BE FILLED

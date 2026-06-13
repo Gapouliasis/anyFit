@@ -16,12 +16,20 @@
 #' \item Transition probability from a dry to a dry state
 #' }
 #'
+#' By default the statistics are computed for the whole grid in a single
+#' vectorised pass via the wide \code{\link{basic_stats}} (every grid cell is a
+#' column). The per-column \code{parallel} path is retained only as an optional
+#' fallback for benchmarking and is generally unnecessary with the vectorised
+#' engine.
+#'
 #' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
 #' @param filename (optional) A NetCDF file name to import if data is not provided.
 #' @param varname (optional) The name of the variable to extract from 'filename'.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param parallel Logical, whether to use parallel processing.
+#' @param parallel Logical, whether to compute statistics one grid cell at a time
+#' across cores instead of the default single vectorised pass. Retained for
+#' benchmarking; usually slower than the vectorised default. Default is FALSE.
 #' @param ncores Number of cores to use in the case of parallel computations
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
@@ -66,14 +74,17 @@ basic_stats_nc = function(data = NULL, filename = NA, varname = NA,
   }
 
   if (Sys.info()['sysname'] == "Windows" & parallel) {
-    ncdf_stats <- parallelsugar::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table }, mc.cores = ncores)
+    ncdf_stats <- parallelsugar::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x], ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, plot = FALSE)$stats_table }, mc.cores = ncores)
+    ncdf_stats <- t(do.call(cbind, ncdf_stats))
   } else if (parallel) {
-    ncdf_stats <- parallel::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table }, mc.cores = ncores)
+    ncdf_stats <- parallel::mclapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x], ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, plot = FALSE)$stats_table }, mc.cores = ncores)
+    ncdf_stats <- t(do.call(cbind, ncdf_stats))
   } else {
-    ncdf_stats <- lapply(1:ncol(ncdf_sxts), FUN = function(x) { basic_stats(ncdf_sxts[, x])$stats_table })
+    # basic_stats now reduces every grid cell in a single vectorised pass, so the
+    # whole grid is computed at once instead of one column at a time.
+    ncdf_stats <- t(as.matrix(basic_stats(ncdf_sxts, ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, plot = FALSE)$stats_table))
   }
 
-  ncdf_stats  <- t(do.call(cbind, ncdf_stats))
   ncdf_stats  <- cbind(coords, ncdf_stats)
   raster_stats <- raster::rasterFromXYZ(ncdf_stats)
   raster::projection(raster_stats) <- proj_str

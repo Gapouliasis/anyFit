@@ -49,7 +49,7 @@
 #' @importFrom patchwork plot_layout
 #' @importFrom scales trans_breaks trans_format math_format
 #' @importFrom zoo autoplot.zoo coredata index
-#' @importFrom matrixStats colMins colMaxs colMeans2 colVars colSds colSums2 colCounts colQuantiles
+#' @importFrom matrixStats colMins colMaxs colMeans2 colVars colSds colSums2 colQuantiles
 #'
 #' @examples
 #'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
@@ -91,7 +91,187 @@
 
 basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_prefix = 'Station', show_table = TRUE,
                         xpos_label = 0.1, ypos_label = 0.95,
-                         xpos_table = 0.1, ypos_table = 0.15, nbins = 30, ignore_zeros = FALSE, zero_threshold = 0.01){
+                         xpos_table = 0.1, ypos_table = 0.15, nbins = 30, ignore_zeros = FALSE, zero_threshold = 0.01,
+                        plot = FALSE){
+
+  m <- zoo::coredata(ts)
+  if (is.null(dim(m))) m <- matrix(m, ncol = 1)
+  k <- ncol(m)
+  vnames <- colnames(ts)
+  if (is.null(vnames)) vnames <- if (k == 1) 'Value' else paste0('V', seq_len(k))
+
+  core <- .basic_stats_core(m, zero_threshold = zero_threshold, ignore_zeros = ignore_zeros)
+  stats_table <- as.data.frame(.basic_stats_round(core, ignore_zeros = ignore_zeros))
+  colnames(stats_table) <- if (k == 1) 'Value' else vnames
+
+  combi_plot <- NULL
+  if (isTRUE(plot)) {
+    panels <- lapply(seq_len(k), function(j) {
+      .basic_stats_panel(ts[, j], pstart = pstart, pend = pend, show_label = show_label,
+                         label_prefix = label_prefix, show_table = show_table,
+                         xpos_label = xpos_label, ypos_label = ypos_label,
+                         xpos_table = xpos_table, ypos_table = ypos_table, nbins = nbins,
+                         ignore_zeros = ignore_zeros, zero_threshold = zero_threshold)
+    })
+    if (k == 1) {
+      combi_plot <- panels[[1]]
+    } else {
+      names(panels) <- vnames
+      combi_plot <- panels
+    }
+  }
+
+  list_out <- list(plot = combi_plot, stats_table = stats_table)
+
+  return(list_out)
+
+}
+
+
+# Column-wise statistics engine. Returns an UNROUNDED matrix with one row per
+# statistic (rownames are the stat labels) and one column per input series.
+# When ignore_zeros = TRUE the distributional statistics are computed on the
+# non-zero values (sub-threshold values masked to NA) and the transition
+# statistics are omitted, mirroring the original single-series behaviour.
+.basic_stats_core <- function(m, zero_threshold = 0.01, ignore_zeros = FALSE) {
+  storage.mode(m) <- 'double'
+  n <- nrow(m); k <- ncol(m)
+
+  NumofData         <- rep(n, k)
+  NumofMisData      <- matrixStats::colSums2(is.na(m))
+  PercOfMissingData <- NumofMisData / NumofData * 100
+  Pdr               <- matrixStats::colMeans2(m <= zero_threshold, na.rm = TRUE)
+
+  ms <- m
+  if (isTRUE(ignore_zeros)) ms[ms <= zero_threshold] <- NA
+
+  nobs  <- matrixStats::colSums2(!is.na(ms))
+  Mean  <- matrixStats::colMeans2(ms, na.rm = TRUE)
+  Var   <- matrixStats::colVars(ms,  na.rm = TRUE)
+  StDev <- matrixStats::colSds(ms,   na.rm = TRUE)
+  Variation <- StDev / Mean
+  Min   <- suppressWarnings(matrixStats::colMins(ms, na.rm = TRUE))
+  Max   <- suppressWarnings(matrixStats::colMaxs(ms, na.rm = TRUE))
+
+  # Central moments derived from the column-centred matrix (no direct reducer).
+  xc <- sweep(ms, 2, Mean, FUN = '-')
+  m2 <- matrixStats::colMeans2(xc^2, na.rm = TRUE)
+  m3 <- matrixStats::colMeans2(xc^3, na.rm = TRUE)
+  m4 <- matrixStats::colMeans2(xc^4, na.rm = TRUE)
+  Skewness <- m3 / m2^1.5                       # == moments::skewness (population)
+  Kurtosis <- m4 / m2^2                         # == moments::kurtosis (non-excess)
+  Mom3     <- matrixStats::colSums2(xc^3, na.rm = TRUE) / (nobs - 1)
+
+  qs <- suppressWarnings(matrixStats::colQuantiles(
+    ms, probs = c(0.05, 0.25, 0.50, 0.75, 0.95), na.rm = TRUE, drop = FALSE))
+  Q5 <- qs[, 1]; Q25 <- qs[, 2]; Q50 <- qs[, 3]; Q75 <- qs[, 4]; Q95 <- qs[, 5]
+  IQR <- abs(Q75 - Q25)
+
+  # L-moments have no matrixStats equivalent -> per-column samlmu (see lmom_stats).
+  Lmat <- vapply(seq_len(k), function(j) .basic_stats_lmom(ms[, j]), numeric(7))
+
+  rows <- rbind(
+    NumofData = NumofData, NumofMisData = NumofMisData,
+    PercOfMissingData = PercOfMissingData,
+    Min = Min, Max = Max, Mean = Mean, Var = Var, StDev = StDev,
+    Variation = Variation, Mom3 = Mom3, Skewness = Skewness, Kurtosis = Kurtosis,
+    Lmean = Lmat[1, ], LScale = Lmat[2, ], L3 = Lmat[3, ], L4 = Lmat[4, ],
+    LVariation = Lmat[5, ], LSkewness = Lmat[6, ], LKurtosis = Lmat[7, ],
+    Pdr = Pdr, Q5 = Q5, Q25 = Q25, Q50 = Q50, Q75 = Q75, Q95 = Q95, IQR = IQR)
+
+  if (!isTRUE(ignore_zeros)) {
+    ct <- .basic_stats_transition(m, zero_threshold)
+    rows <- rbind(rows,
+      MeanDAfterZero = ct$MeanDAfterZero, VarDAfterZero = ct$VarDAfterZero,
+      MeanDBeforeZero = ct$MeanDBeforeZero, VarDBeforeZero = ct$VarDBeforeZero,
+      MeanDAfterD = ct$MeanDAfterD, VarDAfterD = ct$VarDAfterD,
+      ProbDD = ct$ProbDD, ProbNDND = ct$ProbNDND)
+  }
+
+  colnames(rows) <- colnames(m)
+  rows
+}
+
+# Per-column L-moments: LMean, LScale, L3, L4, L-CV, L-Skewness, L-Kurtosis.
+.basic_stats_lmom <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) < 1) return(rep(NA_real_, 7))
+  tryCatch({
+    l  <- suppressWarnings(lmom::samlmu(x, nmom = 4, ratios = FALSE, trim = 0))
+    lr <- suppressWarnings(lmom::samlmu(x, nmom = 4, ratios = TRUE,  trim = 0))
+    c(l[1], l[2], l[3], l[4], l[2] / l[1], lr[3], lr[4])
+  }, error = function(e) rep(NA_real_, 7))
+}
+
+# Vectorised wet/dry transition statistics across all columns. The lag masks and
+# the -99 sentinel reproduce the original single-series logic exactly, including
+# NA propagation and the 0/0 = NaN behaviour of the transition probabilities.
+.basic_stats_transition <- function(m, thr) {
+  n <- nrow(m); k <- ncol(m)
+  na_k <- rep(NA_real_, k)
+  if (n < 2) {
+    return(list(MeanDAfterZero = na_k, VarDAfterZero = na_k,
+                MeanDBeforeZero = na_k, VarDBeforeZero = na_k,
+                MeanDAfterD = na_k, VarDAfterD = na_k,
+                ProbDD = na_k, ProbNDND = na_k))
+  }
+  Ypos <- m[2:n, , drop = FALSE]
+  Ylag <- m[1:(n - 1), , drop = FALSE]
+
+  # Keep the value where the transition fires, NA otherwise. Starting from the
+  # numeric value matrix (rather than ifelse, whose result is logical when no
+  # element ever fires) keeps the result numeric. `keep %in% TRUE` is TRUE only
+  # for genuine TRUEs, so FALSE and NA both map to NA - matching ifelse(., ., NA).
+  keep_value <- function(value, keep) {
+    value[!(keep %in% TRUE)] <- NA
+    value
+  }
+  zAZ <- keep_value(Ypos, Ypos > thr & Ylag <= thr)  # non-zero after a zero
+  zBZ <- keep_value(Ylag, Ypos <= thr & Ylag > thr)  # value preceding a zero
+  zDD <- keep_value(Ypos, Ypos > thr & Ylag > thr)   # non-zero after a non-zero
+
+  condDD <- (Ypos > thr) & (Ylag > thr)
+  zDDp   <- ifelse(condDD, Ypos, -99)
+  condND <- (Ypos == thr) & (Ylag == thr)
+  zNDp   <- ifelse(condND, Ypos, -99)
+
+  list(
+    MeanDAfterZero  = matrixStats::colMeans2(zAZ, na.rm = TRUE),
+    VarDAfterZero   = matrixStats::colVars(zAZ,  na.rm = TRUE),
+    MeanDBeforeZero = matrixStats::colMeans2(zBZ, na.rm = TRUE),
+    VarDBeforeZero  = matrixStats::colVars(zBZ,  na.rm = TRUE),
+    MeanDAfterD     = matrixStats::colMeans2(zDD, na.rm = TRUE),
+    VarDAfterD      = matrixStats::colVars(zDD,  na.rm = TRUE),
+    ProbDD   = matrixStats::colSums2(zDDp != -99 & !is.na(zDDp)) /
+               matrixStats::colSums2(!is.na(zDDp)),
+    ProbNDND = matrixStats::colSums2(zNDp != -99 & !is.na(zNDp)) /
+               matrixStats::colSums2(!is.na(zNDp)))
+}
+
+# Apply the original per-statistic rounding to the unrounded core matrix.
+# PercOfMissingData is left unrounded (as in the original).
+.basic_stats_round <- function(core, ignore_zeros = FALSE) {
+  labs   <- rownames(core)
+  digits <- stats::setNames(rep(2L, length(labs)), labs)
+  digits[c('NumofData', 'NumofMisData', 'Kurtosis')] <- 0L
+  if (isTRUE(ignore_zeros)) {
+    digits[c('Q5', 'Q25', 'Q50', 'Q75', 'Q95', 'IQR')] <- 5L
+  } else {
+    digits[c('MeanDAfterZero', 'VarDAfterZero', 'MeanDBeforeZero', 'VarDBeforeZero',
+             'MeanDAfterD', 'VarDAfterD', 'ProbDD', 'ProbNDND')] <- 5L
+  }
+  out <- core
+  for (i in seq_along(labs)) {
+    if (labs[i] == 'PercOfMissingData') next
+    out[i, ] <- round(core[i, ], digits[[labs[i]]])
+  }
+  out
+}
+
+# Build the timeseries / PDF / ECDF / ACF panel for a single-column series.
+.basic_stats_panel <- function(ts, pstart, pend, show_label, label_prefix, show_table,
+                               xpos_label, ypos_label, xpos_table, ypos_table, nbins,
+                               ignore_zeros, zero_threshold) {
   if (ignore_zeros == TRUE){
     temp <- ts[ts>zero_threshold,]
   }else{
@@ -153,117 +333,5 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 
   combi_plot <- (plot_rawts + plot_hist +  plot_layout(widths = c(1.5, 1)))/(plot_ecdf + plot_acf)
 
-  NumofData <- length(ts)
-  NumofMisData <- length(ts[is.na(ts)])
-  PercOfMissingData <- (NumofMisData/NumofData)*100
-  Min <- round(min(ts,na.rm=TRUE),2)
-  Max <- round(max(ts,na.rm=TRUE),2)
-  Mean <- round(mean(ts,na.rm=TRUE),2)
-  Var <- round(var(ts,na.rm=TRUE),2)
-  StDev <- round(sd(ts,na.rm=TRUE),2)
-  Variation <- round(StDev/Mean,2)
-  Mom3 <- round(sum((ts-Mean)^3,na.rm=T)*(1/(sum(!is.na(ts))-1)),2)
-  Skewness <- round(moments::skewness(ts),2)
-  Kurtosis <- round(moments::kurtosis(ts,na.rm=TRUE))
-  #L-moments
-  lmom<-lmom::samlmu(coredata(ts), nmom = 4, ratios = FALSE, trim = 0)
-  LMean<-round(lmom[1],2)
-  LScale<-round(lmom[2],2)
-  L3<-round(lmom[3],2)
-  L4<-round(lmom[4],2)
-  lmom_ratios<-lmom::samlmu(coredata(ts), nmom = 4, ratios = TRUE, trim = 0)
-  LVariation<-round(LScale/LMean,2)
-  LSkewness<-round(lmom_ratios[3],2)
-  Lkurtosis<-round(lmom_ratios[4],2)
-  Pdr <- round(mean(ts<=zero_threshold,na.rm=T),2)
-
-  # Quantiles of all values
-  Q5<-round(stats::quantile(ts,probs=c(0.05),na.rm=TRUE,names=FALSE),2)
-  Q25<-round(stats::quantile(ts,probs=c(0.25),na.rm=TRUE,names=FALSE),2)
-  Q50<-round(stats::quantile(ts,probs=c(0.50),na.rm=TRUE,names=FALSE),2)
-  Q75<-round(stats::quantile(ts,probs=c(0.75),na.rm=TRUE,names=FALSE),2)
-  Q95<-round(stats::quantile(ts,probs=c(0.95),na.rm=TRUE,names=FALSE),2)
-  IQR<-abs(Q75-Q25)
-
-  # Conditional Statistics and probabilities
-  pos<-2:length(ts)
-  lagpos<-pos-1
-  Ypos<-coredata(ts[pos])
-  Ylagpos<-coredata(ts[lagpos])
-
-  # Non-zero to Zero
-  z<-ifelse(Ypos>zero_threshold & Ylagpos<=zero_threshold,Ypos,NA)
-  dem.after.zero<-z[!is.na(z)]
-  MeanDAfterZero<-round(mean(dem.after.zero, na.rm=T), 5)
-  VarDAfterZero<-round(var(dem.after.zero, na.rm=T), 5)
-  # Zero to Non-zero
-  z<-ifelse(Ypos<=zero_threshold & Ylagpos>zero_threshold,Ylagpos,NA)
-  dem.before.zero<-z[!is.na(z)]
-  MeanDBeforeZero<-round(mean(dem.before.zero, na.rm = T),5)
-  VarDBeforeZero<-round(var(dem.before.zero, na.rm = T),5)
-  # Non-zero to Non-zero
-  z<-ifelse(Ypos>zero_threshold & Ylagpos>zero_threshold,Ypos,NA)
-  dem.after.dem<-z[!is.na(z)]
-  MeanDAfterD<-round(mean(dem.after.dem, na.rm = T),5)
-  VarDAfterD<-round(var(dem.after.dem, na.rm = T),5)
-  z<-ifelse(Ypos>zero_threshold & Ylagpos>zero_threshold,Ypos,-99)
-  ProbDD<-round(length(which(z!=-99 & !is.na(z)))/length(which(!is.na(z))),5)
-  # Zero to Zero
-  z<-ifelse(Ypos==zero_threshold & Ylagpos==zero_threshold,Ypos,-99)
-  ProbNDND <- round(length(which(z!=-99 & !is.na(z)))/length(which(!is.na(z))),5)
-
-  stats_table <- data.frame(Value=c(NumofData,NumofMisData,PercOfMissingData,Min,Max,Mean,Var,StDev,Variation,Mom3,Skewness,
-                                    Kurtosis,LMean,LScale,L3,L4,LVariation,LSkewness,Lkurtosis,Pdr,Q5,Q25,Q50,Q75,Q95,IQR,
-                                    MeanDAfterZero,VarDAfterZero,MeanDBeforeZero,VarDBeforeZero,MeanDAfterD,VarDAfterD,ProbDD,ProbNDND))
-
-  rownames(stats_table) <- c('NumofData','NumofMisData','PercOfMissingData','Min','Max','Mean','Var','StDev',
-                             'Variation','Mom3','Skewness','Kurtosis','Lmean','LScale','L3','L4',
-                            'LVariation','LSkewness','LKurtosis','Pdr','Q5','Q25','Q50','Q75','Q95','IQR',
-                            'MeanDAfterZero','VarDAfterZero','MeanDBeforeZero','VarDBeforeZero','MeanDAfterD','VarDAfterD','ProbDD','ProbNDND')
-
-
-  if (ignore_zeros == TRUE){
-    # Statistics of non-zero values
-    MinNonZero<-round(min(ts[ts>zero_threshold],na.rm=TRUE),2)
-    MaxNonZero<-round(max(ts[ts>zero_threshold],na.rm=TRUE),2)
-    MeanNonZero<-round(mean(ts[ts>zero_threshold],na.rm=T),2)
-    VarNonZero<-round(var(ts[ts>zero_threshold],na.rm=T),2)
-    StDevNonZero<-round(sd(ts[ts>zero_threshold],na.rm=T),2)
-    VariationNonZero <- round(StDevNonZero/MeanNonZero,2)
-    Mom3NonZero<-round(sum((ts[ts>zero_threshold]-MeanNonZero)^3,na.rm=T)*(1/(sum(!is.na(ts[ts>zero_threshold]))-1)),2)
-    SkewnessNonZero<-round(moments::skewness(ts[ts>zero_threshold],na.rm=TRUE),2)
-    KurtosisNonZero <- round(moments::kurtosis(ts[ts>zero_threshold],na.rm=TRUE))
-    #L-moments
-    lmom<-lmom::samlmu(coredata(ts[ts>zero_threshold]), nmom = 4, ratios = FALSE, trim = 0)
-    LMean<-round(lmom[1],2)
-    LScale<-round(lmom[2],2)
-    L3<-round(lmom[3],2)
-    L4<-round(lmom[4],2)
-    lmom_ratios<-lmom::samlmu(coredata(ts[ts>zero_threshold]), nmom = 4, ratios = TRUE, trim = 0)
-    LVariation<-round(LScale/LMean,2)
-    LSkewness<-round(lmom_ratios[3],2)
-    Lkurtosis<-round(lmom_ratios[4],2)
-
-    # Quantiles of non-zero values
-    Q5NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.05),na.rm=TRUE,names=FALSE),5)
-    Q25NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.25),na.rm=TRUE,names=FALSE),5)
-    Q50NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.50),na.rm=TRUE,names=FALSE),5)
-    Q75NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.75),na.rm=TRUE,names=FALSE),5)
-    Q95NonZero<-round(stats::quantile(ts[ts>zero_threshold],probs=c(0.95),na.rm=TRUE,names=FALSE),5)
-    IQRNonZero<-abs(Q75NonZero-Q25NonZero)
-
-    stats_table <- data.frame(Value=c(NumofData,NumofMisData,PercOfMissingData,MinNonZero,MaxNonZero,MeanNonZero,
-                                      VarNonZero,StDevNonZero,VariationNonZero,Mom3NonZero,SkewnessNonZero,
-                                      KurtosisNonZero,LMean,LScale,L3,L4,LVariation,LSkewness,Lkurtosis,
-                                      Pdr,Q5NonZero,Q25NonZero,Q50NonZero,Q75NonZero,Q95NonZero,IQRNonZero))
-
-    rownames(stats_table) <- c('NumofData','NumofMisData','PercOfMissingData','Min','Max','Mean','Var','StDev',
-                               'Variation','Mom3','Skewness','Kurtosis','Lmean','LScale','L3','L4',
-                               'LVariation','LSkewness','LKurtosis','Pdr','Q5','Q25','Q50','Q75','Q95','IQR')
-  }
-
-  list_out <- list(plot = combi_plot,stats_table = stats_table)
-
-  return(list_out)
-
+  return(combi_plot)
 }
