@@ -27,6 +27,7 @@ Imports:
     lmomco,
     Lmoments,
     lubridate,
+    matrixStats,
     moments,
     ncdf4,
     parallel,
@@ -48,9 +49,12 @@ Imports:
     xts,
     zoo
 Suggests:
+    anySim,
     parallelsugar,
     testthat (>= 3.0.0)
-VignetteBuilder: 
+Remotes:
+    itsoukal/anySim
+VignetteBuilder:
     knitr
 Encoding: UTF-8
 LazyData: true

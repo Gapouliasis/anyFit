@@ -28,7 +28,8 @@
 #'
 #' @importFrom zoo autoplot.zoo
 #' @importFrom xts xts endpoints period.apply
-#' @importFrom zoo index
+#' @importFrom zoo index coredata
+#' @importFrom matrixStats colSums2
 #'
 #' @export
 #'
@@ -37,14 +38,16 @@
 #and the missing values per period prescribed (i.e. month, year etc).
 #Returns the timeseries with the percentage of missing values for the selected period(s) and its plot
 check_missing <-function(data, periods, plot = TRUE ,group_months = FALSE){
-  NA_table <- apply(data,2, FUN = is.na)
-  prct_missing <- as.data.frame(apply(NA_table,2, FUN = sum)/nrow(NA_table) * 100)
+  NA_table <- is.na(zoo::coredata(data))
+  na_counts <- matrixStats::colSums2(NA_table)
+  names(na_counts) <- colnames(NA_table)
+  prct_missing <- as.data.frame(na_counts/nrow(NA_table) * 100)
   colnames(prct_missing) <- 'Percentage Missing'
 
   NA_xts <- xts(NA_table, order.by = index(data))
 
   column_sum <- function(x){
-    apply(x, 2, FUN = sum)
+    matrixStats::colSums2(x)
   }
 
   temp_list = list()
@@ -83,7 +86,7 @@ check_missing <-function(data, periods, plot = TRUE ,group_months = FALSE){
       colnames(monthly_missing) <- colnames(NA_xts)
       for (i in 1:12){
         monthly_ts <- NA_xts[month(index(NA_xts)) == i,]
-        monthly_missing[i,] <- apply(monthly_ts, MARGIN = 2, FUN = sum)/nrow(monthly_ts) * 100
+        monthly_missing[i,] <- matrixStats::colSums2(monthly_ts)/nrow(monthly_ts) * 100
       }
       rownames(monthly_missing) <- month.name
       period_prct = list(monthly_prct = period_prct,grouped_months = monthly_missing)

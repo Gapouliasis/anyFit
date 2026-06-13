@@ -197,6 +197,7 @@ restore_sxts <- function(result, original) {
     attr(result, "projection")  <- attr(original, "projection")
     attr(result, "coords")      <- attr(original, "coords")
     attr(result, "elements")    <- attr(original, "elements")
+    colnames(result) <- colnames(original)
   }
   result
 }

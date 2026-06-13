@@ -26,6 +26,7 @@
 #' nc_ggplot(result)
 #'
 #' @importFrom xts endpoints period.apply
+#' @importFrom matrixStats colMeans2 colSums2 colMaxs colMins colMedians colVars colSds
 #'
 #' @export
 period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "months",
@@ -44,14 +45,14 @@ period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "m
 
   spec_period <- endpoints(ncdf_sxts, on = period, k = period_multiplier)
 
-  # For mean/sum use the column-wise functions, which apply to all columns in a
-  # single pass and are much faster than looping column by column.
-  if (identical(FUN, "mean") || identical(FUN, mean)) {
-    ncdf_stats <- xts::period.apply(ncdf_sxts, spec_period,
-                                    FUN = function(x) colMeans(x, na.rm = TRUE))
-  } else if (identical(FUN, "sum") || identical(FUN, sum)) {
-    ncdf_stats <- xts::period.apply(ncdf_sxts, spec_period,
-                                    FUN = function(x) colSums(x, na.rm = TRUE))
+  # For supported summaries use the column-wise matrixStats reducers, which apply
+  # to all columns in a single pass and are much faster than looping column by
+  # column. Anything else falls back to the per-column period.apply loop.
+  reducer <- colwise_reducer(FUN)
+  if (!is.null(reducer)) {
+    ncdf_stats <- xts::period.apply(ncdf_sxts, spec_period, FUN = reducer)
+    # matrixStats reducers return unnamed vectors, so reattach the column names.
+    colnames(ncdf_stats) <- colnames(ncdf_sxts)
   } else {
     ncdf_stats <- do.call(cbind, lapply(1:ncol(ncdf_sxts), FUN = function(x) {
       period.apply(ncdf_sxts[, x], spec_period, FUN = FUN)
@@ -63,4 +64,25 @@ period_apply_nc = function(data = NULL, filename = NA, varname = NA, period = "m
   }
 
   return(ncdf_stats)
+}
+
+# Map a summary function (given as a string or the function itself) to a
+# single-pass column-wise matrixStats reducer. Returns NULL when there is no
+# column-wise equivalent, signalling the caller to use the generic fallback.
+colwise_reducer <- function(FUN) {
+  if (identical(FUN, "mean")   || identical(FUN, mean))
+    return(function(x) matrixStats::colMeans2(x, na.rm = TRUE))
+  if (identical(FUN, "sum")    || identical(FUN, sum))
+    return(function(x) matrixStats::colSums2(x, na.rm = TRUE))
+  if (identical(FUN, "max")    || identical(FUN, max))
+    return(function(x) matrixStats::colMaxs(x, na.rm = TRUE))
+  if (identical(FUN, "min")    || identical(FUN, min))
+    return(function(x) matrixStats::colMins(x, na.rm = TRUE))
+  if (identical(FUN, "median") || identical(FUN, stats::median))
+    return(function(x) matrixStats::colMedians(x, na.rm = TRUE))
+  if (identical(FUN, "var")    || identical(FUN, stats::var))
+    return(function(x) matrixStats::colVars(x, na.rm = TRUE))
+  if (identical(FUN, "sd")     || identical(FUN, stats::sd))
+    return(function(x) matrixStats::colSds(x, na.rm = TRUE))
+  NULL
 }

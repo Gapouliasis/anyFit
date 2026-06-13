@@ -36,14 +36,20 @@
 #' @param nbins The number of bins to split the data from the PDF calculation. Default is 30.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param title A logical value, if TRUE then a title will be added to the plots. Default is FALSE.
+#' @param plot A logical value, if TRUE the timeseries/PDF/ECDF/ACF panel is built. Default is FALSE.
+#' For a multi-column input one panel is built per column.
 #'
-#' @return A list which contains the combined timeseries, PDF, ECDF and autocorrelation plot and the statistics table.
+#' @return A list with two elements: \code{stats_table}, a data.frame of statistics
+#' (rows are the statistics, columns are the input series - named after the input columns
+#' when more than one is supplied, otherwise \code{"Value"}); and \code{plot}, which is
+#' \code{NULL} when \code{plot = FALSE}, a single combined plot for a single-column input,
+#' or a named list of one combined plot per column for a multi-column input.
 #'
 #' @importFrom ggplot2 ggplot aes geom_histogram geom_density labs ggtitle stat_ecdf scale_y_continuous geom_point geom_line annotate annotation_custom xlab theme element_text after_stat
 #' @importFrom patchwork plot_layout
 #' @importFrom scales trans_breaks trans_format math_format
-#' @importFrom zoo autoplot.zoo
+#' @importFrom zoo autoplot.zoo coredata index
+#' @importFrom matrixStats colMins colMaxs colMeans2 colVars colSds colSums2 colCounts colQuantiles
 #'
 #' @examples
 #'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
@@ -54,10 +60,15 @@
 #'                  time_zone = "UTC", delim = " ", time_step = time_step)
 #'
 #' bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
-#' show_label = FALSE, ignore_zeros = TRUE)
+#' show_label = FALSE, ignore_zeros = TRUE, plot = TRUE)
 #'
 #' bstats$plot
 #' bstats$stats_table
+#'
+#' # Wide input: one column of statistics per series, plus one plot per series
+#' wstats <- basic_stats(data[, 1:4], plot = TRUE)
+#' wstats$stats_table          # columns named after the input series
+#' wstats$plot[[1]]            # plot for the first series
 #'
 #' @export
 
@@ -100,8 +111,8 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   plot_period <- paste(start_date,end_date,sep = '/')
   ts_plot <- ts[plot_period]
 
-  data_min <- apply(ts_plot, 2, FUN = min, na.rm = TRUE)
-  data_max <- apply(ts_plot, 2, FUN = max, na.rm = TRUE)
+  data_min <- matrixStats::colMins(ts_plot, na.rm = TRUE)
+  data_max <- matrixStats::colMaxs(ts_plot, na.rm = TRUE)
 
   plot_rawts <- autoplot.zoo(ts_plot) + ggtitle('Raw Timeseries')
 

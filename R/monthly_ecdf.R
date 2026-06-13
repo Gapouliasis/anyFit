@@ -16,6 +16,7 @@
 #' @importFrom patchwork wrap_plots plot_layout
 #' @importFrom reshape2 melt
 #' @importFrom zoo coredata
+#' @importFrom matrixStats colRanks
 #'
 #' @export
 monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
@@ -34,7 +35,9 @@ monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
     monthly_ts <- ts[I]
     monthly_ts_long = reshape2::melt(coredata(monthly_ts))
 
-    monthly_ecdf = apply(coredata(monthly_ts), function(x){rank(coredata(x))}, MARGIN = 2)/nrow(monthly_ts)
+    monthly_ecdf = matrixStats::colRanks(coredata(monthly_ts), ties.method = "average",
+                                         preserveShape = TRUE)/nrow(monthly_ts)
+    colnames(monthly_ecdf) = colnames(coredata(monthly_ts))
     monthly_ecdf_long = reshape2::melt(monthly_ecdf)
     monthly_ecdf_long$q = monthly_ts_long$value
 

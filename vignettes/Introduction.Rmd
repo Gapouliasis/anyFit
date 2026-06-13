@@ -1,392 +1,565 @@
 ---
-title: "Introducing AnyFit R Package"
+title: "Introducing the anyFit R Package"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introducing AnyFit R Package}
+  %\VignetteIndexEntry{Introducing the anyFit R Package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 7,
+  fig.height = 4.5
 )
 ```
 
-Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that complicate their study. For example:
+# 1. Introduction
 
-* Seasonality 
-* Over-annual trends - long-term persistence
-* Intermittency 
-* Highly skewed distributions 
-* Different forms of autocorrelation 
+The statistical and stochastic analysis of hydroclimatic data is a fundamental
+step for the study of the underlying physical processes, as well as for the
+related engineering tasks of design, operation and risk assessment. Today,
+hydroclimatic data are increasingly utilised in risk-based decision making across
+a wide range of scientific fields and industries. In response, the community has
+released a plethora of datasets, ranging from centuries-long point measurements to
+multi-decadal, high-resolution gridded re-analysis and observation products.
 
-Importantly, many of these physical characteristics act on different scales, ranging from very fine (e.g. hourly) to very large (e.g. annual or decadal). Additionally, advances in different technology sectors, with a prominent position of the remote sensing industry, have made publicly accessible, large databases of ground (e.g. NASA MODIS, KNMI) and remote observations,  hindcast and reanalysis models. All of the above imply that tools developed for timeseries analysis, or more commonly known exploratory data analysis (EDA) should:
+Hydroclimatic variables, however, exhibit a wide array of distinct statistical
+features that make their study a demanding task. For example:
 
-* Be data agnostic
-* Be able to handle multiple temporal scales
-* Be easily extensible 
-* Be able to handle large sets of data from multiple stations/locations efficiently
-* Be able to work with NetCDF files
+* Seasonality and cyclo-stationarity
+* Over-annual trends and long-term persistence
+* Intermittency (presence of zero values)
+* Highly skewed, heavy-tailed distributions
+* Different forms of auto- and cross-correlation
 
-AnyFit aims to address the above demands in a robust manner. It is based on the eXtensible Time Series (xts) data format, which is a powerful package that provides an extensible time series class, enabling uniform handling of many R time series classes by extending zoo. Moreover, all visualization functions are implemented in ggplot2 package. AnyFit is developed with practitioners and researchers in mind. In this manner it streamlines the EDA with the stochastic modelling of hydrocliamtic variables using the anySim package, thus setting the foundations for a timeseries analysis and modeling ecosystem. Notable examples of anyFit functionality include:
+Importantly, many of these characteristics act on different temporal scales,
+ranging from very fine (e.g. hourly) to very large (e.g. annual or decadal), and
+they are often spatially inhomogeneous. Consequently, tools developed for
+exploratory data analysis (EDA) of such data should, at minimum:
 
-* Read directly from delimited files to xts format
-* Identify gaps in data
-* Produce summary statistics at various temporal scales (e.g. monthly, annual) with ease
-* Perform distribution fitting at various temporal scales (e.g. monthly, annual) with ease
-* Provides support for some "exotic" distributions, such as the Dagum and BurXII
-* Extent summary statistics and distribution fitting functionality directly to spatial data and produce NetCDF files with results
-* Streamline the visualisation of spatial statistics
+* Handle both point-based and gridded datasets
+* Handle multiple temporal scales (from seconds to years)
+* Be extensible and scalable
+* Achieve computational efficiency through parallelisation
 
-In detail the distributions supported by anyFit are the following:
-* Exponential
-* Rayleigh
-* Gamma
-* Normal
-* Log-Normal
-* Generalized Logistic 
-* 3-parameter Weibull 
-* Gumbel
-* 3-parameter Gamma (PearsonIII)
-* Generalized Extreme Value Distribution (GEV) 
-* Generalized Pareto Distribution (GPD) 
-* Generalized Gamma 
-* Generalized Gamma with location 
-* BurXII 
-* Dagum 
-* Exponentiated Weibull
-
-In the present document we are going to present the package capabilities based on point precipitation measurements and gridded re-analysis data. Additionally, we will provide two practical examples of stochastic modeling, one univariate and one cyclostationary univariate, using the anySim package.   
-
+**anyFit** aims to address the above requirements in a robust manner. It provides
+a streamlined pipeline for performing EDA on point and gridded timeseries data,
+tracking — and eventually simplifying — the workflow that an experienced
+practitioner would follow. It consolidates common tasks, such as data loading,
+plotting, inference of simple statistical measures and distribution fitting, into
+a few lines of code, while admitting a broad range of delimited and NetCDF files
+with strict and non-strict timesteps.
 
 ```{r setup}
 library(anyFit)
+library(xts)
 ```
 
-The analysis begins with loading the historical data. This is done by delim2xts function. It receives data in a delimited file which a column contains the dates and each other column presents a timeseries entry, e.g. a different station or a process. Data have to be in a strict time step and this has to be provided as an arguments. The date format of the date column has to be known, as well as the file delimiter. Additionally, it can receive arguments for skipping file lines, excluding leap years and others. Missing data are formally treated by introducing NANs.
+# 2. The anyFit package
+
+anyFit is built on the eXtensible Time Series (**xts**) data format, a powerful
+package that provides an extensible timeseries class, enabling uniform handling of
+many R timeseries classes by extending the well-known **zoo** package. All
+visualisation functions are implemented using **ggplot2** and **patchwork**. In
+this way, every figure produced by anyFit is a ggplot object and, as such,
+inherits the full customisability of these packages, reducing both complexity and
+the number of arguments required by the plotting functions.
+
+A key functionality of the package is the fitting of distribution functions. Here
+we have opted to focus on methods based on **L-moments**. L-moments
+are summary statistics, analogous to conventional product moments (mean, variance,
+skewness, kurtosis), but based on linear combinations of ordered data values. They
+are regarded as more robust because they are less sensitive to outliers and provide
+more reliable estimates for the skewed, heavy-tailed distributions common in
+environmental data. Moreover, hydroclimatic processes exhibit autocorrelation,
+which violates the i.i.d. assumption underlying Maximum Likelihood Estimation (MLE);
+L-moments do not rely on this assumption and are therefore more suitable for data
+where autocorrelation is present, which is almost always the case for
+hydroclimatic data.
+
+The estimation of distribution parameters by the method of L-moments is implemented
+in a two-way manner. For distributions whose L-moments admit an analytic, explicit
+expression (e.g. Gamma, Weibull, Gumbel, Log-Normal), the analytical equations are
+used. anyFit additionally extends support to more flexible, multi-parameter
+distributions that are not commonly encountered in statistical R-packages, namely
+the Generalised Gamma, the Generalised Gamma with location, the Burr type-XII and
+the Dagum. These distributions provide substantial flexibility in capturing heavy
+tails and complex tail behaviour, but lack closed-form L-moment expressions. For
+them, the package adopts a numerical optimisation procedure (the L-BFGS-B
+quasi-Newton method) that minimises the error between the theoretical and sampled
+L-moments, using initial values drawn from pre-computed tables that span the
+feasible L-ratio parameter space of each distribution. The combination of a fast
+optimiser with good initial values yields an effective and efficient fitting
+procedure, which, for gridded datasets, can be further accelerated through
+parallel computation.
+
+In detail, the distributions supported by anyFit are:
+
+* Exponential, Rayleigh, Gamma, Normal, Log-Normal
+* Generalized Logistic, 3-parameter Weibull, Gumbel
+* 3-parameter Gamma (Pearson III)
+* Generalized Extreme Value (GEV), Generalized Pareto (GPD)
+* Generalized Gamma, Generalized Gamma with location
+* Burr type-XII, Dagum, Exponentiated Weibull
+
+The distribution functions follow the standard R notation (`d`/`p`/`q`/`r` for
+density, CDF, quantile and random generation, e.g. `qgamma3`, `pburr`, `rdagum`),
+while the L-moment fitting functions share the `fitlm_` prefix followed by the
+distribution abbreviation (e.g. `fitlm_gev`, `fitlm_burr`).
+
+A final design aspect of anyFit is its native handling of **intermittent**
+processes, i.e. the presence of zero values in a timeseries. Intermittency is a key
+property of processes such as precipitation at fine scales. Across all functions,
+including the fitting functions, the package provides the option to exclude (or
+include) zeros via a cut-off threshold (`ignore_zeros`, `zero_threshold`), and
+typical intermittency measures such as the probability dry (`Pdr`) are included in
+the default statistical measures.
+
+# 3. Package architecture and the `sxts` class
+
+anyFit is structured around the **load–process–visualize** paradigm. The *load*
+module imports timeseries data from delimited files (`delim2xts()`) and NetCDF
+datasets (`nc2xts()`). The *process* module handles missing values, computes
+statistical summaries, aggregates data across temporal scales, and fits candidate
+distributions. The *visualize* module offers a range of plotting functions
+(ridge plots, boxplots, violin plots, raster maps).
+
+The package adopts systematic naming conventions. Loading functions follow a
+`source2format` pattern (`delim2xts()`, `nc2xts()`). Functions operating on gridded
+NetCDF data carry the `_nc` suffix (`basic_stats_nc()`, `fitlm_nc()`,
+`period_apply_nc()`), while their point-based counterparts use `_xts` or no suffix
+(`aggregate_xts()`, `basic_stats()`). Monthly-scale analysis is grouped under the
+`monthly_` prefix, and autocorrelation functions use the `_ACF` suffix.
+
+To handle gridded timeseries efficiently, anyFit introduces a dedicated object
+class, the **`sxts`** (spatial xts) class. `sxts` is an S3 extension of `xts` that
+stores spatial attributes, coordinates and projection, alongside the timeseries
+data, with rows indexing time and columns indexing spatial locations. This enables
+seamless spatial operations (subsetting, masking, zonal statistics, raster
+conversion) without resorting to external raster intermediates, while inheriting
+the full temporal machinery of `xts`.
+
+An `sxts` object can be constructed directly from a data matrix, a time index, a
+table of coordinates and a projection string. To keep this vignette lightweight and
+fully reproducible, we work exclusively with **synthetic data**. To make the
+synthetic *fields* look realistic, we define a generator that reproduces the salient
+features of a precipitation field, namely:
+
+* **spatial correlation** — neighbouring cells behave similarly, so that wet and dry
+  areas form coherent patches rather than random noise. This is achieved by drawing
+  the daily fields from a multivariate Gaussian whose covariance decays
+  exponentially with distance (via a Cholesky factor);
+* an **orographic mean field** — the wet-day mean intensity varies smoothly in
+  space (here, wetter to the north plus a localised ridge), mimicking the influence
+  of topography;
+* **seasonality** — the probability of a wet day varies with the calendar month
+  (wetter in winter);
+* **intermittency** — dry days are produced by thresholding the latent field.
+
 ```{r}
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
+# Spatially correlated, seasonal, intermittent precipitation field.
+# Returns a [n_locations x n_time] matrix (rows = cells, columns = days).
+sim_precip_field <- function(coords, dates, seed = 1, cor_range = 0.8, shape = 1.3) {
+  set.seed(seed)
+  n <- nrow(coords); nt <- length(dates)
 
-data <- delim2xts(file_path = file_path, 
-                  time_zone = "UTC", delim = " ", strict_step = TRUE)
+  # Exponential spatial covariance -> correlated daily Gaussian fields
+  D <- as.matrix(dist(coords[, c("x", "y")]))
+  L <- chol(exp(-D / cor_range) + diag(1e-6, n))
+  Z <- crossprod(L, matrix(rnorm(n * nt), n, nt))         # n x nt, spatially correlated
 
+  # Normalised coordinates, used to drive the spatial gradients
+  gx <- (coords$x - min(coords$x)) / diff(range(coords$x))
+  gy <- (coords$y - min(coords$y)) / diff(range(coords$y))
+
+  # Wet-day probability: seasonal (wetter in winter) and spatial (wetter to the
+  # north) -> per cell-day occurrence threshold on the latent field
+  mth  <- as.integer(format(dates, "%m"))
+  pwet <- 0.25 + 0.30 * (0.5 + 0.5 * cos(2 * pi * (mth - 1) / 12))   # per day
+  swet <- 0.7 + 0.6 * gy                                            # per cell
+  wet  <- Z > qnorm(1 - pmin(0.9, outer(swet, pwet)))
+
+  # Orographic wet-day mean field: wetter to the north plus a smooth ridge
+  mu <- 2 + 5 * gy + 4 * exp(-((gx - 0.3)^2 + (gy - 0.7)^2) / 0.08)
+
+  # Gamma wet-day intensity, driven by the same field (intense days are wetter)
+  amount <- qgamma(pnorm(Z), shape = shape, scale = mu / shape)
+  wet * amount
+}
 ```
 
-Having loaded the data we should interrogate them for missing values. This can be done for different time scales of interest. In this example we choose to examine the first 4 stations in monthly and annual scales. 
+We use it to build a tiny `sxts` on a regular grid placed over Belgium (so that the
+country-based spatial operations shown later are meaningful):
+
 ```{r}
-missing <- check_missing(data[,seq(1,4)], c("months","years"))
-missing$list_years$figure
+dates_s  <- seq(as.Date("2018-01-01"), by = "day", length.out = 365 * 2)
+coords_s <- expand.grid(x = c(4.0, 4.5, 5.0), y = c(50.0, 50.5))
+mat_s    <- sim_precip_field(coords_s, dates_s, seed = 7)   # [cells x days]
+
+grid_demo <- sxts(t(mat_s), order.by = as.POSIXct(dates_s, tz = "UTC"),
+                  coords = coords_s, projection = "+proj=longlat +datum=WGS84")
+
+summary(grid_demo)
 ```
 
-It appears that we have a complete data set. We can know plot some basic features for station 4.
+The class ships with accessors for its spatial attributes and an `[` method that is
+aware of the spatial dimension: subsetting by time (rows) preserves all locations,
+whereas subsetting by location (columns) updates the stored coordinates and the
+element count accordingly.
+
 ```{r}
-bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
-                      show_label = FALSE, ignore_zeros = TRUE)
+coords(grid_demo)        # spatial coordinates
+projection(grid_demo)    # coordinate reference system
+elements(grid_demo)      # number of spatial locations
+
+# Spatial subset: keep the first three locations
+sub <- grid_demo[, 1:3]
+elements(sub)
+```
+
+# 4. Gridded workflow on synthetic data
+
+In practice, gridded data are most often stored in NetCDF files. We therefore write
+a small synthetic NetCDF and demonstrate the full gridded pipeline on it, exactly as
+one would with a real product. Using the field generator defined above, we produce
+six years of daily precipitation on a 7 × 5 grid over Belgium.
+
+```{r}
+lons    <- seq(3.0, 6.0, by = 0.5)    # 7 longitudes
+lats    <- seq(49.7, 51.3, by = 0.4)  # 5 latitudes
+dates_g <- seq(as.Date("2015-01-01"), by = "day", length.out = 365 * 6)
+
+# Generate the field. Cell rows follow expand.grid(x = lons, y = lats), i.e. the
+# lon-fastest column order that nc2xts() rebuilds, so no further reordering is needed.
+coords_g <- expand.grid(x = lons, y = lats)
+cell_mat <- sim_precip_field(coords_g, dates_g, seed = 1)         # [cells x days]
+arr      <- array(cell_mat, dim = c(length(lons), length(lats), length(dates_g)))
+
+nc_file <- tempfile(fileext = ".nc")
+londim  <- ncdf4::ncdim_def("lon", "degrees_east",  lons, longname = "longitude")
+latdim  <- ncdf4::ncdim_def("lat", "degrees_north", lats, longname = "latitude")
+timedim <- ncdf4::ncdim_def("time", "days since 2015-01-01 00:00:00",
+                            0:(length(dates_g) - 1), unlim = TRUE, longname = "time")
+vardef  <- ncdf4::ncvar_def("rr", "mm", list(londim, latdim, timedim), -9999,
+                            longname = "precipitation")
+
+nc <- ncdf4::nc_create(nc_file, vardef)
+ncdf4::ncvar_put(nc, vardef, arr)
+ncdf4::nc_close(nc)
+```
+
+The data are loaded with `nc2xts()`, which returns an `sxts` object. Since our
+synthetic file carries no CRS metadata, we supply the projection explicitly. The
+same function can conveniently clip the data on loading, using a country name, a
+continent or a user-supplied shapefile.
+
+```{r}
+loaded   <- nc2xts(filename = nc_file, varname = "rr",
+                   projection = "+proj=longlat +datum=WGS84")
+rain_grid <- loaded$ncdf_sxts
+rain_grid
+```
+
+The resulting `sxts` carries one column per grid cell and one row per day. Because
+`nc_ggplot()` draws one map per timestep, we visualise a single day as a snapshot.
+As `nc_ggplot()` is built on ggplot2 and patchwork, the returned object can be
+freely customised afterwards.
+
+```{r}
+nc_ggplot(rain_grid[150], legend.title = "Precip (mm)", viridis.option = "turbo")
+```
+
+Hydroclimatic processes act on different temporal scales, so it is useful to
+aggregate the data. `period_apply_nc()` aggregates a gridded `sxts` over a chosen
+temporal scale, preserving the spatial metadata. Here we aggregate to annual totals.
+
+```{r}
+annual_grid <- period_apply_nc(rain_grid, period = "years", FUN = "sum")
+nc_ggplot(annual_grid, title = TRUE, viridis.option = "turbo",
+          legend.title = "Annual precip (mm)", common_legend = TRUE)
+```
+
+With the data at hand, we infer basic statistical measures across the grid. The
+`basic_stats_nc()` function computes 34 statistical measures per cell — including
+moments, L-moments, quantiles and intermittency measures — and returns them as a
+multi-layer raster, which we map with `nc_ggplot()`. Selecting layers by name keeps
+the code readable.
+
+```{r}
+gstats <- basic_stats_nc(rain_grid, ignore_zeros = TRUE)
+nc_ggplot(gstats[[c("Mean", "Pdr")]], viridis.option = "turbo")
+```
+
+## 4.1 Marginal distribution fitting
+
+anyFit uses the method of L-moments to infer marginal distribution parameters. For
+gridded data this is implemented in `fitlm_nc()`, which fits and compares multiple
+candidate distributions at once. We test three candidates of increasing
+flexibility: the 2-parameter Gamma, the 3-parameter Gamma, and the flexible Burr
+type-XII.
+
+```{r}
+candidates <- c("gamma", "gamma3", "burr")
+fits_all   <- fitlm_nc(rain_grid, ignore_zeros = TRUE, candidates = candidates)
+```
+
+To assess goodness of fit, `fitlm_nc()` outputs a density plot of the implemented
+goodness-of-fit measures for every candidate distribution. These measures include
+the negative log-likelihood (MLE), the Cramér-von Mises (CM) and Kolmogorov-Smirnov
+(KS) statistics, the mean squared error of quantiles (MSEquant), the percentage
+difference of maxima (DiffOfMax) and the mean difference of the ten largest values
+(MeanDiffOf10Max). The density merely summarises the range of each measure across
+all grid cells, providing a visual aid for determining which distribution behaves
+best for most of the data.
+
+```{r, fig.height = 5}
+fits_all$gof_plots
+```
+
+For a deeper analysis, the function returns rasters with the fitted parameters,
+the theoretical and sampled L-moments, and the goodness-of-fit metrics for each
+distribution. For example, the spatial distribution of the fitted Burr type-XII
+parameters is mapped below.
+
+```{r, fig.height = 5}
+nc_ggplot(fits_all$fit_results$burr$raster_params, viridis.option = "turbo")
+```
+
+## 4.2 L-ratio plots
+
+An informative way of assessing whether a distribution is a suitable candidate is
+through L-ratio plots. Statistical distributions possess a theoretical L-ratio
+support space; by comparing this space to the sampled L-ratios we can determine
+whether a candidate may provide a good fit. A distribution whose theoretical support
+covers the majority of the sampled L-ratios constitutes a promising candidate. This
+is implemented in `LRatio_check()`, currently available for the Dagum, Generalized
+Gamma, Exponentiated Weibull and Burr type-XII distributions.
+
+```{r, fig.height = 6}
+ts_lmoms <- lmom_stats(rain_grid, ignore_zeros = TRUE)
+lcheck   <- LRatio_check(ts_lmoms)
+lcheck$multi_plots
+```
+
+## 4.3 Extreme value analysis
+
+Extreme value analysis is routinely used to infer design levels for civil and
+environmental engineering structures. The annual maxima of daily precipitation can
+be derived with `period_apply_nc()` using the maximum aggregation operator, and then
+fitted with the Generalised Extreme Value (GEV) distribution via `fitlm_nc()`.
+
+```{r, fig.height = 5}
+amax_grid <- period_apply_nc(rain_grid, period = "years", FUN = "max")
+gev_fit   <- fitlm_nc(amax_grid, candidates = "gev")
+nc_ggplot(gev_fit$fit_results$gev$raster_params, viridis.option = "turbo")
+```
+
+# 5. Spatial operations on `sxts`
+
+Beyond statistical analysis, the `sxts` class supports a range of spatial
+operations. The data can be masked by a bounding box, a shapefile, a country or a
+continent. Note that the `sxts` object and the mask must share the same coordinate
+reference system.
+
+```{r}
+# Bounding-box mask
+bbox_grid <- mask.sxts(rain_grid, xlim = c(3.5, 4.5), ylim = c(50, 51))
+elements(bbox_grid)
+
+# Country mask
+be_grid <- mask.sxts(rain_grid, mask = world_data[world_data$name == "Belgium", ])
+elements(be_grid)
+```
+
+`zonal_stats()` aggregates the point values of an `sxts` over polygon boundaries —
+supplied as a shapefile, a country or a continent — and returns a plain `xts` with
+one column per polygon. Below we compute the spatial mean precipitation over
+Belgium for each timestep.
+
+```{r}
+be_mean <- zonal_stats(rain_grid, country = "Belgium", FUN = mean)
+head(be_mean)
+```
+
+# 6. Point processes
+
+While the preceding sections focused on gridded datasets, many practical
+applications require the analysis of point-based timeseries, such as station
+observations or series extracted from gridded products. anyFit applies the same
+unified statistical methodology to point data.
+
+A point timeseries can be extracted from a gridded NetCDF file using `nc2xts_nn()`,
+which returns the value of the nearest grid cell to the supplied coordinates (no
+spatial interpolation is performed).
+
+```{r}
+point_coords <- data.frame(x = 4.4, y = 50.4)
+point_xts    <- nc2xts_nn(filename = nc_file, varname = "rr", coords = point_coords)
+```
+
+The `basic_stats()` function streamlines the production of the essential facets of a
+timeseries — the raw series, the empirical PDF, the empirical CDF and the
+autocorrelation function (ACF) — in a single call, while also computing a table of
+summary statistical measures.
+
+```{r}
+bstats <- basic_stats(point_xts, pstart = "2016", pend = "2018",
+                      show_table = FALSE, show_label = FALSE, ignore_zeros = TRUE)
 bstats$plot
 ```
 
-Additonaly, basic_stats will return a table with the basic statistics and the quantiles.
+## 6.1 Distribution fitting and diagnostics
 
-```{r}
-bstats$stats_table
-bstats$quantiles_table
-```
-The above statistics concerns the original scale of the data, i.e. daily. However, hydroclimatic processes act on different temporal scales. Therefore, it is useful to aggregate the data to several different temporal scales and examine their statistical properties. We will begin by aggregating and plotting in monthly, quarterly and annual scales. 
-```{r,fig.fullwidth=TRUE}
-agg_ts <- aggregate_xts(ts = data[,4], periods = c("months","quarters","years"), FUN = 'sum')
-smonthly_ts <- agg_ts$list_months$aggregated
-agg_ts$Combined_Plot
-```
+For a single series, `fitlm_multi()` fits a list of candidate distributions and
+returns the fitted parameters, a goodness-of-fit summary, and Q-Q / P-P diagnostic
+plots. Q-Q and P-P plots compare theoretical and empirical quantiles and
+probabilities respectively; a perfect fit falls on the 1:1 line.
 
-This plot demonstrated the precipitation variability at different time scales. It should be noted that an arbitrary season can be defined instead of a predefined scale, for example a wet and a dry season in a region near the equator. It is usual practice to examine timeseries on a monthly basis since it an intuitive scale and in this way it is possible to capture cyclostationary behavior. Using monthly stats we can extract monthly statistics in the original and the aggregated temporal scales for each month. 
-
-```{r,message=FALSE}
-defaultW <- getOption("warn") 
-options(warn = -1)
-monthly_sts <- monthly_stats(data[,4],aggregated = TRUE, FUN = "sum")
-monthly_sts$faggre
-```
-
-Additionaly, we can plot tables with statistics in similar fashion as basic_stats.
-
-```{r}
-monthly_sts$agg_stats
-```
-
-Data visualization is widely recognized for playing an essential role in both data comprehension and result communication. For this reason we are providing wrappers for three commonly used type of plots, boxplots, violin plots and ridge plots. The first two group variables by month. This way they provide a good understanding of inter-annual variability. 
-
-```{r}
-boxes <- monthly_boxplots(data[,4], palette = 'Set3', ignore_zeros = TRUE)
-boxes
-```
-
-```{r}
-violins <- monthly_violins(data[,4], palette = 'Set3', ignore_zeros = TRUE)
-violins
-```
-Ridge plots are implemented for both different timeseries and monthly scale within a single timeseries. 
-```{r}
-ridges <- ridge_plots(data[,c(1)], ignore_zeros = TRUE)
-ridges$plot_all
-```
-
-
-```{r}
-ridges$plot_monthly$Y.Xtemp.2
-```
-
-Naturally, at this point, dependencies between different stations or processes might be of interest. Moving further from the traditional correlation coefficient, which as a measure can be rather reductive, we plot the joint distribution of two timeseries in three forms, the original space (i.e. a simple scatter plot), the uniform space (i.e. a copula) and the standard normal space. The copula plot depicts the full dependence structure between the two timeseries without the influence of marginal distributions. It is particularly useful to examine asymmetries and tail dependencies. Similarly, a standard normal plot can be used to examine tail dependencies in the form of semi-correlations. For completion, correlation measures are added. \rho denotes the Pearson correlation and r denotes the Spearman correlation. 
-
-```{r}
-correls <- correl_plots(data[,1],data[,4], check_common = TRUE, ignore_zeros = TRUE)
-correls$combined
-```
-
-Another important component of timeseries is the autocorrelation function. Strong autocorrelations with heavy tails will result in the clustering of values, e.g. series of high or low values. On the contrary weak autocorrelations imply a bahviour simillar to random noise. Currently, AniFit contains three theoretical autocorrelation functions, namely, Cauchy, Hurst-Kolmogorov (HK) and the short range or exponential. These functions can be fitted to the available data.  
-```{r}
-acfs <- fit_ACF(data[,4], lag = 10, ignore_zeros = TRUE )
-acfs$ACF_plot
-```
-Additionally, in a similar manner to monthly_stats, fit_ACF_monthly function fits the theoretical ACFs on a monthly level. 
-
-```{r, fig.width=10,fig.height=11}
-monthly_acfs <- fit_ACF_monthly(data[,4], lag = 10)
-monthly_acfs$ACF_monthly_plot
-```
-
-Last but not least, AnyFit package incorporates L-Moment estimators for the following functions:
-
-* Exponential
-* Rayleigh
-* Gamma
-* Normal
-* Log-Normal
-* Generalized Logistic 
-* 3-parameter Weibull 
-* Gumbel
-* 3-parameter Gamma (PearsonIII)
-* Generalized Extreme Value Distribution (GEV) 
-* Generalized Pareto Distribution (GPD) 
-* Generalized Gamma 
-* Generalized Gamma with location 
-* BurXII 
-* Dagum 
-* Exponentiated Weibull
-
-The definition of the relevant function for the above distributions follows the typical definition of R language, e.g. qgamma for the quantile function of Gamma, pexp for the CDF of Exponential and rdagum for the random number generator of Dagum. The fitting function for each of the above are defined with the prefix "fitlm_". For example we try to fit the Exponentiated Weibull to station 4 data and get the distribution parameters and some goodness of fit measures. 
-
-```{r}
-params <- fitlm_expweibull(data[,4], ignore_zeros = TRUE)
-params$Param
-params$GoF
-```
-However, one cannot rely solely on goodness of fit measures to decide the appropriate distribution for a given dataset. Visual interpretation is required. Function fit_diagnostic implements three common diagnostic plots, namely probability plot, QQ plot and PP plot. QQ and PP plots compare the theoretical and empirical quantiles and probabilities respectively. A perfect fit should fall on the 1/1 line. In a probability plot, the y axis which contains the probabilities is scaled according to the theoretical distribution. In this way a perfect fit should present as a straight line in the scaled axis. 
-
-```{r}
-fit_check <- fit_diagnostics(data[,4], dist = 'expweibull',
-                             params = params$Param, ignore_zeros = TRUE)
-fit_check$Diagnostic_Plots
-```
-From the figure above, we can conclude that the Exponentiated weibull provides a good fit for our data. However, picking the correct distribution from the beginning is not always feasible. Function fitlm_multi fits a list of distributions to a given timeseries and returns the GoF measures and the QQ and PP plots. Probability plots in this case are not used, since the axis scaling depends upon the theoretical distribution which is not unique. 
-
-```{r}
-candidates <- list('exp','expweibull', 'gamma3')
-fits <- fitlm_multi(data['2010',4],candidates = candidates, ignore_zeros = TRUE)
+```{r, fig.height = 5}
+fits <- fitlm_multi(point_xts, candidates = list("gamma", "gamma3", "burr"),
+                    ignore_zeros = TRUE)
 fits$diagnostics
 ```
-A table with the GoF measures is also provided.
 
 ```{r}
 fits$GoF_summary
 ```
 
-We know have all of the information needed to construct a synthetic timeseries based in the measured data. We are going to employ AutoRegressive To Anything (ARTA) model from the anySim package to simulate 100 years of daily precipitation. 
+## 6.2 Monthly (cyclo-stationary) analysis
 
-```{r}
-library(anySim)
-set.seed(12)
-# Define the target autocorrelation structure.
-ACS=csCAS(param=c(acfs$ACF_params$CAS$beta,acfs$ACF_params$CAS$kappa),lag=1000) # CAS with b=3 and k=0.6
-# Define the target distribution function (ICDF).
-FX='qexpweibull' # Gamma distribution
-# Define the parameters of the target distribution.
-pFX <- params$Param
-# Estimate the parameters of the auxiliary Gaussian AR(p) model.
-ARTApar=EstARTAp(ACF=ACS,dist=FX,params=pFX,NatafIntMethod='GH')
-# Generate a synthetic series of 10000 length.
-SynthARTAcont=SimARTAp(ARTApar=ARTApar,steps=36494)
-```
+A notable feature of anyFit is the fitting of candidate distributions per month,
+which supports the study of seasonality and cyclo-stationary processes. We first
+aggregate the series to a monthly scale, then fit distributions per month and
+inspect the monthly Q-Q plots.
 
-We can easily "package" the synthetic timeseries in a xts format and use the existing tools to visualise and examine the model performance. 
+```{r, fig.height = 9, fig.width = 8}
+agg_ts      <- aggregate_xts(ts = point_xts, periods = c("months", "years"), FUN = "sum")
+smonthly_ts <- agg_ts$list_months$aggregated
 
-```{r}
-simVector <- unlist(SynthARTAcont$X)
-date_format <- "%d/%m/%Y"
-starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
-endtime=as.POSIXct('01/12/2120',format=date_format, tz = time_zone)
-dates <- seq(from = starttime, to = endtime, by = '1 day')
-simARTA_Xts <- xts::xts(x = simVector, order.by = dates)
-
-uni_check <- basic_stats(simARTA_Xts, pstart = '2030', pend = '2035',show_table = FALSE,
-                         show_label = FALSE, ignore_zeros = TRUE )
-uni_check$plot
-```
-
-
-```{r}
-univ_fcheck <- fit_diagnostics(simARTA_Xts, dist = 'expweibull', params = params$Param, ignore_zeros = TRUE)
-univ_fcheck$Diagnostic_Plots
-```
-
-Additionally, there are cases when a bulk investigation of multiple timeseries is required. In such cases examining the diagnostics from 10s or 100s of stations may not be feasible. On way to approach this is to plot the L-CV space of several distributions and compare it with the observed ones. This will narrow down the candidate distributions to fit. Currently, this test is only implemented for the Dagum, Generalized Gamma, Exponentiated Weibull and BurXII distributions. Additionally, the percentage of points inside the domain of each distribution is plotted. 
-
-```{r}
-ts_lmoms <- lmom_stats(data, ignore_zeros = TRUE)
-
-lcheck <- LRatio_check(ts_lmoms)
-lcheck$multi_plots
-```
-
-We can now fit the candidate distributions to all of the timeseries using the function fitlm_nxts. Diagnostic plots are outputted in panels of nrow*ncol plots for ease of use. Remarkably, it only takes about 4-5 minutes to fit 3 candidate distributions to 102 stations. 
-
-```{r, fig.width=10,fig.height=11}
-start.time <- Sys.time()
-fits_all <- fitlm_nxts(data, candidates, nrow = 5, ncol = 4, ignore_zeros = TRUE)
-end.time <- Sys.time()
-elapsed.time <- round((end.time - start.time), 3)
-print(elapsed.time)
-fits_all$QQ_panels[[1]]
-```
-
-
-Final step on our presentation and analysis is the reproduction of a cyclostationary process. Using function fitlm_monthly we can fit distributions on the monthly precipitations, which where aggregated at the initial steps using function aggregate_xts. We can plot the diagnostics (QQ and PP plots) as well as a summary table with the goodness of fit measures. 
-
-```{r, fig.width=10,fig.height=11}
-candidates <- list('exp','weibull', 'gamma3')
-monthly_fits <- fitlm_monthly(smonthly_ts,candidates = candidates, ignore_zeros = TRUE)
+monthly_fits <- fitlm_monthly(smonthly_ts, candidates = list("exp", "gamma", "gamma3"),
+                              ignore_zeros = TRUE)
 monthly_fits$monthly_QQplot
 ```
 
+Visualisation plays an essential role in data comprehension. anyFit provides
+wrappers for boxplots and violin plots that group a variable by month, offering an
+intuitive view of inter-annual variability.
 
 ```{r}
-monthly_fits$GoF_monthly$exp
+monthly_boxplots(point_xts, palette = "Set3", ignore_zeros = TRUE)
 ```
 
-Using the above and the month to month correlations from monthly_stats earlier we can now simulate a cyclostationary monthly precipitation process. 
+```{r}
+monthly_violins(point_xts, palette = "Set3", ignore_zeros = TRUE)
+```
+
+When studying cyclo-stationarity it is also important to account for
+autocorrelation. anyFit fits three theoretical autocorrelation structures — the
+Cauchy (CAS), the Hurst-Kolmogorov (HK) and the exponential Short-Range Dependence
+(SRD) — both globally with `fit_ACF()` and on a monthly basis with
+`fit_ACF_monthly()`.
 
 ```{r}
-set.seed(21)
-# Define the number of seasons.
-NumOfSeasons=12 # number of months
-# Define the (12) lag-1 season-to-season correlation coefficients
-rtarget<-monthly_sts$lag1$Value + 0.03
-# Define that distributions are of zero-inflated type.
-FXs<-rep('qzi',NumOfSeasons)
-# Define the parameters of the distribution function for each season.
-PFXs<-vector("list",NumOfSeasons)
+acfs <- fit_ACF(point_xts, lag = 10, ignore_zeros = TRUE)
+acfs$ACF_plot
+```
 
-for (i in 1:NumOfSeasons){
-  PFXs[[i]] <- c(p0= monthly_sts$agg_stats['Pdr',i],
-                    Distr = match.fun('qgamma3'), 
-                    setNames(monthly_fits$params_monthly$gamma3[[i]], rownames(monthly_fits$params_monthly$gamma3[i])))
+## 6.3 Dependence between processes
+
+Dependencies between different stations or processes are often of interest. Moving
+beyond the traditional correlation coefficient, `correl_plots()` plots the joint
+distribution of two timeseries in three spaces: the original space (scatter plot),
+the uniform space (copula) and the standard normal space. The copula plot depicts
+the full dependence structure without the influence of the marginal distributions,
+and is particularly useful for examining asymmetries and tail dependencies.
+
+```{r, fig.height = 4}
+# A second series extracted from a neighbouring grid cell: thanks to the spatial
+# correlation built into the field, the two series are naturally dependent.
+point2  <- nc2xts_nn(filename = nc_file, varname = "rr",
+                     coords = data.frame(x = 5.1, y = 50.9))
+
+correls <- correl_plots(point_xts, point2, check_common = TRUE, ignore_zeros = TRUE)
+correls$combined
+```
+
+# 7. From analysis to stochastic modelling
+
+The outputs of anyFit are designed to feed directly into downstream stochastic
+simulation. The fitted marginal distributions and autocorrelation structures
+provide exactly the parameters required by simulation engines such as the
+**anySim** package, enabling Monte-Carlo risk assessment and scenario generation.
+
+The following example reproduces a univariate process with the AutoRegressive To
+Anything (ARTA) model, parameterised entirely from the quantities we inferred above
+(the fitted distribution and the fitted Cauchy autocorrelation structure). The
+block runs only if `anySim` is installed.
+
+```{r}
+if (requireNamespace("anySim", quietly = TRUE)) {
+  params <- fitlm_gamma3(point_xts, ignore_zeros = TRUE)
+
+  # Target autocorrelation structure (Cauchy), from fit_ACF above
+  ACS <- anySim::csCAS(param = c(acfs$ACF_params$CAS$beta,
+                                 acfs$ACF_params$CAS$kappa), lag = 500)
+
+  ARTApar <- anySim::EstARTAp(ACF = ACS, dist = "qgamma3",
+                              params = params$Param, NatafIntMethod = "GH")
+  sim     <- anySim::SimARTAp(ARTApar = ARTApar, steps = 2000)
+
+  sim_xts <- xts(as.numeric(unlist(sim$X)),
+                 order.by = seq(as.POSIXct("2100-01-01", tz = "UTC"),
+                                by = "day", length.out = 2000))
+
+  fit_diagnostics(sim_xts, dist = "gamma3", params = params$Param,
+                  ignore_zeros = TRUE)$Diagnostic_Plots
 }
-
-# Estimate the parameters of SPARTA model.
-SPARTApar<-EstSPARTA(s2srtarget=rtarget, dist=FXs, params=PFXs,
-                     NatafIntMethod='GH', NoEval=9, polydeg=8, nodes=11)
-# Generate a cyclostationary synthetic series of 10000 length.
-simSPARTA<-SimSPARTA(SPARTApar=SPARTApar, steps=1000)
 ```
 
-As before, monthly_fdiagnostics can be used to interogate the synthetic data. 
+Similarly, the month-to-month statistics from `monthly_stats()` together with the
+monthly distribution fits support the simulation of a cyclo-stationary monthly
+process via the Stochastic Periodic ARTA (SPARTA) model.
 
-```{r, fig.width=10,fig.height=11}
-simVector <- list()
-for (i in 1:1000){
-  simVector[[i]] <- simSPARTA$X[i,] 
+```{r}
+if (requireNamespace("anySim", quietly = TRUE)) {
+  monthly_sts <- monthly_stats(point_xts, aggregated = TRUE, FUN = "sum")
+
+  NumOfSeasons <- 12
+  rtarget <- monthly_sts$lag1$Value
+  rtarget[is.na(rtarget)] <- 0.1
+  FXs <- rep("qzi", NumOfSeasons)
+
+  PFXs <- vector("list", NumOfSeasons)
+  for (i in 1:NumOfSeasons) {
+    PFXs[[i]] <- c(p0 = monthly_sts$agg_stats["Pdr", i],
+                   Distr = match.fun("qgamma3"),
+                   setNames(monthly_fits$params_monthly$gamma3[[i]],
+                            rownames(monthly_fits$params_monthly$gamma3[i])))
+  }
+
+  SPARTApar <- anySim::EstSPARTA(s2srtarget = rtarget, dist = FXs, params = PFXs,
+                                 NatafIntMethod = "GH", NoEval = 9,
+                                 polydeg = 8, nodes = 11)
+  simS <- anySim::SimSPARTA(SPARTApar = SPARTApar, steps = 200)
+
+  str(simS$X)
 }
-
-simVector <- unlist(simVector)
-starttime=as.POSIXct('01/01/2021',format=date_format, tz = time_zone)
-endtime=as.POSIXct('01/12/3020',format=date_format, tz = time_zone)
-dates <- seq(from = starttime, to = endtime, by = '1 month')
-simXts <- xts::xts(x = simVector, order.by = dates)
-
-
-monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly$gamma3, ignore_zeros = TRUE)
-monthly_fcheck$monthly_QQplot
-```
-anyFit additionally introduces functionality for gridded datasets which can be read from netCDF files. The statistical functionality for single timeseries (e.g. basic stats, distribution fitting) is extended to spatial data as well.   
-Firstly, we show how to extract point timeseries from a netCDF file and fit a distribution.   
-```{r}
-file_path_nc <- system.file("extdata", "rr_ens_mean_0.25deg_reg_2011-2022_v27.0e.nc", package = "anyFit")
-
-coords = data.frame(x = 14.375,y = 62.625)
-
-point_xts = nc2xts_nn(filename = file_path_nc, varname = "rr", coords = coords)
-
-bstats <- basic_stats(point_xts, pstart = '2012',pend = '2014', show_table = FALSE,
-                      show_label = FALSE, ignore_zeros = TRUE)
-bstats$plot
-
-params = fitlm_burr(point_xts, ignore_zeros = TRUE)
-fit_check <- fit_diagnostics(point_xts, dist = 'burr',
-                             params = params$Param, ignore_zeros = TRUE)
-
-fit_check$Diagnostic_Plots
 ```
 
-Instead just extracting the timeseries for a given location, we can investigate the timeseries over a region. anyFit provides the option of masking the raw dataset according to a country, continent or an arbitrary shapefile. Note that for the masking to work, both the raw data and the mask have to be in the same coordinate system. 
+# 8. Conclusion
 
-Once the data are loaded we can aggregate them into different scales, for example annual and plot them. 
-
-```{r}
-
-data = nc2xts(filename = file_path_nc, varname = "rr", country = "Belgium")
-data_raster = data$raster
-
-annual_data = period_apply_nc(data_raster, period = "years", FUN = "sum")
-
-annual_plot = nc_ggplot(annual_data,title = TRUE,viridis.option = "turbo",
-                        legend.title = "Annual Precipitation (mm)", common.legend = TRUE, legend = "bottom")
-
-annual_plot
-
-stats = basic_stats_nc(annual_data, ignore_zeros = TRUE)
-
-stats_plot = nc_ggplot(stats[[4:15]])
-
-fits_all = fitlm_nc(data_raster, ignore_zeros = TRUE, candidates = "gamma")
-
-params_plot = nc_ggplot(fits_all$raster_params, viridis.option = "turbo")
-
-Lmom_plot = nc_ggplot(fits_all$raster_TheorLMom, viridis.option = "inferno")
-```
-Furthermore, we can provide statistics of the annual precipitation of Belgium, for example the mean, variance and the 95th quantile:
-
-```{r}
-
-stats = basic_stats_nc(annual_data, ignore_zeros = TRUE)
-
-plot_stats = nc_ggplot(stats[[c("Mean","Var","Q95")]])
-
-plot_stats
-```
-
-After we have interogated our data we can fit a distribution:
-```{r}
-
-fits_all = fitlm_nc(data_raster, ignore_zeros = TRUE, candidates = "gamma")
-
-params_plot = nc_ggplot(fits_all$raster_params, viridis.option = "turbo")
-
-params_plot
-
-Lmom_plot = nc_ggplot(fits_all$raster_TheorLMom, viridis.option = "inferno")
-
-Lmom_plot
-```
+anyFit offers an integrated and efficient framework for the exploratory data
+analysis of hydroclimatic data, tailored to modern high-resolution point and
+gridded datasets. Through its `sxts` class it brings the convenience of `xts` to
+the spatial domain, and through its L-moment-based fitting it provides robust
+distribution estimation in the presence of autocorrelation and intermittency. While
+designed with hydroclimatic applications in mind, its data-agnostic core makes it
+applicable wherever timeseries exhibit seasonality, autocorrelation, intermittency
+or skewed distributions. Its outputs integrate naturally with downstream stochastic
+simulation packages such as anySim, setting the foundations for a timeseries
+analysis and modelling ecosystem.
