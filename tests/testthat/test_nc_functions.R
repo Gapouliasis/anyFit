@@ -210,6 +210,25 @@ test_that("nc_ggplot() with common_legend=TRUE runs without error", {
   expect_no_error(nc_ggplot(obj, common_legend = TRUE))
 })
 
+test_that("nc_ggplot() accepts a timeseries Raster* object", {
+  skip_if_not_installed("raster")
+  r   <- rasterFromSxts(make_grid_sxts())
+  res <- nc_ggplot(r)
+  expect_true(inherits(res, "gg") || inherits(res, "patchwork"))
+})
+
+test_that("nc_ggplot() accepts a non-timeseries stats raster", {
+  skip_if_not_installed("raster")
+  stats_raster <- basic_stats_nc(make_grid_sxts())
+  expect_no_error(res <- nc_ggplot(stats_raster, title = TRUE))
+  expect_true(inherits(res, "gg") || inherits(res, "patchwork"))
+})
+
+test_that("nc_ggplot() errors on unsupported input", {
+  expect_error(nc_ggplot("some/path.nc"), "must be an sxts object")
+  expect_error(nc_ggplot(data.frame(a = 1)), "must be an sxts object")
+})
+
 # ---------------------------------------------------------------------------
 # basic_stats_nc — tested with sxts input
 # ---------------------------------------------------------------------------

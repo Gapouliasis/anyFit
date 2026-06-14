@@ -20,6 +20,7 @@
 \alias{mask.sxts}
 \alias{rasterFromSxts.sxts}
 \alias{sxtsFromRaster}
+\alias{rbindlist.sxts}
 \title{sxts Class - Spatial eXtensible Time Series}
 \usage{
 sxts(data, order.by, coords = NULL, projection = NULL)
@@ -59,6 +60,8 @@ mask.sxts(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
 \method{rasterFromSxts}{sxts}(obj, ...)
 
 sxtsFromRaster(raster, ...)
+
+rbindlist.sxts(sxts_list)
 }
 \arguments{
 \item{data}{Matrix or data.frame of time series data}
@@ -70,6 +73,9 @@ sxtsFromRaster(raster, ...)
 \item{projection}{Character string specifying the coordinate reference system}
 
 \item{...}{Additional arguments passed to xts()}
+
+\item{sxts_list}{A list of \code{sxts} objects sharing the same columns (spatial
+locations). Coordinates and projection are taken from the first element.}
 }
 \value{
 An sxts object
@@ -78,4 +84,10 @@ An sxts object
 A spatial extension of xts class using attributes to store
 spatial information. This approach is more elegant and memory-efficient.
 Create a spatial xts (sxts) object
+
+Drop-in replacement for \code{do.call(rbind.xts, list)} that is much faster and
+lighter on memory. \code{rbind.xts} merges objects pairwise, re-checking the index
+and copying attributes at every step. This collects the bare coordinate data
+once and rebuilds a single \code{sxts} object, so the time index is concatenated
+and the data matrices are bound in one pass.
 }

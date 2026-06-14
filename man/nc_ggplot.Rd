@@ -5,7 +5,7 @@
 \title{nc_ggplot}
 \usage{
 nc_ggplot(
-  raster_file,
+  data,
   title = FALSE,
   legend.title = NA,
   common_legend = FALSE,
@@ -14,31 +14,37 @@ nc_ggplot(
 )
 }
 \arguments{
-\item{raster_file}{A raster file or an sxts object.}
+\item{data}{An sxts object or a 'raster' Raster* object
+(RasterLayer/RasterStack/RasterBrick). Layer names that do not parse as dates
+are kept verbatim as plot titles.}
 
 \item{title}{Logical, whether to add variable names as plot titles.}
 
 \item{legend.title}{The title for the color legend.}
 
+\item{common_legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
+
 \item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
 
 \item{...}{Additional arguments to pass to 'wrap_plots' function from the 'patchwork' package.}
-
-\item{common.legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
 }
 \value{
 A ggplot2 object representing the raster plot.
 }
 \description{
-This function takes a NetCDF raster file or an sxts object and generates
-a ggplot2 raster plot. Supports RasterBricks e.g. Timeseries of rasters
+This function takes an sxts object or a raster object and generates
+a ggplot2 raster plot. It accepts any 'raster' package Raster* object
+(RasterLayer/RasterStack/RasterBrick), including timeseries of rasters and
+non-timeseries rasters such as the statistic/parameter outputs of
+'basic_stats_nc' and 'fitlm_nc'. Layer names that parse as dates are used as
+titles; otherwise the layer names are used verbatim.
 }
 \examples{
 
 # Example usage:
-# Create a ggplot2 raster plot from a NetCDF raster file
+# Create a ggplot2 raster plot from a raster brick
 nc_file <- system.file("extdata/ncfile.nc", package = "raster")
-plot <- nc_ggplot(nc_file, "temperature")
-plot
+r <- raster::brick(nc_file)
+nc_ggplot(r, title = TRUE)
 
 }
