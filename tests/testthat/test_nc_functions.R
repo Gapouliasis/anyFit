@@ -253,3 +253,19 @@ test_that("fitlm_nc() each fit_results element has raster_params", {
   expect_true("raster_params" %in% names(res$fit_results[["norm"]]))
   expect_true(inherits(res$fit_results[["norm"]]$raster_params, "Raster"))
 })
+
+test_that("fitlm_nc() with ignore_zeros drops empty columns and keeps coords aligned", {
+  skip_if_not_installed("raster")
+  obj <- make_grid_sxts()
+  # Make the first grid cell entirely below zero_threshold so ignore_zeros drops it.
+  obj[, 1] <- 0
+
+  res <- fitlm_nc(data = obj, candidates = "norm", ignore_zeros = TRUE)
+
+  # Runs without the "differing number of rows" error and returns a raster
+  # whose non-NA cells equal the number of retained (non-empty) columns.
+  params <- res$fit_results[["norm"]]$raster_params
+  expect_true(inherits(params, "Raster"))
+  n_non_na <- sum(!is.na(raster::values(params)[, 1]))
+  expect_equal(n_non_na, 3L)
+})

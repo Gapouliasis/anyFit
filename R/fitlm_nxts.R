@@ -33,19 +33,22 @@
 
 fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
                        zero_threshold = 0.01, parallel = FALSE, ncores = 2, diagnostic_plots = TRUE){
+  # ts_list <- lapply(1:ncol(ts), FUN = function(i) {na.omit(ts[,i])})
+  if (ignore_zeros) {
+    ts <- ts[, colSums(ts > zero_threshold, na.rm = TRUE) >= 1]
+  }
+
   variables <- colnames(ts)
 
-  ts_list <- lapply(1:ncol(ts), FUN = function(i) {na.omit(ts[,i])})
-
   if(Sys.info()['sysname'] == "Windows" & parallel){
-    multi_fits <- parallelsugar::mclapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
-                         zero_threshold = zero_threshold, mc.cores = ncores, diagnostic_plots = diagnostic_plots)
+    multi_fits <- parallelsugar::mclapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
+                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)}, mc.cores = ncores)
   }else if(parallel){
-    multi_fits <- parallel::mclapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
-                                          zero_threshold = zero_threshold, mc.cores = ncores, diagnostic_plots = diagnostic_plots)
+    multi_fits <- parallel::mclapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
+                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)}, mc.cores = ncores)
   }else{
-    multi_fits <- lapply(ts_list, FUN = fitlm_multi,candidates = candidates, ignore_zeros = ignore_zeros,
-                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)
+    multi_fits <- lapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
+                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)})
   }
 
 

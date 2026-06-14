@@ -34,6 +34,20 @@ make_multi_ts <- function() {
   xts::xts(vals, order.by = dates)
 }
 
+make_all_zeros_ts <- function() {
+  dates <- as.POSIXct("2020-01-01", tz = "UTC") + seq(0, 99) * 86400
+  xts::xts(matrix(0, nrow = 100, ncol = 1,
+                  dimnames = list(NULL, "Z")), order.by = dates)
+}
+
+make_mixed_zeros_ts <- function() {
+  n     <- 100
+  vals  <- matrix(c(abs(rnorm(n, 5, 2)), rep(0, n)), ncol = 2,
+                  dimnames = list(NULL, c("Good", "AllZero")))
+  dates <- as.POSIXct("2020-01-01", tz = "UTC") + seq(0, n - 1) * 86400
+  xts::xts(vals, order.by = dates)
+}
+
 # Helper: check that a fitlm result has the standard structure
 check_fitlm_structure <- function(res) {
   expect_type(res, "list")
@@ -352,6 +366,40 @@ test_that("fitlm_multi() with diagnostic_plots=FALSE returns only params and GoF
   expect_false("QQplot" %in% names(res))
 })
 
+test_that("fitlm_multi() with ignore_zeros=TRUE handles all-zero data without error", {
+  ts  <- make_all_zeros_ts()
+  expect_no_error({
+    res <- fitlm_multi(ts, candidates = list("gev"), ignore_zeros = TRUE,
+                       diagnostic_plots = FALSE)
+  })
+  expect_type(res, "list")
+  expect_true(all(c("parameter_list", "GoF_summary") %in% names(res)))
+  # params should be NA-filled for the empty cell
+  expect_true(is.na(res$parameter_list$gev$Param))
+  expect_true(all(is.na(res$parameter_list$gev$TheorLMom)))
+})
+
+test_that("fitlm_multi() with ignore_zeros=TRUE and diagnostic_plots=TRUE returns 5 elements for empty data", {
+  ts  <- make_all_zeros_ts()
+  res <- fitlm_multi(ts, candidates = list("gev"), ignore_zeros = TRUE,
+                     diagnostic_plots = TRUE)
+  expect_type(res, "list")
+  expect_true(all(c("parameter_list", "GoF_summary", "diagnostics",
+                    "QQplot", "PPplot") %in% names(res)))
+  expect_null(res$diagnostics)
+  expect_null(res$QQplot)
+  expect_null(res$PPplot)
+})
+
+test_that("fitlm_multi() with ignore_zeros=FALSE on all-zero data errors as expected (degenerate data)", {
+  ts  <- make_all_zeros_ts()
+  # Fitting GEV to constant-zero data is degenerate; expect an error
+  expect_error(
+    fitlm_multi(ts, candidates = list("gev"), ignore_zeros = FALSE,
+                diagnostic_plots = FALSE)
+  )
+})
+
 test_that("fitlm_nxts() returns list with params, diagnostic_plots, QQ_plots, PP_plots", {
   ts  <- make_multi_ts()
   res <- fitlm_nxts(ts, candidates = list("norm"), diagnostic_plots = TRUE)
@@ -363,6 +411,20 @@ test_that("fitlm_nxts() params has one entry per column of ts", {
   res <- fitlm_nxts(ts, candidates = list("norm"), diagnostic_plots = FALSE)
   expect_equal(length(res$params), ncol(ts))
   expect_equal(names(res$params), colnames(ts))
+})
+
+test_that("fitlm_nxts() handles mixed valid and all-zero columns with ignore_zeros=TRUE", {
+  ts  <- make_mixed_zeros_ts()
+  expect_no_error({
+    res <- fitlm_nxts(ts, candidates = list("gev"), ignore_zeros = TRUE,
+                      diagnostic_plots = FALSE)
+  })
+  expect_equal(length(res$params), ncol(ts))
+  expect_equal(names(res$params), c("Good", "AllZero"))
+  # Valid column should have real params (GEV has 3 params, none should be NA)
+  expect_true(all(!is.na(unlist(res$params$Good$params$gev$Param))))
+  # All-zero column should have NA-filled params
+  expect_true(is.na(res$params$AllZero$params$gev$Param))
 })
 
 test_that("fitlm_monthly() returns params_monthly, GoF_monthly, monthly_QQplot, monthly_PPplot", {

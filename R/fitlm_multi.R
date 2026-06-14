@@ -33,6 +33,29 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
+  if (length(x) == 0) {
+    empty_fit <- list(
+      Distribution = list(FXs = NA_character_),
+      Param = NA_real_,
+      TheorLMom = rep(NA_real_, 4),
+      DataLMom = rep(NA_real_, 4),
+      GoF = list(MLE = NA_real_, CM = NA_real_, KS = NA_real_,
+                 MSEquant = NA_real_, DiffOfMax = NA_real_, MeanDiffOf10Max = NA_real_)
+    )
+    params_list <- stats::setNames(
+      lapply(candidates, function(c) empty_fit),
+      as.character(candidates)
+    )
+    GoF_df <- as.data.frame(matrix(NA_real_, nrow = 6, ncol = length(candidates)))
+    rownames(GoF_df) <- c("MLE", "CM", "KS", "MSEquant", "DiffOfMax", "MeanDiffOf10Max")
+    colnames(GoF_df) <- as.character(candidates)
+    if (diagnostic_plots) {
+      return(list(parameter_list = params_list, GoF_summary = GoF_df,
+                  diagnostics = NULL, QQplot = NULL, PPplot = NULL))
+    } else {
+      return(list(parameter_list = params_list, GoF_summary = GoF_df))
+    }
+  }
   u_emp <- ppoints(sort(x))
   q_emp <- sort(x)
   emp_data <- data.frame(u_emp = u_emp, q_emp = q_emp)

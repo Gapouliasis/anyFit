@@ -436,3 +436,45 @@ zonal_stats.sxts <- function(x, shapefile = NULL, name_col = NULL,
   colnames(result_matrix) <- as.character(mask_sf[[name_col]][valid_idx])
   return(xts::xts(result_matrix, order.by = zoo::index(x)))
 }
+
+
+#' Fast row-bind of a list of sxts objects
+#'
+#' Drop-in replacement for `do.call(rbind.xts, list)` that is much faster and
+#' lighter on memory. `rbind.xts` merges objects pairwise, re-checking the index
+#' and copying attributes at every step. This collects the bare coordinate data
+#' once and rebuilds a single `sxts` object, so the time index is concatenated
+#' and the data matrices are bound in one pass.
+#'
+#' @param sxts_list A list of `sxts` objects sharing the same columns (spatial
+#'   locations). Coordinates and projection are taken from the first element.
+#' @rdname sxts
+#' @importFrom xts xts
+#' @importFrom zoo index coredata
+#' @export
+rbindlist.sxts <- function(sxts_list) {
+  if (!is.list(sxts_list) || length(sxts_list) == 0L) {
+    stop("`l` must be a non-empty list of sxts objects.")
+  }
+  if (!all(vapply(sxts_list, is.sxts, logical(1)))) {
+    stop("All elements of `l` must be sxts objects.")
+  }
+  if (length(sxts_list) == 1L) {
+    return(sxts_list[[1]])
+  }
+
+  ncols <- vapply(sxts_list, ncol, integer(1))
+  if (length(unique(ncols)) != 1L) {
+    stop("All sxts objects must have the same number of columns (spatial locations).")
+  }
+
+  times <- do.call(c, lapply(sxts_list, zoo::index))
+  data  <- do.call(rbind, lapply(sxts_list, zoo::coredata))
+
+  sxts(
+    data       = data,
+    order.by   = times,
+    coords     = coords.sxts(sxts_list[[1]]),
+    projection = projection.sxts(sxts_list[[1]])
+  )
+}

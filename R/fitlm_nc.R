@@ -55,6 +55,11 @@ fitlm_nc = function(data = NULL, filename = NA, varname = NA,
     rm(t, tt)
   }
 
+  if (ignore_zeros) {
+    keep   <- colSums(coredata(ncdf_sxts) > zero_threshold, na.rm = TRUE) >= 1
+    coords <- coords[keep, , drop = FALSE]
+  }
+
   ncdf_fits <- fitlm_nxts(ncdf_sxts, ignore_zeros = ignore_zeros,
                            candidates = candidates, zero_threshold = zero_threshold,
                            parallel = parallel, ncores = ncores,
