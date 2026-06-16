@@ -1,20 +1,45 @@
+# Two-sample Cramer-von Mises statistic on already-ascending-sorted inputs.
+# Numerically identical to CDFt::CramerVonMisesTwoSamples (verified incl. ties).
+cvm_two_sample_sorted = function(xS1, xS2){
+  M <- length(xS1); N <- length(xS2)
+  somM <- sum(findInterval(xS1, xS2, left.open = TRUE)^2)  # #{xS2 <  xS1}
+  somN <- sum(findInterval(xS2, xS1)^2)                    # #{xS1 <= xS2}
+  U <- N * somN + M * somM
+  ((U / (N * M)) / (N + M)) - ((4 * M * N - 1) / (6 * (M + N)))
+}
+cvm_two_sample = function(S1, S2) cvm_two_sample_sorted(sort(S1), sort(S2))
+
+# Two-sample Kolmogorov-Smirnov statistic on already-ascending-sorted inputs.
+# Identical to CDFt::KolmogorovSmirnov.
+ks_two_sample_sorted = function(xS1, xS2){
+  M <- length(xS1); N <- length(xS2)
+  cdf1     <- findInterval(xS1, xS1) / M
+  cdfEstim <- findInterval(xS2, xS2) / N
+  cdfRef   <- approx(xS1, cdf1, xS2, yleft = 0, yright = 1, ties = "mean")$y
+  max(abs(cdfRef - cdfEstim))
+}
+ks_two_sample = function(S1, S2) ks_two_sample_sorted(sort(S1), sort(S2))
+
 GOF_tests = function(x, fit, distribution){
-  u_emp <- rank(coredata(x), na.last = NA, ties.method = "average")/(length(x)+1)
+  qfun <- match.fun(paste0('q', distribution))
+  dfun <- match.fun(paste0('d', distribution))
   q_emp <- coredata(x)
-  qq_fitted <- do.call(paste0('q',distribution), c(list(p = u_emp), fit))
+  n <- length(q_emp)
+  u_emp <- rank(q_emp, na.last = NA, ties.method = "average")/(n+1)
+  qq_fitted <- do.call(qfun, c(list(p = u_emp), fit))
 
-  CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
-  KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
+  # Sort each vector once and reuse for CM, KS, the top-10 block and the max.
+  xq <- sort(q_emp)
+  xf <- sort(qq_fitted)
 
-  MLE = -sum(log(do.call(paste0('d',distribution),c(list(x = x), fit)) + 0.000001))
-  plotpos<-lmomco::pp(x=x,a=0,sort=FALSE)
-  theorquantiles = do.call(paste0('q',distribution), c(list(p = plotpos), fit))
-  theorquantilessort<-sort(theorquantiles,decreasing=TRUE)[1:10]
-  samplesort<-sort(x,decreasing=TRUE)[1:10]
+  CM <- cvm_two_sample_sorted(xq, xf)
+  KS <- ks_two_sample_sorted(xq, xf)
 
-  MSEquant<-sum((theorquantiles-x)^2)/length(x)
-  DiffOfMax<-((max(theorquantiles)-max(x))/max(x))*100
-  MeanDiffOf10Max<-sum(abs(theorquantilessort-samplesort))/10
+  MLE = -sum(log(do.call(dfun, c(list(x = x), fit)) + 0.000001))
+
+  MSEquant<-sum((qq_fitted-q_emp)^2)/n
+  DiffOfMax<-((xf[n]-xq[n])/xq[n])*100
+  MeanDiffOf10Max<-sum(abs(rev(xf)[1:10]-rev(xq)[1:10]))/10
 
   # AIC = 2*length(fit)-2*sum(log(do.call(paste0('d',distribution),c(list(x = x), fit))))
   # BIC = length(fit)*log(length(x))-2*sum(do.call(paste0('d',distribution),c(list(x = x), fit)))
@@ -638,7 +663,7 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
   Res<-list()
   Res$Distribution<-list(FXs="qgumbel")
   Res$Param<-fit
-  Res$TheorLMom<-lmrgum(par,nmom=4)
+  Res$TheorLMom<-lmom::lmrgum(par,nmom=4)
   Res$DataLMom<-sam
   Res$GoF<-GoF
 
@@ -826,6 +851,44 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 
 # lower bound at location parameter (false in lmom tutorial)
+
+#' @name GenPareto
+#' @title Generalized Pareto Distribution
+#'
+#' @description Generalized Pareto distribution
+#'
+#' @export
+#'
+
+dgpd=function(x,location,scale,shape){
+  if (shape != 0){
+    fx = (1/scale)*(1 - shape*(x-location)/scale)^(1/shape - 1)
+  } else {
+    fx = (1/scale)*exp(-(x-location)/scale)
+  }
+  return(fx)
+}
+
+#' @rdname GenPareto
+#' @export
+pgpd=function(q,location,scale,shape){
+  FX=lmom::cdfgpa(q, para=c(location,scale,shape))
+  return(FX)
+}
+
+#' @rdname GenPareto
+#' @export
+qgpd=function(p,location,scale,shape){
+  x=lmom::quagpa(p, para=c(location,scale,shape))
+  return(x)
+}
+
+#' @rdname GenPareto
+#' @export
+rgpd=function(n,location,scale,shape){
+  x=lmom::quagpa(runif(n), para=c(location,scale,shape))
+  return(x)
+}
 
 #' @title fitlm_GPD
 #'
@@ -1049,16 +1112,18 @@ fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 
 
   temp_fit = fitlm_gengamma(x = NZ - location, ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, order = order)
 
-  TheorLmom= temp_fit$TheorLmom
-  TheorLmom$lambda_1 = TheorLmom$lambda_1 + location
+  TheorLmom= temp_fit$TheorLMom
+  TheorLmom[1] = TheorLmom[1] + location
 
-  GoF <- GOF_tests(x = NZ, fit = temp_fit$params, distribution = 'gengamma_loc')
+  full_par = c(list(location = location), temp_fit$Param)
+
+  GoF <- GOF_tests(x = NZ, fit = full_par, distribution = 'gengamma_loc')
 
   #para$PW=PW
 
   Res<-list()
   Res$Distribution<-list(FXs="qgengamma_loc")
-  Res$Param<-temp_fit$params
+  Res$Param<-full_par
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
