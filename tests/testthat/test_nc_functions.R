@@ -34,6 +34,25 @@ make_tmp_nc <- function() {
   tmp
 }
 
+# NetCDF on a 1/24-degree grid (like NClimGrid-Daily) with single-precision (float32)
+# axis values, so the cell spacing wobbles at ~1e-5 the way the real files do.
+make_tmp_nc_fine <- function() {
+  skip_if_not_installed("ncdf4")
+  f32 <- function(v) { con <- rawConnection(raw(0), "wb"); writeBin(as.vector(v), con, size = 4)
+                       r <- rawConnectionValue(con); close(con); readBin(r, "numeric", length(v), size = 4) }
+  res  <- 1 / 24
+  tmp  <- tempfile(fileext = ".nc")
+  lon  <- ncdf4::ncdim_def("lon", "degrees_east",  f32(seq(-100, by = res, length.out = 10)))
+  lat  <- ncdf4::ncdim_def("lat", "degrees_north", f32(seq(  40, by = res, length.out =  8)))
+  time <- ncdf4::ncdim_def("time", "hours since 2020-01-01 00:00:00 UTC", 0:29, unlim = TRUE)
+  var  <- ncdf4::ncvar_def("precip", "mm", list(lon, lat, time), -9999)
+  set.seed(73)
+  nc   <- ncdf4::nc_create(tmp, var)
+  ncdf4::ncvar_put(nc, var, array(runif(10 * 8 * 30, 1, 50), dim = c(10, 8, 30)))
+  ncdf4::nc_close(nc)
+  tmp
+}
+
 # ---------------------------------------------------------------------------
 # nc2xts — NetCDF to sxts conversion
 # ---------------------------------------------------------------------------
@@ -273,18 +292,31 @@ test_that("fitlm_nc() each fit_results element has raster_params", {
   expect_true(inherits(res$fit_results[["norm"]]$raster_params, "Raster"))
 })
 
-test_that("fitlm_nc() with ignore_zeros drops empty columns and keeps coords aligned", {
+test_that("fitlm_nc() ignore_zeros keeps the full grid extent with NA at dropped cells", {
   skip_if_not_installed("raster")
   obj <- make_grid_sxts()
-  # Make the first grid cell entirely below zero_threshold so ignore_zeros drops it.
-  obj[, 1] <- 0
+  obj[, c(1, 3)] <- 0          # empty the entire x = 1 column (cells 1 and 3)
 
-  res <- fitlm_nc(data = obj, candidates = "norm", ignore_zeros = TRUE)
-
-  # Runs without the "differing number of rows" error and returns a raster
-  # whose non-NA cells equal the number of retained (non-empty) columns.
+  res    <- fitlm_nc(data = obj, candidates = "norm", ignore_zeros = TRUE)
   params <- res$fit_results[["norm"]]$raster_params
+
   expect_true(inherits(params, "Raster"))
-  n_non_na <- sum(!is.na(raster::values(params)[, 1]))
-  expect_equal(n_non_na, 3L)
+  expect_equal(raster::ncell(params), 4L)            # full 2x2 grid preserved
+  pts <- raster::rasterToPoints(params)              # non-NA cells only
+  expect_equal(nrow(pts), 2L)                        # only the x = 2 column fitted
+  expect_true(all(pts[, "x"] == 2))                  # dropped x = 1 cells are NA
+})
+
+test_that("fitlm_nc() works on a float-precision (1/24-deg) NetCDF grid via nc2xts", {
+  skip_if_not_installed("ncdf4")
+  skip_if_not_installed("raster")
+  tmp <- make_tmp_nc_fine()
+  on.exit(if (file.exists(tmp)) file.remove(tmp))
+
+  obj    <- nc2xts(tmp, varname = "precip", projection = "+proj=longlat +datum=WGS84")
+  res    <- fitlm_nc(data = obj, candidates = "norm", ignore_zeros = TRUE)
+  params <- res$fit_results[["norm"]]$raster_params
+
+  expect_true(inherits(params, "Raster"))
+  expect_equal(raster::ncell(params), 10L * 8L)   # full grid rasterized
 })

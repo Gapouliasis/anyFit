@@ -223,6 +223,14 @@ nc2xts <- function(filename, varname, shapefile = NA, country = NA, continent = 
   lons <- lons[lon_keep]
   lats <- lats[lat_keep]
 
+  # NetCDF axes are commonly stored as floats (e.g. NClimGrid's 1/24-deg grid), so the
+  # cell spacing wobbles at ~1e-5 and downstream rasterFromXYZ rejects the grid as
+  # irregular. Snap each axis back onto its regular lattice (cheap: 1-D axes only).
+  # Matches the clean coordinates the previous raster::brick-based reader produced.
+  regularize_axis <- function(v) if (length(v) < 2) v else v[1] + (seq_along(v) - 1) * mean(diff(v))
+  lons <- regularize_axis(lons)
+  lats <- regularize_axis(lats)
+
   # --- 6. Read only the requested hyperslab; ncdf4 applies scale/offset and _FillValue->NA ---
   start <- rep(1L, length(var_dims))
   count <- vapply(var_dims, function(d) d$len, integer(1))
