@@ -112,8 +112,8 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
 
   #MLE <- sum(log(doeval(parse(text = dfunction))(x,par[1],par[2])))
   #KS <- ks.test(x = q_emp, y = qq_fitted)
-  CM <- CDFt::CramerVonMisesTwoSamples(q_emp, qq_fitted)
-  KS <- CDFt::KolmogorovSmirnov(q_emp, qq_fitted)
+  CM <- cvm_two_sample(q_emp, qq_fitted)
+  KS <- ks_two_sample(q_emp, qq_fitted)
 
 
   GoF <- list(CramerVonMises = CM,KolmogorovSmirnov = KS)

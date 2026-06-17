@@ -13,6 +13,7 @@ fitlm_nc(
   zero_threshold = 0.01,
   parallel = FALSE,
   ncores = 2,
+  shared_memory = TRUE,
   ...
 )
 }
@@ -32,6 +33,10 @@ fitlm_nc(
 \item{parallel}{Logical, whether to use parallel processing.}
 
 \item{ncores}{Number of cores to use in the case of parallel computations}
+
+\item{shared_memory}{Logical, when parallel, share the grid with workers via a
+filebacked big.matrix (mmap, single machine) instead of serializing column
+chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }

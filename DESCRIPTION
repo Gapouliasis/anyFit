@@ -10,12 +10,14 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Depends: 
     R (>= 2.10)
-Imports: 
-    CDFt,
+Imports:
+    bigmemory,
     DEoptim,
     ExtDist,
     FAdist,
     fitdistrplus,
+    future,
+    future.apply,
     ggfortify,
     ggplot2,
     ggridges,
@@ -50,7 +52,6 @@ Imports:
     zoo
 Suggests:
     anySim,
-    parallelsugar,
     testthat (>= 3.0.0)
 Remotes:
     itsoukal/anySim

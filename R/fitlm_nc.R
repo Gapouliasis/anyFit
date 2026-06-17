@@ -12,6 +12,9 @@
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
 #' @param ncores Number of cores to use in the case of parallel computations
+#' @param shared_memory Logical, when parallel, share the grid with workers via a
+#'   filebacked big.matrix (mmap, single machine) instead of serializing column
+#'   chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
@@ -21,13 +24,12 @@
 #'
 #' @importFrom ggplot2 ggplot aes geom_density theme_bw facet_wrap vars
 #' @importFrom lubridate parse_date_time
-#' @importFrom parallel mclapply
 #'
 #' @export
 #'
 fitlm_nc = function(data = NULL, filename = NA, varname = NA,
                     candidates = 'norm', ignore_zeros = FALSE, zero_threshold = 0.01,
-                    parallel = FALSE, ncores = 2, ...){
+                    parallel = FALSE, ncores = 2, shared_memory = TRUE, ...){
 
   if (!is.na(filename)) {
     ncdf_sxts <- nc2xts(filename = filename, varname = varname, ...)
@@ -55,14 +57,26 @@ fitlm_nc = function(data = NULL, filename = NA, varname = NA,
     rm(t, tt)
   }
 
+  keep     <- rep(TRUE, ncol(ncdf_sxts))
+  fit_sxts <- ncdf_sxts
   if (ignore_zeros) {
-    keep   <- colSums(coredata(ncdf_sxts) > zero_threshold, na.rm = TRUE) >= 1
-    coords <- coords[keep, , drop = FALSE]
+    keep     <- colSums(coredata(ncdf_sxts) > zero_threshold, na.rm = TRUE) >= 1
+    fit_sxts <- ncdf_sxts[, keep]          # smaller object -> RAM win in parallel workers
   }
 
-  ncdf_fits <- fitlm_nxts(ncdf_sxts, ignore_zeros = ignore_zeros,
+  # Scatter the per-cell fits back onto the full grid (NA for dropped cells) so
+  # rasterFromXYZ always receives the complete, regular lattice.
+  scatter <- function(mat) {
+    full <- matrix(NA_real_, nrow = length(keep), ncol = ncol(mat))
+    full[keep, ] <- mat
+    colnames(full) <- colnames(mat)
+    full
+  }
+
+  ncdf_fits <- fitlm_nxts(fit_sxts, ignore_zeros = ignore_zeros,
                            candidates = candidates, zero_threshold = zero_threshold,
                            parallel = parallel, ncores = ncores,
+                           shared_memory = shared_memory,
                            diagnostic_plots = FALSE)$params
 
   result_list <- list()
@@ -71,25 +85,25 @@ fitlm_nc = function(data = NULL, filename = NA, varname = NA,
   for (candidate in candidates) {
     ncdf_params <- lapply(ncdf_fits, function(x) { unlist(x$params[[candidate]]$Param) })
     ncdf_params <- t(do.call(cbind, ncdf_params))
-    ncdf_params <- cbind(coords, ncdf_params)
+    ncdf_params <- cbind(coords, scatter(ncdf_params))
     raster_params <- raster::rasterFromXYZ(ncdf_params)
     raster::projection(raster_params) <- proj_str
 
     ncdf_TheorLMom <- lapply(ncdf_fits, function(x) { unlist(x$params[[candidate]]$TheorLMom) })
     ncdf_TheorLMom <- t(do.call(cbind, ncdf_TheorLMom))
-    ncdf_TheorLMom <- cbind(coords, ncdf_TheorLMom)
+    ncdf_TheorLMom <- cbind(coords, scatter(ncdf_TheorLMom))
     raster_TheorLMom <- raster::rasterFromXYZ(ncdf_TheorLMom)
     raster::projection(raster_TheorLMom) <- proj_str
 
     ncdf_DataLMom <- lapply(ncdf_fits, function(x) { unlist(x$params[[candidate]]$DataLMom) })
     ncdf_DataLMom <- do.call(rbind, ncdf_DataLMom)
-    ncdf_DataLMom <- cbind(coords, ncdf_DataLMom)
+    ncdf_DataLMom <- cbind(coords, scatter(ncdf_DataLMom))
     raster_DataLMom <- raster::rasterFromXYZ(ncdf_DataLMom)
     raster::projection(raster_DataLMom) <- proj_str
 
     ncdf_GoF <- lapply(ncdf_fits, function(x) { unlist(x$params[[candidate]]$GoF) })
     ncdf_GoF <- t(do.call(cbind, ncdf_GoF))
-    ncdf_GoF <- cbind(coords, ncdf_GoF)
+    ncdf_GoF <- cbind(coords, scatter(ncdf_GoF))
     raster_GoF <- raster::rasterFromXYZ(ncdf_GoF)
     raster::projection(raster_GoF) <- proj_str
 

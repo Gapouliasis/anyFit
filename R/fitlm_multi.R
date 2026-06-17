@@ -56,9 +56,11 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
       return(list(parameter_list = params_list, GoF_summary = GoF_df))
     }
   }
-  u_emp <- ppoints(sort(x))
-  q_emp <- sort(x)
-  emp_data <- data.frame(u_emp = u_emp, q_emp = q_emp)
+  if (diagnostic_plots){
+    u_emp <- ppoints(sort(x))
+    q_emp <- sort(x)
+    emp_data <- data.frame(u_emp = u_emp, q_emp = q_emp)
+  }
 
   for (candidate in candidates){
     fit_function <- match.fun(paste0('fitlm_',candidate))
@@ -76,46 +78,44 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
       GoF <- cbind(GoF, temp)
     }
 
-    qfunction <- paste0('q',candidate)
-    pfunction <- paste0('p',candidate)
+    if (diagnostic_plots){
+      param_list_temp1 <- params$Param
+      param_list_temp1$p <- u_emp
+      qq_fitted <- do.call(match.fun(paste0('q',candidate)),param_list_temp1)
 
-    param_list_temp1 <- params$Param
-    param_list_temp1$p <- u_emp
-    qq_fitted <- do.call(eval(parse(text = qfunction)),param_list_temp1)
+      param_list_temp2 <- params$Param
+      param_list_temp2$q <- q_emp
+      pp_fitted <- do.call(match.fun(paste0('p',candidate)),param_list_temp2)
 
-    param_list_temp2 <- params$Param
-    param_list_temp2$q <- q_emp
-    pp_fitted <- do.call(eval(parse(text = pfunction)),param_list_temp2)
-
-    if (candidate == candidates[[1]]){
-      qq_data <- data.frame(emp = q_emp, fit = qq_fitted, FX = candidate)
-      pp_data <- data.frame(emp = u_emp, fit = pp_fitted, FX = candidate)
-    }else{
-      temp1 <- data.frame(emp = q_emp, fit = qq_fitted, FX = candidate)
-      qq_data <- rbind(qq_data, temp1)
-      temp2 <- data.frame(emp = u_emp, fit = pp_fitted, FX = candidate)
-      pp_data <- rbind(pp_data, temp2)
+      if (candidate == candidates[[1]]){
+        qq_data <- data.frame(emp = q_emp, fit = qq_fitted, FX = candidate)
+        pp_data <- data.frame(emp = u_emp, fit = pp_fitted, FX = candidate)
+      }else{
+        temp1 <- data.frame(emp = q_emp, fit = qq_fitted, FX = candidate)
+        qq_data <- rbind(qq_data, temp1)
+        temp2 <- data.frame(emp = u_emp, fit = pp_fitted, FX = candidate)
+        pp_data <- rbind(pp_data, temp2)
+      }
     }
 
   }
 
-
-  qq_line <- data.frame(x = seq(min(x),max(x), by = (max(x)-min(x))/1000), y = seq(min(x),max(x), by = (max(x)-min(x))/1000))
-  pp_line <- data.frame(x = seq(0,1, by = 0.05), y = seq(0,1, by = 0.05))
-
-  QQplot <- ggplot() + geom_point(data = qq_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) +
-    geom_line(data = qq_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
-    ggtitle('Q-Q Plot') + scale_color_brewer(palette='Set1')
-
-  PPplot <- ggplot() + geom_point(data = pp_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) + xlim(0,1) + ylim(0,1) +
-    geom_line(data = pp_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
-    ggtitle('P-P Plot') + scale_color_brewer(palette='Set1')
-
-  combined <-  patchwork::wrap_plots(QQplot,PPplot, nrow = 1, ncol = 2)
-
   names(params_list) <- unlist(candidates)
 
   if (diagnostic_plots){
+    qq_line <- data.frame(x = seq(min(x),max(x), by = (max(x)-min(x))/1000), y = seq(min(x),max(x), by = (max(x)-min(x))/1000))
+    pp_line <- data.frame(x = seq(0,1, by = 0.05), y = seq(0,1, by = 0.05))
+
+    QQplot <- ggplot() + geom_point(data = qq_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) +
+      geom_line(data = qq_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Quantiles', y = 'Empirical Quantiles') +
+      ggtitle('Q-Q Plot') + scale_color_brewer(palette='Set1')
+
+    PPplot <- ggplot() + geom_point(data = pp_data, aes(x=fit, y=emp, color = FX), shape = 1, size = 1.5, stroke = 1.5) + xlim(0,1) + ylim(0,1) +
+      geom_line(data = pp_line, aes(x=x, y=y), linewidth = 1) + labs(x = 'Theoretical Probabilities', y = 'Empirical Probabilities') +
+      ggtitle('P-P Plot') + scale_color_brewer(palette='Set1')
+
+    combined <-  patchwork::wrap_plots(QQplot,PPplot, nrow = 1, ncol = 2)
+
     list_out <- list('parameter_list' = params_list, 'GoF_summary' = GoF,
                      'diagnostics' = combined, 'QQplot' = QQplot, 'PPplot' = PPplot)
   }else{

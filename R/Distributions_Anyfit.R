@@ -1243,8 +1243,12 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
   #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
   init_values = Burr_InitValues
   target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
-  I = RANN::nn2(init_values[,c('lcv','tau_3','tau_4')],query = target_LMs,k = 50)$nn.idx
-  start_matrix = init_values[I,]
+  # Brute-force nearest neighbour over the constant init table: identical result
+  # to a kd-tree 1-NN, but avoids rebuilding a 130k-point tree on every cell.
+  nn = which.min((init_values$lcv   - target_LMs$lcv  )^2 +
+                 (init_values$tau_3 - target_LMs$tau_3)^2 +
+                 (init_values$tau_4 - target_LMs$tau_4)^2)
+  start_matrix = init_values[nn, , drop = FALSE]
   i=1
   params_optim <- function(params, target_LMs, order){
     max_order = max(order)

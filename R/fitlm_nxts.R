@@ -1,3 +1,29 @@
+# Worker factories live at NAMESPACE top level (not inside fitlm_nxts) so the
+# closures they return have the package namespace as their parent environment and
+# therefore do NOT capture the caller's grid `ts`. A factory defined inside
+# fitlm_nxts would chain back to that frame and drag the whole grid into every
+# future export (gigabytes) -- the exact bug this design exists to avoid.
+# They precede the roxygen block below on purpose: a roxygen block attaches to the
+# NEXT object, so keeping these above it (with no roxygen tags) leaves fitlm_nxts'
+# documentation correctly bound to fitlm_nxts.
+.make_col_worker <- function(candidates, ignore_zeros, zero_threshold, diagnostic_plots) {
+  force(candidates); force(ignore_zeros); force(zero_threshold); force(diagnostic_plots)
+  function(chunk) lapply(seq_len(ncol(chunk)), function(j)
+    fitlm_multi(chunk[, j, drop = FALSE], candidates = candidates,
+                ignore_zeros = ignore_zeros, zero_threshold = zero_threshold,
+                diagnostic_plots = diagnostic_plots))
+}
+
+.make_mmap_worker <- function(run_chunk, desc) {
+  force(run_chunk); force(desc)
+  function(cols) {
+    bmw <- bigmemory::attach.big.matrix(desc)
+    chunk <- bmw[, cols, drop = FALSE]   # copy this worker's columns out
+    rm(bmw); gc()                        # release the mmap so master can unlink
+    run_chunk(chunk)
+  }
+}
+
 #' @title fitlm_nxts
 #'
 #' @description This function fits a list of candidate distributions using the L-moments method
@@ -12,6 +38,9 @@
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
 #' @param ncores Number of cores to use in the case of parallel computations
+#' @param shared_memory Logical, when parallel, share the grid with workers via a
+#'   filebacked big.matrix (mmap, single machine) instead of serializing column
+#'   chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.
 #' @param diagnostic_plots A logical value, controls the output of diagnostic plots
 #'
 #' @return A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.
@@ -30,25 +59,57 @@
 #' fits_all$QQ_panels[[1]]
 #'
 #' @export
-
 fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
-                       zero_threshold = 0.01, parallel = FALSE, ncores = 2, diagnostic_plots = TRUE){
-  # ts_list <- lapply(1:ncol(ts), FUN = function(i) {na.omit(ts[,i])})
-  if (ignore_zeros) {
-    ts <- ts[, colSums(ts > zero_threshold, na.rm = TRUE) >= 1]
-  }
-
+                       zero_threshold = 0.01, parallel = FALSE, ncores = 2,
+                       shared_memory = TRUE, diagnostic_plots = TRUE){
   variables <- colnames(ts)
 
-  if(Sys.info()['sysname'] == "Windows" & parallel){
-    multi_fits <- parallelsugar::mclapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
-                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)}, mc.cores = ncores)
-  }else if(parallel){
-    multi_fits <- parallel::mclapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
-                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)}, mc.cores = ncores)
-  }else{
-    multi_fits <- lapply(1:ncol(ts), FUN = function(i) {fitlm_multi(ts[, i],candidates = candidates, ignore_zeros = ignore_zeros,
-                         zero_threshold = zero_threshold, diagnostic_plots = diagnostic_plots)})
+  run_chunk <- .make_col_worker(candidates, ignore_zeros, zero_threshold, diagnostic_plots)
+
+  if (!parallel) {
+    multi_fits <- run_chunk(ts)
+  } else {
+    # Respect a user-set HPC plan (cluster/batchtools/...); otherwise default per-OS
+    # sized by `ncores`, and restore the previous plan on exit.
+    if (inherits(future::plan(), "sequential")) {
+      oplan <- future::plan(
+        if (.Platform$OS.type == "windows") future::multisession else future::multicore,
+        workers = min(ncores, ncol(ts)))
+      on.exit(future::plan(oplan), add = TRUE)
+    }
+
+    # Degree of parallelism follows the ACTIVE plan, not `ncores`, so a user who set
+    # plan(cluster, workers = 64) uses all 64. One chunk per worker.
+    nw <- future::nbrOfWorkers(); if (!is.finite(nw)) nw <- min(ncores, ncol(ts))
+    idx <- parallel::splitIndices(ncol(ts), min(nw, ncol(ts)))
+
+    # shared memory is a LOCAL mmap; fall back to chunks if the plan spans more than
+    # the local machine's cores (its temp file is invisible to remote nodes).
+    if (shared_memory && nw > parallel::detectCores()) {
+      warning("shared_memory = TRUE is single-machine; plan has ", nw,
+              " workers (> local cores) -> using serialized chunks instead.")
+      shared_memory <- FALSE
+    }
+
+    if (shared_memory) {
+      bk <- basename(tempfile("grid_")); dsc <- paste0(bk, ".desc")
+      bm <- bigmemory::as.big.matrix(coredata(ts), type = "double",
+              backingpath = tempdir(), backingfile = bk, descriptorfile = dsc)
+      # rm + gc releases the mmap handle so the backing file can be deleted
+      # (a still-mapped file is undeletable on Windows).
+      on.exit({ rm(bm); gc(); unlink(file.path(tempdir(), c(bk, dsc))) }, add = TRUE)
+      desc <- bigmemory::describe(bm)
+      worker <- .make_mmap_worker(run_chunk, desc)
+      fits <- future.apply::future_lapply(idx, worker, future.seed = TRUE,
+                future.packages = c("anyFit", "bigmemory"))
+    } else {
+      # Chunks can exceed future's default 500 MB global limit on large grids.
+      oopt <- options(future.globals.maxSize = Inf); on.exit(options(oopt), add = TRUE)
+      chunks <- lapply(idx, function(cols) ts[, cols, drop = FALSE])
+      fits <- future.apply::future_lapply(chunks, run_chunk, future.seed = TRUE,
+                future.packages = "anyFit")
+    }
+    multi_fits <- unlist(fits, recursive = FALSE)   # back to per-column order
   }
 
 
