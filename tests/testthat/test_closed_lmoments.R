@@ -97,3 +97,18 @@ test_that("fitlm_dagum is wired to lmom_dagum and stays in the optim box", {
                as.numeric(anyFit:::lmom_dagum(1:5, p$scale, p$shape1, p$shape2)),
                tolerance = 1e-10)
 })
+
+# ---------------------------------------------------------------------------
+# Regression guard for the min-max-NN start (R/Distributions_Anyfit.R): on data
+# drawn from a Dagum inside its L-space, the fit must recover a sensible shape1
+# (the old scale-free-ratio start trapped optim at shape1 >> 100) and fit well.
+# ---------------------------------------------------------------------------
+test_that("fitlm_dagum recovers a Dagum sample without the shape1 blow-up", {
+  set.seed(42)
+  vals  <- anyFit::rdagum(2000, scale = 10, shape1 = 2, shape2 = 0.3)
+  dates <- as.POSIXct("2020-01-01", tz = "UTC") + seq_along(vals) * 86400
+  ts    <- xts::xts(matrix(vals, ncol = 1, dimnames = list(NULL, "X")), order.by = dates)
+  res   <- fitlm_dagum(ts)
+  expect_true(res$Param$shape1 < 50)     # bad start gave shape1 >> 100
+  expect_lt(res$GoF$KS, 0.1)             # close fit to its own family
+})

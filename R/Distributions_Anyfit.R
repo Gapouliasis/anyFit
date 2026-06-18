@@ -1237,13 +1237,20 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
   
   init_values = Burr_InitValues
-  target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
-  
-  nn = which.min((init_values$lcv   - target_LMs$lcv  )^2 +
-                 (init_values$tau_3 - target_LMs$tau_3)^2 +
-                 (init_values$tau_4 - target_LMs$tau_4)^2)
-  start_matrix = init_values[nn, , drop = FALSE]
-  i=1
+  # Seed optim from the init row nearest in the four absolute L-moments
+  # (lambda_1, lambda_2, tau_3, tau_4), min-max scaled so each column contributes comparably.
+  # Min-max scaling reduces to weighting each squared term by 1/range^2 (the minima cancel
+  # in the squared distance), so only the column ranges are needed. Because lambda_1 (the
+  # scale carrier) is part of the metric, the matched row's parameters seed optim directly,
+  # by name, with no scale derivation.
+  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4")
+  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
+  d = as.numeric(sample_LM)[1:4]
+  nn = which.min(((init_values$lambda_1 - d[1]) / rng[1])^2 +
+                 ((init_values$lambda_2 - d[2]) / rng[2])^2 +
+                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
+                 ((init_values$tau_4    - d[4]) / rng[4])^2)
+  start_par = as.numeric(init_values[nn, c("scale", "shape1", "shape2")])
   params_optim <- function(params, target_LMs, order){
     temp_lms <- as.numeric(lmom_burr(1:max(order), params[1], params[2], params[3]))
     # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
@@ -1253,7 +1260,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
+  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
@@ -1348,13 +1355,21 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
   
   init_values = Dagum_InitValues
-  target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
-
-  nn = which.min((init_values$lcv   - target_LMs$lcv  )^2 +
-                 (init_values$tau_3 - target_LMs$tau_3)^2 +
-                 (init_values$tau_4 - target_LMs$tau_4)^2)
-  start_matrix = init_values[nn, , drop = FALSE]
-  i=1
+  # Seed optim from the init row nearest in the four absolute L-moments
+  # (lambda_1, lambda_2, tau_3, tau_4), min-max scaled so each column contributes comparably.
+  # Min-max scaling reduces to weighting each squared term by 1/range^2 (the minima cancel
+  # in the squared distance), so only the column ranges are needed. Because lambda_1 (the
+  # scale carrier) is part of the metric, the matched row's parameters seed optim directly,
+  # by name, with no scale derivation -- avoiding the earlier scale-free-ratio NN that left
+  # optim with an arbitrary scale and trapped shape1 >> 100.
+  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4")
+  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
+  d = as.numeric(sample_LM)[1:4]
+  nn = which.min(((init_values$lambda_1 - d[1]) / rng[1])^2 +
+                 ((init_values$lambda_2 - d[2]) / rng[2])^2 +
+                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
+                 ((init_values$tau_4    - d[4]) / rng[4])^2)
+  start_par = as.numeric(init_values[nn, c("scale", "shape1", "shape2")])
   params_optim <- function(params, target_LMs, order){
     temp_lms <- as.numeric(lmom_dagum(1:max(order), params[1], params[2], params[3]))
     # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
@@ -1364,7 +1379,7 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
+  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.0001, 0.000001), upper = c(1000,500,0.5))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
