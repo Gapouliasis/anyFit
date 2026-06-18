@@ -72,9 +72,11 @@ fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
     # Respect a user-set HPC plan (cluster/batchtools/...); otherwise default per-OS
     # sized by `ncores`, and restore the previous plan on exit.
     if (inherits(future::plan(), "sequential")) {
-      oplan <- future::plan(
-        if (.Platform$OS.type == "windows") future::multisession else future::multicore,
-        workers = min(ncores, ncol(ts)))
+      # Resolve the strategy to a value first: future::plan() evaluates its strategy
+      # argument non-standardly, so passing the inline `if (...) ... else ...` expression
+      # makes it try to tweak the `if` primitive itself (ls(envir=) error).
+      strategy <- if (.Platform$OS.type == "windows") future::multisession else future::multicore
+      oplan <- future::plan(strategy, workers = min(ncores, ncol(ts)))
       on.exit(future::plan(oplan), add = TRUE)
     }
 

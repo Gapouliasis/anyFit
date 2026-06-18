@@ -210,3 +210,17 @@ test_that("F15: parallel is deterministic and emits no RNG warning", {
   r2 <- fit_par(g, TRUE)
   expect_equal(sig_params(r1), sig_params(r2))
 })
+
+test_that("F17: serial == parallel for closed-form burr + dagum (both layers)", {
+  skip_unless_parallel()
+  old <- future::plan(future::multisession, workers = 2)
+  on.exit(future::plan(old), add = TRUE)
+  g  <- make_grid(8, 250)
+  cc <- c("burr", "dagum")
+  ser <- fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE,
+                    parallel = FALSE, diagnostic_plots = FALSE)
+  expect_equal(fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE, parallel = TRUE,
+                          shared_memory = TRUE,  diagnostic_plots = FALSE)$params, ser$params)
+  expect_equal(fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE, parallel = TRUE,
+                          shared_memory = FALSE, diagnostic_plots = FALSE)$params, ser$params)
+})

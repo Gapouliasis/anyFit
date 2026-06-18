@@ -1221,7 +1221,6 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
-#' @importFrom lmom lmrp
 #' @export
 #'
 
@@ -1235,41 +1234,30 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
     NZ=x
   }
 
-  pfunction=anyFit::pburr
-  qfunction=anyFit::qburr
-  dfunction = anyFit::dburr
-
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
-  #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
+  
   init_values = Burr_InitValues
   target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
-  # Brute-force nearest neighbour over the constant init table: identical result
-  # to a kd-tree 1-NN, but avoids rebuilding a 130k-point tree on every cell.
+  
   nn = which.min((init_values$lcv   - target_LMs$lcv  )^2 +
                  (init_values$tau_3 - target_LMs$tau_3)^2 +
                  (init_values$tau_4 - target_LMs$tau_4)^2)
   start_matrix = init_values[nn, , drop = FALSE]
   i=1
   params_optim <- function(params, target_LMs, order){
-    max_order = max(order)
-    scale = params[1]
-    shape1 = params[2]
-    shape2 = params[3]
-    temp_lms <- lmrp(pfunction, bounds = c(0,Inf),order = c(1:max_order),
-                     scale=scale, shape1=shape1, shape2=shape2,
-                     subdiv = 10000,acc = 10^-3)
-    # temp_lms[5] =  temp_lms[2]/temp_lms[1]
+    temp_lms <- as.numeric(lmom_burr(1:max(order), params[1], params[2], params[3]))
+    # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
+    # finite penalty so L-BFGS-B retreats from the edge instead of failing on a non-finite fn.
+    if (!all(is.finite(temp_lms))) return(1e6)
     temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
     temp_err <- sqrt(sum(temp_err))
-    return(temp_err)
+    if (!is.finite(temp_err)) 1e6 else temp_err
   }
   all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-  TheorLmom=lmom::lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
-                 scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                 subdiv = 10000,acc = 10^-2)
+  TheorLmom=lmom_burr(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
   GoF <- GOF_tests(x = NZ, fit = params, distribution = 'burr')
 
@@ -1344,7 +1332,6 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
 #'
-#' @importFrom lmom lmrp
 #' @export
 #'
 
@@ -1358,37 +1345,30 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
     NZ=x
   }
 
-  pfunction=anyFit::pdagum
-  qfunction=anyFit::qdagum
-  dfunction = anyFit::ddagum
-
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
-  #I = RANN::nn2(Burr_InitValues[,c('L1','L2','tau3','tau4')],query = sample_LM,k = 10)$nn.idx
+  
   init_values = Dagum_InitValues
   target_LMs = data.frame(lcv = sample_LM[2]/sample_LM[1], tau_3 = sample_LM[3], tau_4 = sample_LM[4])
-  I = RANN::nn2(init_values[,c('lcv','tau_3','tau_4')],query = target_LMs,k = 50)$nn.idx
-  start_matrix = init_values[I,]
+
+  nn = which.min((init_values$lcv   - target_LMs$lcv  )^2 +
+                 (init_values$tau_3 - target_LMs$tau_3)^2 +
+                 (init_values$tau_4 - target_LMs$tau_4)^2)
+  start_matrix = init_values[nn, , drop = FALSE]
   i=1
   params_optim <- function(params, target_LMs, order){
-    max_order = max(order)
-    scale = params[1]
-    shape1 = params[2]
-    shape2 = params[3]
-    temp_lms <- lmrp(pfunction, bounds = c(0,Inf),order = c(1:max_order),
-                     scale=scale, shape1=shape1, shape2=shape2,
-                     subdiv = 10000,acc = 10^-3)
-    # temp_lms[5] =  temp_lms[2]/temp_lms[1]
+    temp_lms <- as.numeric(lmom_dagum(1:max(order), params[1], params[2], params[3]))
+    # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
+    # finite penalty so L-BFGS-B retreats from the edge instead of failing on a non-finite fn.
+    if (!all(is.finite(temp_lms))) return(1e6)
     temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
     temp_err <- sqrt(sum(temp_err))
-    return(temp_err)
+    if (!is.finite(temp_err)) 1e6 else temp_err
   }
   all = optim(as.numeric(start_matrix[i,c(1,2,3)]), fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.0001, 0.000001), upper = c(1000,500,0.5))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-  TheorLmom=lmrp(pfunction, bounds = c(0, Inf), order = c(1:5),
-                 scale=params$scale, shape1=params$shape1, shape2=params$shape2,
-                 subdiv = 10000,acc = 10^-2)
+  TheorLmom=lmom_dagum(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
   GoF <- GOF_tests(x = NZ, fit = params, distribution = 'dagum')
 
