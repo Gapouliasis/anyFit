@@ -31,7 +31,7 @@
 fit_ACF <- function(ts,lag_max,type = list('CAS','HK','SRD'),ignore_zeros = FALSE,
                     zero_threshold = 0.01){
   #Omits NANs
-  ts <- na.omit(coredata(ts))
+  ts <- stats::na.omit(coredata(ts))
   if (ignore_zeros == TRUE){
     ts <- ts[ts > zero_threshold]
   }
@@ -57,7 +57,7 @@ fit_ACF <- function(ts,lag_max,type = list('CAS','HK','SRD'),ignore_zeros = FALS
     lbs = rep(0.0001,(nargs-1))
     ubs = rep(Inf,(nargs-1))
 
-    acf_params <- optim(par=start, fn=rmse_acf, auto=auto, lag_max=lag_max,
+    acf_params <- stats::optim(par=start, fn=rmse_acf, auto=auto, lag_max=lag_max,
                         lower=lbs, upper=ubs, method = 'L-BFGS-B')
 
     param_list = as.list(acf_params$par)

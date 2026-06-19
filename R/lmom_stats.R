@@ -28,9 +28,9 @@ lmom_stats <- function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
   for (i in 1:ncol(ts)){
     if (ignore_zeros == TRUE){
       I <- which(ts[,i] > zero_threshold)
-      ts_list <- c(ts_list, list(na.omit(ts[I,i])))
+      ts_list <- c(ts_list, list(stats::na.omit(ts[I,i])))
     }else{
-      ts_list <- c(ts_list, list(na.omit(ts[,i])))
+      ts_list <- c(ts_list, list(stats::na.omit(ts[,i])))
     }
 
   }

@@ -278,7 +278,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
     temp <- ts
   }
   Mean <- round(mean(temp,na.rm=TRUE),2)
-  StDev <- round(sd(temp,na.rm=TRUE),2)
+  StDev <- round(stats::sd(temp,na.rm=TRUE),2)
   Variation <- round(StDev/Mean,2)
   Mom3 <- round(sum((temp-Mean)^3,na.rm=T)*(1/(sum(!is.na(temp))-1)),6)
   Skewness<-round(Mom3/StDev^3,2)
@@ -318,7 +318,6 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
     geom_density(alpha=.2, fill='#FF6666') + # Overlay with transparent density plot
     labs(x = colnames(ts), y = 'Density') + ggtitle('PDF')
 
-  #library(scales)
 
   plot_ecdf <- ggplot(ts_df, aes(X)) + stat_ecdf(geom = 'step') + scale_y_continuous(trans = 'log10', breaks = trans_breaks('log10', function(x) 10^x),
                                                                                      labels = trans_format('log10', math_format(10^.x))) +

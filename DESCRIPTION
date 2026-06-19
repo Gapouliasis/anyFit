@@ -12,33 +12,24 @@ Depends:
     R (>= 2.10)
 Imports:
     bigmemory,
-    DEoptim,
-    ExtDist,
     FAdist,
-    fitdistrplus,
     future,
     future.apply,
-    ggfortify,
     ggplot2,
     ggridges,
-    glue,
     gridExtra,
     knitr,
-    lifecycle,
     lmom,
     lmomco,
     Lmoments,
     lubridate,
     matrixStats,
-    moments,
     ncdf4,
     parallel,
     patchwork,
     PearsonDS,
     pracma,
-    RANN,
     raster,
-    readr,
     reshape2,
     rlang,
     rmarkdown,
@@ -52,6 +43,7 @@ Imports:
     zoo
 Suggests:
     anySim,
+    moments,
     testthat (>= 3.0.0)
 Remotes:
     itsoukal/anySim

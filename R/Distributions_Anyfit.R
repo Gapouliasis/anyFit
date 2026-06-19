@@ -15,7 +15,7 @@ ks_two_sample_sorted = function(xS1, xS2){
   M <- length(xS1); N <- length(xS2)
   cdf1     <- findInterval(xS1, xS1) / M
   cdfEstim <- findInterval(xS2, xS2) / N
-  cdfRef   <- approx(xS1, cdf1, xS2, yleft = 0, yright = 1, ties = "mean")$y
+  cdfRef   <- stats::approx(xS1, cdf1, xS2, yleft = 0, yright = 1, ties = "mean")$y
   max(abs(cdfRef - cdfEstim))
 }
 ks_two_sample = function(S1, S2) ks_two_sample_sorted(sort(S1), sort(S2))
@@ -95,7 +95,7 @@ qexp=function(p,location,scale) {
 #' @rdname Exponential
 #' @export
 rexp=function(n,location,scale) {
-  x=lmom::quaexp(f=runif(n),para=c(location,scale))
+  x=lmom::quaexp(f=stats::runif(n),para=c(location,scale))
   return(x)
 }
 
@@ -113,7 +113,7 @@ rexp=function(n,location,scale) {
 #'
 
 fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -196,7 +196,7 @@ rrayleigh = function(n, location, scale) {
 #'
 
 fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -275,7 +275,7 @@ rgamma=function(n,scale,shape) {
 #'
 
 fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -351,7 +351,7 @@ rgamma3=function(n,location,scale,shape) {
 
 
 fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -409,7 +409,7 @@ qgenlogi <- function(p, location, scale, shape) {
 
 
 fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -488,7 +488,7 @@ rnorm=function(n,mean=0,sd=1) {
 
 
 fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -567,7 +567,7 @@ rweibull=function(n,location,scale,shape) {
 #'
 
 fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -646,7 +646,7 @@ rgumbel=function(n,location,scale) {
 #'
 
 fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -726,7 +726,7 @@ rlognorm=function(n,location=0,scale,shape) {
 
 fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -802,7 +802,7 @@ qgev = function(p,shape,scale,location){
 #' @rdname GEV
 #' @export
 rgev=function(n,location,scale,shape) {
-  x=qgev(runif(n), location = location, scale = scale, shape = shape)
+  x=qgev(stats::runif(n), location = location, scale = scale, shape = shape)
   return(x)
 }
 
@@ -820,7 +820,7 @@ rgev=function(n,location,scale,shape) {
 
 
 fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -886,7 +886,7 @@ qgpd=function(p,location,scale,shape){
 #' @rdname GenPareto
 #' @export
 rgpd=function(n,location,scale,shape){
-  x=lmom::quagpa(runif(n), para=c(location,scale,shape))
+  x=lmom::quagpa(stats::runif(n), para=c(location,scale,shape))
   return(x)
 }
 
@@ -901,7 +901,7 @@ rgpd=function(n,location,scale,shape){
 #'
 
 fitlm_GPD=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
@@ -942,32 +942,28 @@ fitlm_GPD=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #'
 
 dgengamma=function(x,scale, shape1, shape2){
-  require(VGAM)
-  fx = dgengamma.stacy(x = x,scale = scale, k = (shape1/shape2), d = shape2)
+  fx = VGAM::dgengamma.stacy(x = x,scale = scale, k = (shape1/shape2), d = shape2)
   return(fx)
 }
 
 #' @rdname GenGamma
 #' @export
 pgengamma=function(q,scale, shape1, shape2){
-  require(VGAM)
-  FX = pgengamma.stacy(q = q ,scale = scale, k = (shape1/shape2), d = shape2)
+  FX = VGAM::pgengamma.stacy(q = q ,scale = scale, k = (shape1/shape2), d = shape2)
   return(FX)
 }
 
 #' @rdname GenGamma
 #' @export
 qgengamma=function(p,scale, shape1, shape2){
-  require(VGAM)
-  X = qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
+  X = VGAM::qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
 #' @rdname GenGamma
 #' @export
 rgengamma=function(n,scale, shape1, shape2){
-  require(VGAM)
-  X = rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
+  X = VGAM::rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
@@ -987,7 +983,7 @@ rgengamma=function(n,scale, shape1, shape2){
 
 fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -995,9 +991,9 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
     NZ=x
   }
 
-  pfunction=anyFit::pgengamma
-  qfunction=anyFit::qgengamma
-  dfunction = anyFit::dgengamma
+  pfunction=pgengamma
+  qfunction=qgengamma
+  dfunction = dgengamma
 
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
 
@@ -1026,7 +1022,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
+  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.001, 0.005, 0.05), upper = c(500,2000,200))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
@@ -1058,32 +1054,28 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
 #'
 
 pgengamma_loc=function(q, location, scale, shape1, shape2){
-  require(VGAM)
-  FX = pgengamma.stacy(q = q-location, scale = scale, k = (shape1/shape2), d = shape2)
+  FX = VGAM::pgengamma.stacy(q = q-location, scale = scale, k = (shape1/shape2), d = shape2)
   return(FX)
 }
 
 #' @rdname GenGamma-Location
 #' @export
 dgengamma_loc=function(x,location, scale, shape1, shape2){
-  require(VGAM)
-  fx = dgengamma.stacy(x = x - location,scale = scale, k = (shape1/shape2), d = shape2)
+  fx = VGAM::dgengamma.stacy(x = x - location,scale = scale, k = (shape1/shape2), d = shape2)
   return(fx)
 }
 
 #' @rdname GenGamma-Location
 #' @export
 qgengamma_loc=function(p, location, scale, shape1, shape2){
-  require(VGAM)
-  X = location+ qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
+  X = location+ VGAM::qgengamma.stacy(p =  p ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
 #' @rdname GenGamma-Location
 #' @export
 rgengamma_loc=function(n, location, scale, shape1, shape2){
-  require(VGAM)
-  X = location + rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
+  X = location + VGAM::rgengamma.stacy(n =  n ,scale = scale, k = (shape1/shape2), d = shape2)
   return(X)
 }
 
@@ -1105,7 +1097,7 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 
 fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -1211,7 +1203,7 @@ qburr=function(p, scale, shape1, shape2, PW=1) {
 #' @rdname BurXII
 #' @export
 rburr=function(n, scale, shape1, shape2, PW=1) {
-  p=runif(n)
+  p=stats::runif(n)
   q=qburr(p = p, scale=scale, shape1=shape1, shape2=shape2, PW=PW)
   return(q)
 }
@@ -1232,7 +1224,7 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 
 fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
-  x <- na.omit(zoo::coredata(x))
+  x <- stats::na.omit(zoo::coredata(x))
   PW = 1
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -1269,7 +1261,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
+  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
@@ -1333,7 +1325,7 @@ qdagum=function(p, scale, shape1, shape2, PW=1) {
 #' @rdname Dagum
 #' @export
 rdagum=function(n, scale, shape1, shape2, PW=1) {
-  qdagum(p = runif(n), scale=scale, shape1 = shape1, shape2 = shape2, PW=PW)
+  qdagum(p = stats::runif(n), scale=scale, shape1 = shape1, shape2 = shape2, PW=PW)
 }
 
 
@@ -1353,7 +1345,7 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 
 fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))  {
   max_order = max(4,order)
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
 
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -1396,7 +1388,7 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
+  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.5, 0.0001, 0.000001), upper = c(1000,500,0.5))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
@@ -1454,7 +1446,7 @@ qexpweibull<- function(p,scale,shape1,shape2){
 #' @rdname ExpWeibull
 #' @export
 rexpweibull<- function(n,scale,shape1,shape2){
-  u = runif(n)
+  u = stats::runif(n)
   sim <-  stats::qweibull(u^(1/shape2),scale=scale,shape=shape1)
   return(sim)
 }
@@ -1477,7 +1469,7 @@ rexpweibull<- function(n,scale,shape1,shape2){
 fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:3)) {
   # Important: MEANT to be fitted ONLY to NON-NEGATIVE data.
   max_order = max(4,order)
-  x <- na.omit(coredata(x))
+  x <- stats::na.omit(coredata(x))
 
   if (ignore_zeros == TRUE){
     NZ=x[x>zero_threshold,]
@@ -1512,7 +1504,7 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order =
     temp_err <- sqrt(sum(temp_err))
     if (!is.finite(temp_err)) 1e6 else temp_err
   }
-  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
+  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
               method = "L-BFGS-B", lower = c(0.001, 0.05, 0.02), upper = c(1e6,50,50))
   params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 

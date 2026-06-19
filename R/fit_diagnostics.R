@@ -41,7 +41,7 @@ fit_diagnostics <- function(ts,dist = 'norm', params,ignore_zeros = FALSE,
 
   qfunction<-paste0('q',dist)
   pfunction<-paste0('p',dist)
-  x <- na.omit(coredata(ts))
+  x <- stats::na.omit(coredata(ts))
   if (ignore_zeros == TRUE){
     if (length(which(x>zero_threshold))>0){
       I <- which(x>zero_threshold)

@@ -34,7 +34,7 @@
 #'
 
 fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01, diagnostic_plots = TRUE, order = NULL){
-  x <- na.omit(coredata(ts))
+  x <- stats::na.omit(coredata(ts))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
   }
