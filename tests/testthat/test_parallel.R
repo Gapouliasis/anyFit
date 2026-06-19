@@ -224,3 +224,17 @@ test_that("F17: serial == parallel for closed-form burr + dagum (both layers)", 
   expect_equal(fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE, parallel = TRUE,
                           shared_memory = FALSE, diagnostic_plots = FALSE)$params, ser$params)
 })
+
+test_that("F18: serial == parallel for closed-form expweibull (both layers)", {
+  skip_unless_parallel()
+  old <- future::plan(future::multisession, workers = 2)
+  on.exit(future::plan(old), add = TRUE)
+  g  <- make_grid(8, 250)
+  cc <- c("expweibull")
+  ser <- fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE,
+                    parallel = FALSE, diagnostic_plots = FALSE)
+  expect_equal(fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE, parallel = TRUE,
+                          shared_memory = TRUE,  diagnostic_plots = FALSE)$params, ser$params)
+  expect_equal(fitlm_nxts(g, candidates = cc, ignore_zeros = TRUE, parallel = TRUE,
+                          shared_memory = FALSE, diagnostic_plots = FALSE)$params, ser$params)
+})

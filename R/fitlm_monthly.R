@@ -10,6 +10,10 @@
 #' @param ncol Number of columns for plotting.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param order Optional named list mapping a candidate name to the vector of L-moment
+#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+#'   Only the numerically-fitted distributions accept it; passed through to
+#'   \code{\link{fitlm_multi}}. Default NULL.
 #'
 #' @return A list containing the monthly fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.
 #'
@@ -32,7 +36,7 @@
 #Function to fit multiple distributions to raw scale at a monthly level
 #With considerations for missing months
 fitlm_monthly <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01,
-                          nrow = 4, ncol = 3){
+                          nrow = 4, ncol = 3, order = NULL){
   i_months <- unique(month(ts))
   month_name <- rep(0,length(i_months))
   for (i in i_months){
@@ -40,7 +44,8 @@ fitlm_monthly <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0
     I <- which(month(ts) == i)
     monthly_ts <- ts[I]
     monthly_fit <- fitlm_multi(monthly_ts, candidates = candidates,
-                               ignore_zeros = ignore_zeros, zero_threshold = zero_threshold)
+                               ignore_zeros = ignore_zeros, zero_threshold = zero_threshold,
+                               order = order)
 
     monthly_fit$QQplot <- monthly_fit$QQplot + ggtitle(month.name[i]) +
       theme(legend.position = 'bottom')

@@ -1461,52 +1461,70 @@ rexpweibull<- function(n,scale,shape1,shape2){
 
 #' @title fitlm_expweibull
 #'
-#' @description Function for fitting the Exponential Weibull distribution using the L-Moments method
+#' @description Function for fitting the Exponentiated Weibull distribution using the L-Moments method.
+#' Uses the fast closed-form tanh-sinh L-moment engine (lmom_expweibull) with a two-step seed
+#' (scale-free shape nearest-neighbour over ExpWeibull_InitValues, then analytic scale).
 #'
 #' @param x A xts object containing the time series data.
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param order Integer vector of L-moment orders matched by the optimiser. Default 1:3 (exact
+#'   method-of-L-moments for the 3 parameters).
 #'
 #' @export
 #'
 
-fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
+fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:3)) {
   # Important: MEANT to be fitted ONLY to NON-NEGATIVE data.
-  # The potential inlcusion of zeros or NAs to "x" is hanlded by the 2 lines below.
-  xNZ <- na.omit(coredata(x))
+  max_order = max(4,order)
+  x <- na.omit(coredata(x))
 
   if (ignore_zeros == TRUE){
-    xNZ <- x[x > zero_threshold,]
-    xNZ <- na.omit(coredata(xNZ))
+    NZ=x[x>zero_threshold,]
+  }else{
+    NZ=x
   }
-  lm=lmom::samlmu(xNZ)
 
-  # IDEA for helping pelq with "good" statring values
-  # Step1: Fit the classic Weibull distribution (scale, shape)
-  # Step2: Use the obtained (scale, shape) as starting values for the pelq function.
-  #       In detail, set:
-  #                      scale=scale (as found from fitting the classic Weibull in Step1)
-  #                      shape1=shape (as found from fitting the classic Weibull in Step1)
-  #                      shape2=1 (start from 1, since it correspond to the classic Weibull)
-  #
-  # The above strategy is working fine in most cases, yet some fine-tuning may be needed to shape2
-  # (e.g., using try) in case of pelq returns an error.
+  sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
 
-  # Implement Step1
-  parwei=lmom::pelwei(lmom = lm, bound = 0)[2:3]
+  init_values = ExpWeibull_InitValues
+  # Two-step seed (same as fitlm_gengamma / fitlm_dagum). (lcv, tau_3, tau_4) depend ONLY on the
+  # shapes (a, b) -- scale cancels in every ratio -- so match the shapes by min-max NN on those
+  # three scale-free quantities, then derive the scale: scale = sample_lambda_1 / F, where F is the
+  # matched shapes' unit-scale lambda_1.
+  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4", "lcv")
+  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
+  d = as.numeric(sample_LM)[1:4]
+  d[5] <- d[2] / d[1]
+  nn = which.min(((init_values$lcv - d[5]) / rng[5])^2 +
+                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
+                 ((init_values$tau_4    - d[4]) / rng[4])^2)
+  start_par = init_values[nn, c("scale", "shape1", "shape2")]
+  unit_lms = lmom_expweibull(1:max(order), 1, as.numeric(start_par[2]), as.numeric(start_par[3]))
+  start_par["scale"] = d[1] / unit_lms[1]
+  start_par["scale"] = min(max(start_par["scale"], 0.001), 1e6)   # keep start in the optim box
+  start_par = as.numeric(start_par)
 
-  # Implement Step2
-  START=c(parwei[1], parwei[2], 1)
-  fit=lmom::pelq(lmom = lm[1:3], qfunc = qexpweibull, start = START, type = 's')$para
-  fit=list(scale=as.vector(fit[1]), shape1=as.vector(fit[2]), shape2=as.vector(fit[3]))
+  params_optim <- function(params, target_LMs, order){
+    temp_lms <- as.numeric(lmom_expweibull(1:max(order), params[1], params[2], params[3]))
+    if (!all(is.finite(temp_lms))) return(1e6)
+    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
+    temp_err <- sqrt(sum(temp_err))
+    if (!is.finite(temp_err)) 1e6 else temp_err
+  }
+  all = optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
+              method = "L-BFGS-B", lower = c(0.001, 0.05, 0.02), upper = c(1e6,50,50))
+  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
 
-  GoF <- GOF_tests(x = x, fit = fit, distribution = 'expweibull')
+  TheorLmom=lmom_expweibull(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
+
+  GoF <- GOF_tests(x = NZ, fit = params, distribution = 'expweibull')
 
   Res<-list()
   Res$Distribution<-list(FXs="qexpweibull")
-  Res$Param<-fit
-  Res$TheorLMom<-lmom::lmrq(qexpweibull, scale=fit$scale, shape1=fit$shape1, shape2=fit$shape2)
-  Res$DataLMom<-lm
+  Res$Param<-params
+  Res$TheorLMom<-TheorLmom
+  Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
 
   return(Res)

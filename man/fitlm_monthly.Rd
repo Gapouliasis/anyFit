@@ -10,7 +10,8 @@ fitlm_monthly(
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
   nrow = 4,
-  ncol = 3
+  ncol = 3,
+  order = NULL
 )
 }
 \arguments{
@@ -25,6 +26,11 @@ fitlm_monthly(
 \item{nrow}{Number of rows for plotting.}
 
 \item{ncol}{Number of columns for plotting.}
+
+\item{order}{Optional named list mapping a candidate name to the vector of L-moment
+orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+Only the numerically-fitted distributions accept it; passed through to
+\code{\link{fitlm_multi}}. Default NULL.}
 }
 \value{
 A list containing the monthly fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.

@@ -4,7 +4,12 @@
 \alias{fitlm_expweibull}
 \title{fitlm_expweibull}
 \usage{
-fitlm_expweibull(x, ignore_zeros = FALSE, zero_threshold = 0.01)
+fitlm_expweibull(
+  x,
+  ignore_zeros = FALSE,
+  zero_threshold = 0.01,
+  order = c(1:3)
+)
 }
 \arguments{
 \item{x}{A xts object containing the time series data.}
@@ -12,7 +17,12 @@ fitlm_expweibull(x, ignore_zeros = FALSE, zero_threshold = 0.01)
 \item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
 
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+
+\item{order}{Integer vector of L-moment orders matched by the optimiser. Default 1:3 (exact
+method-of-L-moments for the 3 parameters).}
 }
 \description{
-Function for fitting the Exponential Weibull distribution using the L-Moments method
+Function for fitting the Exponentiated Weibull distribution using the L-Moments method.
+Uses the fast closed-form tanh-sinh L-moment engine (lmom_expweibull) with a two-step seed
+(scale-free shape nearest-neighbour over ExpWeibull_InitValues, then analytic scale).
 }

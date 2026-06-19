@@ -6,12 +6,12 @@
 # They precede the roxygen block below on purpose: a roxygen block attaches to the
 # NEXT object, so keeping these above it (with no roxygen tags) leaves fitlm_nxts'
 # documentation correctly bound to fitlm_nxts.
-.make_col_worker <- function(candidates, ignore_zeros, zero_threshold, diagnostic_plots) {
-  force(candidates); force(ignore_zeros); force(zero_threshold); force(diagnostic_plots)
+.make_col_worker <- function(candidates, ignore_zeros, zero_threshold, diagnostic_plots, order) {
+  force(candidates); force(ignore_zeros); force(zero_threshold); force(diagnostic_plots); force(order)
   function(chunk) lapply(seq_len(ncol(chunk)), function(j)
     fitlm_multi(chunk[, j, drop = FALSE], candidates = candidates,
                 ignore_zeros = ignore_zeros, zero_threshold = zero_threshold,
-                diagnostic_plots = diagnostic_plots))
+                diagnostic_plots = diagnostic_plots, order = order))
 }
 
 .make_mmap_worker <- function(run_chunk, desc) {
@@ -42,6 +42,10 @@
 #'   filebacked big.matrix (mmap, single machine) instead of serializing column
 #'   chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.
 #' @param diagnostic_plots A logical value, controls the output of diagnostic plots
+#' @param order Optional named list mapping a candidate name to the vector of L-moment
+#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+#'   Only the numerically-fitted distributions accept it; passed through to
+#'   \code{\link{fitlm_multi}}. Default NULL.
 #'
 #' @return A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.
 #'
@@ -61,10 +65,10 @@
 #' @export
 fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
                        zero_threshold = 0.01, parallel = FALSE, ncores = 2,
-                       shared_memory = TRUE, diagnostic_plots = TRUE){
+                       shared_memory = TRUE, diagnostic_plots = TRUE, order = NULL){
   variables <- colnames(ts)
 
-  run_chunk <- .make_col_worker(candidates, ignore_zeros, zero_threshold, diagnostic_plots)
+  run_chunk <- .make_col_worker(candidates, ignore_zeros, zero_threshold, diagnostic_plots, order)
 
   if (!parallel) {
     multi_fits <- run_chunk(ts)

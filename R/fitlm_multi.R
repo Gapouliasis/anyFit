@@ -9,6 +9,11 @@
 #' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
 #' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
 #' @param diagnostic_plots A logical value, controls the output of diagnostic plots
+#' @param order Optional named list mapping a candidate name to the vector of L-moment
+#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+#'   Only the numerically-fitted distributions (gengamma, gengamma_loc, burr, dagum,
+#'   expweibull) accept it; entries for other candidates are ignored. Candidates not named
+#'   keep their own default. Default NULL (every distribution uses its default).
 #'
 #' @return A list containing the fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.
 #'
@@ -28,7 +33,7 @@
 #' @export
 #'
 
-fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01, diagnostic_plots = TRUE){
+fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.01, diagnostic_plots = TRUE, order = NULL){
   x <- na.omit(coredata(ts))
   if (ignore_zeros == TRUE){
     x <- x[x > zero_threshold,]
@@ -65,6 +70,9 @@ fitlm_multi <- function(ts,candidates,ignore_zeros = FALSE, zero_threshold = 0.0
   for (candidate in candidates){
     fit_function <- match.fun(paste0('fitlm_',candidate))
     fit_args <- list(x = x, ignore_zeros = FALSE, zero_threshold = 0.01)
+    if (!is.null(order[[candidate]]) && "order" %in% names(formals(fit_function))) {
+      fit_args$order <- order[[candidate]]
+    }
     params <- do.call(fit_function, fit_args)
 
     if (candidate == candidates[[1]]){

@@ -9,7 +9,8 @@ fitlm_multi(
   candidates,
   ignore_zeros = FALSE,
   zero_threshold = 0.01,
-  diagnostic_plots = TRUE
+  diagnostic_plots = TRUE,
+  order = NULL
 )
 }
 \arguments{
@@ -22,6 +23,12 @@ fitlm_multi(
 \item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
 
 \item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
+
+\item{order}{Optional named list mapping a candidate name to the vector of L-moment
+orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+Only the numerically-fitted distributions (gengamma, gengamma_loc, burr, dagum,
+expweibull) accept it; entries for other candidates are ignored. Candidates not named
+keep their own default. Default NULL (every distribution uses its default).}
 }
 \value{
 A list containing the fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.

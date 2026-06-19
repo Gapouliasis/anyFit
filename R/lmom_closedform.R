@@ -149,3 +149,59 @@ lmom_gengamma <- function(order = 1:5, scale, shape1, shape2, N = 128) {
   out[] <- ifelse(order <= 2, lambda[order], lambda[order] / lambda[2])
   out
 }
+
+# ---- Exponentiated (Generalized) Weibull --------------------------------------------------
+# pexpweibull: F(x) = [1 - exp(-(x/scale)^shape1)]^shape2,  a = shape1, b = shape2, s = scale.
+# Quantile x(F) = s*(-log(1 - F^(1/b)))^(1/a). The PWMs beta_r = integral_0^1 x(F) F^r dF reduce
+# to the exact generalised-binomial series beta_r = s*b*Gamma(1+1/a) sum_k (-1)^k C(b(r+1)-1,k) /
+# (k+1)^(1+1/a), which is catastrophically ill-conditioned for large b(r+1)-1. Analytically
+# resumming it gives the WELL-CONDITIONED integral
+#   beta_r = s*b * integral_0^1 y^(b(r+1)-1) * (-log(1-y))^(1/a) dy,
+# evaluated with a fixed tanh-sinh (double-exponential) rule whose nodes/weights vanish doubly-
+# exponentially at both endpoints -> ~1e-12 for ALL a,b,s>0 with pure O(N) arithmetic, no per-call
+# adaptive integration. All L-moments exist for any a,b,s>0, so there is no domain guard. b=1 is the
+# ordinary Weibull; a=b=1 the exponential (tau3=1/3, tau4=1/6, tau5=1/10). Derived and validated in
+# dev/closedform_lmoments (expweibull_implementation_vs_methodology.md): machine precision vs two
+# independent quantile-/density-integration oracles. Used by fitlm_expweibull.
+
+# tanh-sinh nodes/weights for integral_0^1 g(y) dy. y(x) = sigma(2c), c = (pi/2) sinh(x),
+# sigma = logistic. y, log(y) and -log(1-y) via stats::plogis(..., log.p=) stay stable for large
+# |c| (no underflow of y to exactly 0/1, which would make y^m = Inf at far nodes).
+.tanh_sinh <- function(h = 1/32, X = 3) {
+  x  <- seq(-X, X, by = h)
+  c. <- (pi / 2) * sinh(x)
+  y    <- stats::plogis(2 * c.)
+  logy <- stats::plogis(2 * c., log.p = TRUE)                       # log(y), stable
+  g0   <- -stats::plogis(2 * c., lower.tail = FALSE, log.p = TRUE)  # -log(1-y), stable
+  w  <- h * (pi / 2) * cosh(x) / (2 * cosh(c.)^2)
+  list(y = y, w = w, logy = logy, g0 = g0)
+}
+.ts_cache <- new.env(parent = emptyenv())
+.ts_rule <- function(h = 1/32, X = 3) {
+  key <- sprintf("%g_%g", h, X)
+  if (is.null(.ts_cache[[key]])) .ts_cache[[key]] <- .tanh_sinh(h, X)
+  .ts_cache[[key]]
+}
+
+#' Closed-form L-moments of the Exponentiated Weibull distribution
+#'
+#' @keywords internal
+#' @noRd
+lmom_expweibull <- function(order = 1:5, scale, shape1, shape2, h = NULL, X = NULL) {
+  a <- shape1; b <- shape2; s <- scale
+  rmax <- max(order)
+  # Endpoint singularity strength at y=0 (integrand ~ y^(b-1+1/a) at r=0): alpha < 0 (large shape1
+  # & small shape2) needs nodes reaching closer to 0; alpha >= 0 is benign (all realistic rainfall).
+  if (is.null(h) || is.null(X)) {
+    if (b - 1 + 1 / a < 0) { h <- 1/64; X <- 5 } else { h <- 1/32; X <- 3.5 }
+  }
+  ts <- .ts_rule(h, X)
+  base <- ts$w * ts$g0^(1 / a)            # w * (-log(1-y))^(1/a)  (depends on a only)
+
+  beta <- vapply(0:(rmax - 1), function(r)
+    s * b * sum(base * exp((b * (r + 1) - 1) * ts$logy)), numeric(1))
+
+  lambda <- .pwm_to_lmom(beta)
+  stats::setNames(ifelse(order <= 2, lambda[order], lambda[order] / lambda[2]),
+                  ifelse(order <= 2, paste0("lambda_", order), paste0("tau_", order)))
+}

@@ -27,6 +27,10 @@
 #'   \code{parallel = TRUE}: \code{"cells"} (default) parallelizes the grid-cell
 #'   fits within each month via \code{fitlm_nxts}; \code{"months"} parallelizes
 #'   the per-month fits, each run serially across cells.
+#' @param order Optional named list mapping a candidate name to the vector of L-moment
+#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+#'   Only the numerically-fitted distributions accept it; passed through to
+#'   \code{\link{fitlm_nc}}. Default NULL.
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A named list with one element per calendar month present in the data
@@ -43,7 +47,7 @@
 fitlm_monthly_nc = function(data = NULL, filename = NA, varname = NA,
                             candidates = 'norm', ignore_zeros = FALSE, zero_threshold = 0.01,
                             parallel = FALSE, ncores = 2, shared_memory = TRUE,
-                            parallel_by = c("cells", "months"), ...){
+                            parallel_by = c("cells", "months"), order = NULL, ...){
 
   parallel_by <- match.arg(parallel_by)
 
@@ -84,7 +88,8 @@ fitlm_monthly_nc = function(data = NULL, filename = NA, varname = NA,
   fit_month <- function(sub, par_cells)
     fitlm_nc(data = sub, candidates = candidates,
              ignore_zeros = ignore_zeros, zero_threshold = zero_threshold,
-             parallel = par_cells, ncores = ncores, shared_memory = shared_memory)
+             parallel = par_cells, ncores = ncores, shared_memory = shared_memory,
+             order = order)
 
   # ---- Dispatch over months -----------------------------------------------
   if (parallel && parallel_by == "months") {

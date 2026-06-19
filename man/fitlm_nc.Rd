@@ -14,6 +14,7 @@ fitlm_nc(
   parallel = FALSE,
   ncores = 2,
   shared_memory = TRUE,
+  order = NULL,
   ...
 )
 }
@@ -37,6 +38,11 @@ fitlm_nc(
 \item{shared_memory}{Logical, when parallel, share the grid with workers via a
 filebacked big.matrix (mmap, single machine) instead of serializing column
 chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.}
+
+\item{order}{Optional named list mapping a candidate name to the vector of L-moment
+orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+Only the numerically-fitted distributions accept it; passed through to
+\code{\link{fitlm_nxts}}. Default NULL.}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }

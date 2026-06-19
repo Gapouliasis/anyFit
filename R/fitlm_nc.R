@@ -15,6 +15,10 @@
 #' @param shared_memory Logical, when parallel, share the grid with workers via a
 #'   filebacked big.matrix (mmap, single machine) instead of serializing column
 #'   chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.
+#' @param order Optional named list mapping a candidate name to the vector of L-moment
+#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+#'   Only the numerically-fitted distributions accept it; passed through to
+#'   \code{\link{fitlm_nxts}}. Default NULL.
 #' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
 #'
 #' @return A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
@@ -29,7 +33,7 @@
 #'
 fitlm_nc = function(data = NULL, filename = NA, varname = NA,
                     candidates = 'norm', ignore_zeros = FALSE, zero_threshold = 0.01,
-                    parallel = FALSE, ncores = 2, shared_memory = TRUE, ...){
+                    parallel = FALSE, ncores = 2, shared_memory = TRUE, order = NULL, ...){
 
   if (!is.na(filename)) {
     ncdf_sxts <- nc2xts(filename = filename, varname = varname, ...)
@@ -77,7 +81,7 @@ fitlm_nc = function(data = NULL, filename = NA, varname = NA,
                            candidates = candidates, zero_threshold = zero_threshold,
                            parallel = parallel, ncores = ncores,
                            shared_memory = shared_memory,
-                           diagnostic_plots = FALSE)$params
+                           diagnostic_plots = FALSE, order = order)$params
 
   result_list <- list()
   gof_list    <- list()

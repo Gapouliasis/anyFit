@@ -14,7 +14,8 @@ fitlm_nxts(
   parallel = FALSE,
   ncores = 2,
   shared_memory = TRUE,
-  diagnostic_plots = TRUE
+  diagnostic_plots = TRUE,
+  order = NULL
 )
 }
 \arguments{
@@ -39,6 +40,11 @@ filebacked big.matrix (mmap, single machine) instead of serializing column
 chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.}
 
 \item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
+
+\item{order}{Optional named list mapping a candidate name to the vector of L-moment
+orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+Only the numerically-fitted distributions accept it; passed through to
+\code{\link{fitlm_multi}}. Default NULL.}
 }
 \value{
 A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.

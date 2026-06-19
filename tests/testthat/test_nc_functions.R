@@ -292,6 +292,16 @@ test_that("fitlm_nc() each fit_results element has raster_params", {
   expect_true(inherits(res$fit_results[["norm"]]$raster_params, "Raster"))
 })
 
+test_that("fitlm_nc() fits the closed-form expweibull candidate to a raster", {
+  skip_if_not_installed("raster")
+  obj <- make_grid_sxts()
+  res <- fitlm_nc(data = obj, candidates = "expweibull", ignore_zeros = TRUE)
+  expect_true("raster_params" %in% names(res$fit_results[["expweibull"]]))
+  expect_true(inherits(res$fit_results[["expweibull"]]$raster_params, "Raster"))
+  expect_true(all(c("scale", "shape1", "shape2") %in%
+                  names(res$fit_results[["expweibull"]]$raster_params)))
+})
+
 test_that("fitlm_nc() ignore_zeros keeps the full grid extent with NA at dropped cells", {
   skip_if_not_installed("raster")
   obj <- make_grid_sxts()

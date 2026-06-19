@@ -15,6 +15,7 @@ fitlm_monthly_nc(
   ncores = 2,
   shared_memory = TRUE,
   parallel_by = c("cells", "months"),
+  order = NULL,
   ...
 )
 }
@@ -44,6 +45,11 @@ setups. Default TRUE.}
 \code{parallel = TRUE}: \code{"cells"} (default) parallelizes the grid-cell
 fits within each month via \code{fitlm_nxts}; \code{"months"} parallelizes
 the per-month fits, each run serially across cells.}
+
+\item{order}{Optional named list mapping a candidate name to the vector of L-moment
+orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
+Only the numerically-fitted distributions accept it; passed through to
+\code{\link{fitlm_nc}}. Default NULL.}
 
 \item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
 }
