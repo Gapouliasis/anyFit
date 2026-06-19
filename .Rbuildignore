@@ -3,3 +3,4 @@
 ^dev$
 ^.kilo$
 ^.claude$
+^data-raw$
