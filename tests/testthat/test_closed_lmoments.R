@@ -112,3 +112,17 @@ test_that("fitlm_dagum recovers a Dagum sample without the shape1 blow-up", {
   expect_true(res$Param$shape1 < 50)     # bad start gave shape1 >> 100
   expect_lt(res$GoF$KS, 0.1)             # close fit to its own family
 })
+
+# Burr two-step seed (R/Distributions_Anyfit.R): on data drawn from a Burr inside its
+# L-space the fit must recover sensible shapes and fit well (the two-step seed derives the
+# scale from the data instead of the old four-column min-max start).
+test_that("fitlm_burr recovers a Burr sample with the two-step seed", {
+  set.seed(42)
+  vals  <- anyFit::rburr(2000, scale = 10, shape1 = 2, shape2 = 0.4)
+  dates <- as.POSIXct("2020-01-01", tz = "UTC") + seq_along(vals) * 86400
+  ts    <- xts::xts(matrix(vals, ncol = 1, dimnames = list(NULL, "X")), order.by = dates)
+  res   <- fitlm_burr(ts)
+  expect_true(res$Param$shape1 >= 0.5 && res$Param$shape1 <= 50)
+  expect_true(res$Param$shape2 > 0 && res$Param$shape2 <= 1)
+  expect_lt(res$GoF$KS, 0.1)
+})

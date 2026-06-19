@@ -1,3 +1,5 @@
 ^anyFit\.Rproj$
 ^\.Rproj\.user$
 ^dev$
+^.kilo$
+^.claude$

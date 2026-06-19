@@ -89,3 +89,63 @@ lmom_dagum <- function(order = 1:5, scale, shape1, shape2) {
   out[] <- ifelse(order <= 2, lambda[order], lambda[order] / lambda[2])
   out
 }
+
+# Gauss-Legendre nodes/weights on [-1,1] via Golub-Welsch (base R; no statmod dep).
+# Eigen-decomposition of the symmetric tridiagonal Jacobi matrix; nodes = eigenvalues,
+# weights = 2*(first eigenvector component)^2. Cached by N.
+.gl_cache <- new.env(parent = emptyenv())
+.gl_rule <- function(N) {
+  key <- as.character(N)
+  if (is.null(.gl_cache[[key]])) {
+    i <- seq_len(N - 1)
+    bk <- i / sqrt(4 * i^2 - 1)
+    J <- matrix(0, N, N)
+    J[cbind(i, i + 1)] <- bk
+    J[cbind(i + 1, i)] <- bk
+    e <- eigen(J, symmetric = TRUE)
+    o <- order(e$values)
+    .gl_cache[[key]] <- list(x = e$values[o], w = 2 * (e$vectors[1, o])^2)
+  }
+  .gl_cache[[key]]
+}
+
+#' Quadrature L-moments of the Stacy Generalized Gamma distribution
+#'
+#' @keywords internal
+#' @noRd
+#
+# dgengamma/pgengamma/qgengamma use VGAM::*gengamma.stacy(scale, k = shape1/shape2, d = shape2),
+# so the sigma=1 quantile is Q1(u) = qgamma(u, shape = k, rate = 1)^(1/d). The quantile is the
+# inverse incomplete gamma -- no elementary closed form -- so the L-moments are computed by
+# RIGOROUS Gauss-Legendre quadrature of the PWMs beta_j = integral_0^1 Q1(u) u^j du. Evaluating
+# in the gamma-latent variable Y = X^d ~ Gamma(k,1) and substituting v = pgamma(y, k+1/d) maps
+# beta_j to a BOUNDED, SMOOTH, singularity-free unit-interval integral:
+#   beta_j = mean0 * integral_0^1 [ pgamma(qgamma(v, k+1/d), k) ]^j dv ,  mean0 = Gamma(k+1/d)/Gamma(k)
+# A fixed N=128 GL rule gives ~1e-6 on lambda1/lambda2 (far below sampling noise) and, crucially,
+# makes the L-moments a SMOOTH function of (scale,shape1,shape2) for the finite-difference optim.
+# stats:: qualifier is mandatory: the anyFit namespace masks qgamma/pgamma/dgamma.
+lmom_gengamma <- function(order = 1:5, scale, shape1, shape2, N = 128) {
+  k <- shape1 / shape2
+  d <- shape2
+  rmax <- max(order)
+  out <- stats::setNames(rep(NA_real_, length(order)),
+                         ifelse(order <= 2, paste0("lambda_", order), paste0("tau_", order)))
+
+  if (!is.finite(k) || !is.finite(d) || k <= 0 || d <= 0) return(out)
+
+  ph    <- 1 / d
+  mean0 <- exp(lgamma(k + ph) - lgamma(k))          # = beta_0 (sigma = 1), exact
+  if (!is.finite(mean0)) return(out)
+
+  rseq <- 0:(rmax - 1)
+  gl <- .gl_rule(N)
+  v  <- 0.5 + 0.5 * gl$x; w <- 0.5 * gl$w
+  G  <- stats::pgamma(stats::qgamma(v, shape = k + ph), shape = k)   # bounded in [0,1]
+  beta <- mean0 * vapply(rseq, function(j) sum(w * G^j), numeric(1))
+  if (!all(is.finite(beta))) return(out)
+
+  lambda <- .pwm_to_lmom(beta) * scale
+
+  out[] <- ifelse(order <= 2, lambda[order], lambda[order] / lambda[2])
+  out
+}
