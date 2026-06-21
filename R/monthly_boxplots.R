@@ -1,23 +1,24 @@
-#' @title monthly_boxplots
+#' Monthly Boxplots
 #'
-#' @description Plot monthly boxplots for a given time series.
+#' @description Produces a ggplot boxplot panel grouped by calendar month.
+#' Multi-column xts input is faceted by variable; single-column input is
+#' coloured by month.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param palette A color palette. Default is 'Set1'.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param ts An xts object containing the time series data.
+#' @param palette An RColorBrewer palette name. Default \code{'Set1'}.
+#' @param ignore_zeros Logical. If \code{TRUE}, zeros are excluded. Default
+#'   \code{FALSE}.
+#' @param zero_threshold Numeric. Values below this threshold are treated as
+#'   zero. Default 0.01.
 #'
-#' @return A ggplot object with monthly boxplots
+#' @return A ggplot object with monthly boxplots.
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
-#'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#'boxes <- monthly_boxplots(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+#' # Synthetic daily data
+#' set.seed(42)
+#' ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+#'           order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+#' boxes <- monthly_boxplots(ts, palette = 'Set3', ignore_zeros = TRUE)
 #'
 #' @export
 

@@ -1,32 +1,45 @@
-#' @title basic_stats_nc
+#' Compute basic statistics for gridded (NetCDF or raster) data
 #'
-#' @description This function calculates basic statistics (e.g., mean, min, max, SD) for a NetCDF raster file.
-#' It returns the following statistics in raster format.
-#' \itemize{
-#' \item Number of Data - Number of missing data - Percentage of missing Data
-#' \item Minimum - Maximum - Average - Variance - Coefficient of Variation - Standard Deviation - Third moment - Skewness
-#' - Kurtosis
-#' \item L-mean, L-scale , 3rd and 4th L-coefficients
-#' \item Probability Dry
-#' \item Quantiles 5th , 25th, 50th, 75th, 95th - Interquartile range.
-#' \item Mean value and variance from a dry (defined by zero_threshold argument) to a wet state
-#' \item Mean value and variance from a wet to a dry (defined by zero_threshold argument) state
-#' \item Mean value and variance from a wet to a wet state
-#' \item Transition probability from a wet to a wet state
-#' \item Transition probability from a dry to a dry state
+#' @description
+#' Computes a comprehensive set of over 30 summary statistics for every grid
+#' cell in a spatial time series. The function accepts an \code{sxts} object,
+#' a \code{Raster*} object, or a NetCDF file path with variable name. When
+#' \code{filename} and \code{varname} are supplied, the data are first imported
+#' via \code{\link{nc2xts}} and additional arguments are forwarded to that
+#' function. For raster inputs the layer names are parsed for dates, 
+#' and the raster values are converted to an xts matrix. The
+#' returned raster has one layer per statistic; layer names correspond to the
+#' rows of the \code{basic_stats} output.
+#'
+#' @param data An \code{sxts} object, or a \code{Raster*} object. Leave as
+#'   \code{NULL} when supplying \code{filename} and \code{varname} instead.
+#' @param filename A NetCDF file name to import. Ignored when \code{data} is
+#'   supplied directly.
+#' @param varname The name of the variable to extract from \code{filename}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values at or below
+#'   \code{zero_threshold} are excluded from distributional statistics.
+#'   Default is \code{FALSE}.
+#' @param zero_threshold Numeric threshold below which values are treated as
+#'   zero. Default is \code{0.01}.
+#' @param ... Additional arguments passed to \code{\link{nc2xts}} when
+#'   \code{filename} and \code{varname} are provided.
+#'
+#' @return A \code{RasterBrick} with one layer per statistic. The layer names
+#'   correspond to the statistic labels (e.g. \code{"Mean"}, \code{"StDev"},
+#'   \code{"Skewness"}, \code{"Pdr"}, etc.). The spatial reference (projection
+#'   and extent) is inherited from the input.
+#'
+#' @examples
+#' \dontrun{
+#' # From an sxts object (e.g. output of nc2xts)
+#' s <- nc2xts(filename = "precip.nc", varname = "pr")
+#' r <- basic_stats_nc(data = s, ignore_zeros = TRUE)
+#' raster::plot(r[["Mean"]])
+#'
+#' # Direct from NetCDF (shortcut — nc2xts is called internally)
+#' r <- basic_stats_nc(filename = "precip.nc", varname = "pr",
+#'                      ignore_zeros = TRUE)
 #' }
-#'
-#'
-#' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
-#' @param filename (optional) A NetCDF file name to import if data is not provided.
-#' @param varname (optional) The name of the variable to extract from 'filename'.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
-#'
-#' @return A raster object containing basic statistics.
-#'
-#' @examples TO BE FILLED
 #'
 #' @importFrom lubridate parse_date_time
 #' @importFrom xts xts
@@ -60,7 +73,7 @@ basic_stats_nc = function(data = NULL, filename = NA, varname = NA,
     ncdf_sxts <- xts(x = tt, order.by = dates)
     proj_str  <- raster::projection(data)
   }
-    
+
   ncdf_stats <- t(as.matrix(basic_stats(ncdf_sxts, ignore_zeros = ignore_zeros, zero_threshold = zero_threshold, plot = FALSE)$stats_table))
 
   ncdf_stats  <- cbind(coords, ncdf_stats)

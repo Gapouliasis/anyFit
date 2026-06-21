@@ -9,7 +9,7 @@ Description: What the package does (one paragraph).
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Depends: 
-    R (>= 2.10)
+    R (>= 3.6.0)
 Imports:
     bigmemory,
     FAdist,
@@ -18,12 +18,12 @@ Imports:
     ggplot2,
     ggridges,
     gridExtra,
-    knitr,
     lmom,
     lmomco,
     Lmoments,
     lubridate,
     matrixStats,
+    methods,
     ncdf4,
     parallel,
     patchwork,
@@ -32,18 +32,20 @@ Imports:
     raster,
     reshape2,
     rlang,
-    rmarkdown,
     scales,
     sp,
     sf,
     stats,
+    utils,
     VGAM,
     viridis,
     xts,
     zoo
 Suggests:
     anySim,
+    knitr,
     moments,
+    rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
     itsoukal/anySim

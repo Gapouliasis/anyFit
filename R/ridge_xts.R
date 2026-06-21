@@ -1,26 +1,29 @@
-#' @title ridge_xts
+#' Ridge density plots for time series
 #'
-#' @description Function that generates ridge plots from timeseries.
-#' It will also generate ridge plots on the monthly scale.
+#' @description
+#' Generates ggridges density ridge plots for all series combined and
+#' per-series per-calendar-month variants. Supports optional zero-value
+#' exclusion via \code{ignore_zeros} and \code{zero_threshold}.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param palette Color palette to use for ridge plot. Default is 'Set3'
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param ts An xts object containing the time series data.
+#' @param palette Colour palette for the ridge plot (default \code{"Set3"}).
+#' @param ignore_zeros Logical; if \code{TRUE}, values below \code{zero_threshold} are excluded.
+#' @param zero_threshold Numeric threshold below which values are treated as zero (default 0.01).
 #'
-#' @return A list with two elements: plot_all and plot_monthly. plot_all is the full ridge plot for the data, plot_monthly is a list of ridge plots for each month of the data.
+#' @return A list with two elements: \code{plot_all} (full ridge plot for all
+#'   series) and \code{plot_monthly} (named list of per-month ridge plots per
+#'   series).
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Synthetic xts
+#' set.seed(123)
+#' dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-12-31"), by = "day")
+#' vals <- matrix(rnorm(length(dates) * 4, 10, 5), nrow = length(dates), ncol = 4)
+#' colnames(vals) <- c("S1", "S2", "S3", "S4")
+#' ts <- xts::xts(vals, order.by = dates)
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#'ridges <- ridge_plots(data[,seq(1,10)], ignore_zeros = TRUE)
-#'ridges$plot_all
-#'ridges$plot_monthly$Y.Xtemp.2
+#' ridges <- ridge_plots(ts, ignore_zeros = TRUE)
+#' ridges$plot_all
 #'
 #' @export
 

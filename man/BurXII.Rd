@@ -16,6 +16,38 @@ qburr(p, scale, shape1, shape2, PW = 1)
 
 rburr(n, scale, shape1, shape2, PW = 1)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{scale}{scale parameter.}
+
+\item{shape1}{first shape parameter.}
+
+\item{shape2}{second shape parameter.}
+
+\item{PW}{probability weight (point mass at zero for zero-inflated variants).}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Burr Type XII distribution
+Three-parameter Burr Type XII distribution with scale
+\eqn{s}{s}, first shape \eqn{\zeta}{z} (\code{shape1}), and
+second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
+distribution is supported on \eqn{x > 0} and is widely used for
+modelling heavy-tailed positive variables. L-moments are computed via
+closed-form expressions involving Beta-function PWMs; a two-step
+seeding procedure initialises the shapes from a pre-computed lookup
+table (\code{Burr_InitValues}) and derives the scale analytically.
+Fitting uses L-BFGS-B minimisation of the normalised L-moment error.
+
+The probability density function is:
+\deqn{f(x) = \zeta s^{-\zeta} x^{\zeta-1} \left(\zeta\theta\left(\frac{x}{s}\right)^\zeta + 1\right)^{-1/(\zeta\theta) - 1}, \quad x > 0}{f(x) = z*s^(-z) * x^(z-1) * (z*th*(x/s)^z + 1)^(-1/(z*th) - 1), x > 0}
+where:
+\itemize{
+\item \eqn{s}{s} --- scale parameter (\code{scale})
+\item \eqn{\zeta}{z} --- first shape parameter (\code{shape1}), controls lower-tail behaviour
+\item \eqn{\theta}{th} --- second shape parameter (\code{shape2}), tail index; the mean exists only when \eqn{\theta < 1}{th < 1}
+}
 }

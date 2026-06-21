@@ -16,6 +16,34 @@ qweibull(p, location, scale, shape)
 
 rweibull(n, location, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-3-parameter Weibull distribution
+Three-parameter Weibull distribution with location
+\eqn{\mu}{m}, scale \eqn{\sigma}{s}, and shape \eqn{k}{k}. The
+distribution is lower-bounded at the location parameter and
+generalises the Exponential (\eqn{k = 1}) and Rayleigh (\eqn{k = 2})
+distributions. Fitting is
+performed via closed-form L-moments. An optional fixed lower bound is
+supported.
+
+The probability density function is:
+\deqn{f(x) = \frac{k}{\sigma} \left(\frac{x - \mu}{\sigma}\right)^{k-1} \exp\left(-\left(\frac{x - \mu}{\sigma}\right)^k\right), \quad x \ge \mu}{f(x) = k/s * ((x-m)/s)^(k-1) * exp(-((x-m)/s)^k), x >= m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+\item \eqn{k}{k} --- shape parameter (\code{shape})
+}
 }

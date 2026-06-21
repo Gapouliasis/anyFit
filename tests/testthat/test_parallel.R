@@ -185,7 +185,7 @@ test_that("F12: chunks mode survives a low future.globals.maxSize", {
 test_that("F16: worker closures do not capture the grid (no giant globals)", {
   skip_unless_parallel()
   # The factory closure must be tiny regardless of any grid.
-  w <- anyFit:::.make_col_worker("norm", TRUE, 0.01, FALSE)
+  w <- anyFit:::.make_col_worker("norm", TRUE, 0.01, FALSE, NULL)
   expect_lt(length(serialize(w, NULL)), 1e6)   # constant ~0.1 MB; a captured grid is >> 1 MB
 
   # End-to-end: a grid LARGER than a deliberately tiny maxSize must still run in

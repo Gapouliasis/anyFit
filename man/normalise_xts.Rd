@@ -12,25 +12,43 @@ normalise_xts(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data. Multi-column xts
+are supported; each column is normalised independently.}
 
-\item{dist_period}{The distribution period for normalization ('monthly' or NA).}
+\item{dist_period}{Character; the distribution period for normalisation.
+Use \code{"monthly"} for per-calendar-month normalisation or \code{NA}
+for the entire series. Default \code{"monthly"}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.}
+\item{ignore_zeros}{Logical; if \code{TRUE}, zero values (at or below
+\code{zero_threshold}) are excluded before normalisation. Default
+\code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric; threshold below which values are treated as
+zero. Default \code{0.01}.}
 }
 \value{
-A list of normalized xts time series.
+A named list of normalised xts objects, one per column of the input.
 }
 \description{
-This function normalizes an xts time series by transforming the data into standard normal
-distribution, either on a monthly basis or for the entire time series.
-Tranforming the data in the standard normal space can assist in visually identifying outliers.
-Using the monthly distribution to normalise the data can be useful in cyclo-stationary processes.
-In other cases, 'dist_period' should be set to NA.
+Empirical normal-score transform of an xts time series: values
+are mapped to standard normal quantiles via their empirical cumulative
+distribution function (ranking with average ties). Optionally applied
+per calendar month to preserve seasonal structure in cyclo-stationary
+processes.
 }
 \examples{
-TO BE FILLED
+# Synthetic daily precipitation
+set.seed(42)
+n <- 365 * 3
+dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+precip <- pmax(0, rnorm(n, mean = 3, sd = 5))
+ts <- xts::xts(precip, order.by = dates)
+
+# Monthly normal-score transform
+ns <- normalise_xts(ts, dist_period = "monthly")
+hist(zoo::coredata(ns[[1]]), main = "Normalised values")
+
+# Full-series transform
+ns_full <- normalise_xts(ts, dist_period = NA)
 
 }

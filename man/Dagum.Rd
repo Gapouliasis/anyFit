@@ -16,6 +16,38 @@ qdagum(p, scale, shape1, shape2, PW = 1)
 
 rdagum(n, scale, shape1, shape2, PW = 1)
 }
+\arguments{
+\item{scale}{scale parameter.}
+
+\item{shape1}{first shape parameter.}
+
+\item{shape2}{second shape parameter.}
+
+\item{PW}{probability weight (point mass at zero for zero-inflated variants).}
+
+\item{x, q}{vector of quantiles.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Dagum distribution
+Three-parameter Dagum (Burr Type III) distribution with
+scale \eqn{s}{s}, first shape \eqn{\alpha}{a} (\code{shape1}), and
+second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
+distribution is supported on \eqn{x > 0} and, unlike the Burr XII,
+has a unimodal density with mode at the origin for certain parameter
+ranges. L-moments are computed via closed-form Beta-function PWMs;
+fitting uses L-BFGS-B minimisation seeded from the
+\code{Dagum_InitValues} lookup table with scale-free L-ratio matching
+and analytic scale derivation.
+
+The probability density function is:
+\deqn{f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x > 0}{f(x) = 1/s * (x/s)^(-1/th - 1) * (1 + th/a * (x/s)^(-1/th))^(-a-1), x > 0}
+where:
+\itemize{
+\item \eqn{s}{s} --- scale parameter (\code{scale})
+\item \eqn{\alpha}{a} --- first shape parameter (\code{shape1}), controls upper-tail heaviness
+\item \eqn{\theta}{th} --- second shape parameter (\code{shape2}), tail index; the mean exists only when \eqn{\theta < 1}{th < 1}
+}
 }

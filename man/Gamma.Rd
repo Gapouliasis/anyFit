@@ -16,6 +16,31 @@ qgamma(p, scale, shape)
 
 rgamma(n, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Gamma distribution
+Two-parameter Gamma distribution with scale \eqn{\beta}{b}
+and shape \eqn{\alpha}{a}. The distribution is supported on
+\eqn{x > 0} and is widely used for modelling positively skewed
+variables such as precipitation amounts. Density, distribution,
+quantile, and random generation functions are provided via base R
+\code{\link[stats]{dgamma}}. Fitting is performed via closed-form
+L-moments through \code{\link[lmom]{pelgam}}.
+
+The probability density function is:
+\deqn{f(x) = \frac{1}{\beta^\alpha \Gamma(\alpha)} x^{\alpha-1} \exp\left(-\frac{x}{\beta}\right), \quad x > 0}{f(x) = x^(a-1) * exp(-x/b) / (b^a * Gamma(a)), x > 0}
+where:
+\itemize{
+\item \eqn{\beta}{b} --- scale parameter (\code{scale})
+\item \eqn{\alpha}{a} --- shape parameter (\code{shape})
+}
 }

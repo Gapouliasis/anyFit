@@ -1,22 +1,23 @@
-#' @title lmom_stats
+#' L-Moment Statistics
 #'
-#' @description Calculate the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of a time series.
+#' @description Computes the L-mean, L-scale, L-skewness, L-kurtosis, and L-CV
+#' for each column of an xts object using \code{lmom::samlmu}.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param ts An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, zeros are excluded before
+#'   computing L-moments. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Values below this threshold are treated as
+#'   zero. Default 0.01.
 #'
-#' @return A dataframe with the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of the time series
+#' @return A data frame with rows for L-mean, L-scale, L-skewness, L-kurtosis,
+#'   and L-CV, and one column per input series.
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
-#'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#' ts_lmoms <- lmom_stats(data, ignore_zeros = TRUE)
-#'
+#' # Synthetic daily data
+#' set.seed(42)
+#' ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+#'           order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+#' ts_lmoms <- lmom_stats(ts, ignore_zeros = TRUE)
 #'
 #' @export
 #'

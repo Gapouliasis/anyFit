@@ -2,25 +2,32 @@
 % Please edit documentation in R/monthly_ecdf.R
 \name{monthly_ecdf}
 \alias{monthly_ecdf}
-\title{monthly_ecdf}
+\title{Monthly Empirical CDF Grid}
 \usage{
 monthly_ecdf(ts, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, zeros are excluded. Default
+\code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Values below this threshold are treated as
+zero. Default 0.01.}
 }
 \value{
-A grid of monthly ECDF plots.
+A \pkg{patchwork} grid of ggplot ECDF panels (4 rows by 3 columns).
 }
 \description{
-This function takes a time series and generates a grid of monthly Empirical
-Cumulative Distribution Function (ECDF) plots for each month in the time series.
+Generates a 12-panel grid of empirical cumulative distribution
+function plots, one per calendar month. Supports multi-column xts input with
+series distinguished by colour.
 }
 \examples{
-TO BE FILLED
+# Synthetic daily data
+set.seed(42)
+ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+          order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+monthly_ecdf(ts)
 
 }

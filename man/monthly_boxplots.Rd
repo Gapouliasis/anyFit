@@ -2,7 +2,7 @@
 % Please edit documentation in R/monthly_boxplots.R
 \name{monthly_boxplots}
 \alias{monthly_boxplots}
-\title{monthly_boxplots}
+\title{Monthly Boxplots}
 \usage{
 monthly_boxplots(
   ts,
@@ -12,28 +12,29 @@ monthly_boxplots(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{palette}{A color palette. Default is 'Set1'.}
+\item{palette}{An RColorBrewer palette name. Default \code{'Set1'}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, zeros are excluded. Default
+\code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Values below this threshold are treated as
+zero. Default 0.01.}
 }
 \value{
-A ggplot object with monthly boxplots
+A ggplot object with monthly boxplots.
 }
 \description{
-Plot monthly boxplots for a given time series.
+Produces a ggplot boxplot panel grouped by calendar month.
+Multi-column xts input is faceted by variable; single-column input is
+coloured by month.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-boxes <- monthly_boxplots(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+# Synthetic daily data
+set.seed(42)
+ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+          order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+boxes <- monthly_boxplots(ts, palette = 'Set3', ignore_zeros = TRUE)
 
 }

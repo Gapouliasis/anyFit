@@ -7,39 +7,39 @@
 fit_ACF_monthly(ts, lag, type = list("CAS", "HK", "SRD"), nrow = 4, ncol = 3)
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{type}{A list of character strings, containing the type of ACF to fit.
-Options include: \code{'CAS'}, \code{'HK'}, and \code{'SRD'}.}
+\item{lag}{Integer. Maximum lag passed to \code{fit_ACF}.}
 
-\item{nrow}{Number of rows for plotting.}
+\item{type}{Character vector of ACF model types. Options are
+\code{"CAS"}, \code{"HK"}, and \code{"SRD"}. Default all three.}
 
-\item{ncol}{Number of columns for plotting.}
+\item{nrow}{Integer. Number of rows in the panel grid. Default \code{4}.}
 
-\item{lag_max}{Maximum lag to use in fitting.}
-
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
-
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{ncol}{Integer. Number of columns in the panel grid. Default
+\code{3}.}
 }
 \value{
-A list containing a vector of monthly fitted parameters, a data frame of
-fitted ACF values, and a plot of the fitted ACFs.
+A list with elements \code{ACF_params_monthly} (matrix of
+fitted parameters with months as rows) and
+\code{ACF_monthly_plot} (12-panel patchwork of fitted ACF
+\code{ggplot} objects with a shared legend).
 }
 \description{
-Function to fit theoretical Autocorrelation Functions (ACFs) to monthly values of timeseries data.
-Three functions are available, the Cauchy-type autocorrelation structure,
-the Hurst - Kolmogorov and the Short Range dependence structure.
+Wraps \code{\link{fit_ACF}} to fit ACF models separately
+to each calendar-month sub-series of an xts object. The input series
+is split by calendar month, \code{fit_ACF} is applied to each
+resulting sub-series, and the fitted parameters are assembled into a
+parameter matrix with months as rows. A 12-panel patchwork plot of
+fitted ACF curves is produced, with empty panels for months absent
+from the data. The grid layout is controlled by \code{nrow} and
+\code{ncol}. The three model types (CAS, HK, SRD) supported by
+\code{fit_ACF} are available and may be specified singly or in
+combination.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-monthly_acfs <- fit_ACF_monthly(data[,4], lag = 10)
+ts <- xts::xts(rnorm(365), order.by = as.Date("2020-01-01") + 0:364)
+monthly_acfs <- fit_ACF_monthly(ts, lag = 10)
 monthly_acfs$ACF_monthly_plot
 
 }

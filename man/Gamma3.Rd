@@ -16,6 +16,34 @@ qgamma3(p, location, scale, shape)
 
 rgamma3(n, location, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-3-parameter Gamma distribution
+Three-parameter Gamma (Pearson type III) distribution with
+location \eqn{\mu}{m}, scale \eqn{\beta}{b}, and shape
+\eqn{\alpha}{a}. The distribution is lower-bounded at the location
+parameter and is widely employed in flood-frequency analysis. Density,
+distribution, quantile, and random generation functions are provided
+via the \pkg{PearsonDS} package. Fitting is performed via closed-form
+L-moments through \code{\link[lmom]{pelpe3}}.
+
+The probability density function is:
+\deqn{f(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} (x - \mu)^{\alpha-1} \exp\left(-\beta (x - \mu)\right), \quad x \ge \mu}{f(x) = b^a / Gamma(a) * (x-m)^(a-1) * exp(-b*(x-m)), x >= m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\beta}{b} --- scale parameter (\code{scale})
+\item \eqn{\alpha}{a} --- shape parameter (\code{shape})
+}
 }

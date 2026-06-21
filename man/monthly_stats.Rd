@@ -15,43 +15,61 @@ monthly_stats(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{aggregated}{A logical value, if TRUE the statistics are also given on the aggregated monthly scale
-of the time series. Default is FALSE.}
+\item{aggregated}{Logical; if \code{TRUE}, statistics are also computed on the
+aggregated monthly scale. Default \code{FALSE}.}
 
-\item{FUN}{The aggregation function applied to the time series. Default is 'mean'.}
+\item{FUN}{Aggregation function applied when \code{aggregated = TRUE}
+(e.g. \code{"sum"} for precipitation totals, \code{"mean"} for temperature).
+Default \code{"mean"}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.}
+\item{ignore_zeros}{Logical; if \code{TRUE}, zeros are ignored when computing
+statistics. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric; threshold below which values are treated as
+zero. Default \code{0.01}.}
 
-\item{title}{A logical value, if TRUE then a title will be added to the plots. Default is FALSE.}
+\item{title}{Logical; if \code{TRUE}, a title annotation is added to the
+patchwork plot panels. Default \code{FALSE}.}
+
+\item{time_zone}{Character; timezone string used for date alignment
+(e.g. \code{"UTC"}). Default \code{"UTC"}.}
 }
 \value{
-If aggregated is TRUE, a list containing the aggregated statistics and the plots is returned.
-If aggregated is FALSE, a list containing the base scale statistics and the plots is returned.
+If \code{aggregated = TRUE}, a named list with elements
+\code{agg_stats} (the per-month statistics table),
+\code{faggre} (the four-panel patchwork plot), and \code{lag1}
+(the per-month lag-1 correlations). If \code{aggregated = FALSE}, a named
+list with elements \code{base_stats} (the per-month statistics table on the
+original scale) and \code{fbase} (the four-panel patchwork plot).
 }
 \description{
-This function provides monthly statistics in aggregated and original (base) timescale
-and plots of a time series. Statistics plotted are average, standard deviation, skewness. For the base scale
-the probability dry is calculated. For the monthly scale the month to month correlations are calculated.
-Month to month correlations are calculated backwards. i.e January == cor(December, January). Statistics calculated
-and provided on a table are the number of data points,
-number of missing data, percentage of missing data, min, max, mean, variance,
-standard deviation, variation, 3rd moment, skewness, kurtosis and probability dry.
+Computes calendar-month statistics for an xts time series:
+mean, standard deviation, skewness, probability dry, and lag-1
+autocorrelation. Optionally computes the same statistics on an aggregated
+(monthly) scale using the supplied aggregation function. Lag-1 correlation is
+calculated backward — January pairs with the preceding December so that the
+within-year correlation structure is captured. Statistics are tabulated per
+month and presented as a four-panel bar chart via patchwork.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Synthetic daily precipitation
+set.seed(123)
+n <- 365 * 3
+dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+precip <- pmax(0, rnorm(n, mean = 3, sd = 5))
+ts <- xts::xts(precip, order.by = dates)
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
+ms <- monthly_stats(ts, title = TRUE)
+ms$fbase
+ms$base_stats
 
-monthly_sts <- monthly_stats(data[,4],base_scale = TRUE, FUN = "sum")
+# Aggregated monthly scale with sum
+ms_agg <- monthly_stats(ts, aggregated = TRUE, FUN = "sum", title = TRUE)
+ms_agg$faggre
 
-monthly_sts$fbase
-monthly_sts$base_list$July$raw_stats
+# Ignoring zeros (dry days)
+ms_nz <- monthly_stats(ts, ignore_zeros = TRUE, zero_threshold = 0.1)
 
 }

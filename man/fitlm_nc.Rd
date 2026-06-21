@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitlm_nc.R
 \name{fitlm_nc}
 \alias{fitlm_nc}
-\title{fitlm_nc}
+\title{Distribution Fitting on Gridded Data}
 \usage{
 fitlm_nc(
   data = NULL,
@@ -19,43 +19,75 @@ fitlm_nc(
 )
 }
 \arguments{
-\item{data}{An sxts object, or a raster file. Leave NULL when supplying filename/varname.}
+\item{data}{An \code{sxts} object, or a \code{Raster*} object. Leave
+\code{NULL} when supplying \code{filename} and \code{varname}.}
 
-\item{filename}{(optional) A NetCDF file name to import if data is not provided.}
+\item{filename}{A NetCDF file name to import if \code{data} is not provided.}
 
-\item{varname}{(optional) The name of the variable to extract from 'filename'.}
+\item{varname}{The name of the variable to extract from \code{filename}.}
 
-\item{candidates}{A list of distribution to fit.}
+\item{candidates}{A character vector of distribution names to fit.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{A logical value, if \code{TRUE} zeros will be ignored.
+Default is \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{The threshold below which values are considered zero.
+Default is 0.01.}
 
 \item{parallel}{Logical, whether to use parallel processing.}
 
-\item{ncores}{Number of cores to use in the case of parallel computations}
+\item{ncores}{Number of cores to use for parallel computations. Default is 2.}
 
 \item{shared_memory}{Logical, when parallel, share the grid with workers via a
-filebacked big.matrix (mmap, single machine) instead of serializing column
-chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.}
+file-backed \code{big.matrix} (mmap, single machine) instead of serialising
+column chunks. Set \code{FALSE} for multi-node \code{plan(cluster)} setups.
+Default \code{TRUE}.}
 
-\item{order}{Optional named list mapping a candidate name to the vector of L-moment
-orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-Only the numerically-fitted distributions accept it; passed through to
-\code{\link{fitlm_nxts}}. Default NULL.}
+\item{order}{Optional named list mapping a candidate name to the vector of
+L-moment orders matched by its optimiser, e.g.
+\code{list(gengamma = 1:5, expweibull = 1:3)}. Only the numerically-fitted
+distributions accept it; passed through to \code{\link{fitlm_nxts}}.
+Default \code{NULL}.}
 
-\item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
+\item{...}{Additional arguments passed to \code{\link{nc2xts}} when
+\code{filename} and \code{varname} are provided.}
 }
 \value{
-A list of raster objects containing the fitted distribution parameters, the theoretical L-moments of the fitted distribution,
-the sample L-Moments and goodness-of-fit statistics in raster format.
+A list with components \code{fit_results} (a named list, one element
+per candidate, each containing \code{raster_params}, \code{raster_TheorLMom},
+\code{raster_DataLMom}, and \code{raster_GoF} \code{RasterBrick} objects)
+and \code{gof_plots} (a \code{ggplot} density comparison of the six GoF
+metrics across all grid cells, faceted by metric and coloured by candidate).
 }
 \description{
-This function fits a list of candidate distributions using the L-moments method NetCDF raster file.
-It returns fitted distribution parameters, the theoretical L-moments of the fitted distribution,
-the sample L-Moments and goodness-of-fit statistics in raster format.
+Fits a list of candidate distributions to every grid cell of a
+NetCDF raster or an \code{sxts} object via the L-moments method. The input
+is normalised to an \code{sxts} object, accepting \code{sxts},
+\code{Raster*}, or NetCDF filename and variable name. The results are
+returned as per-candidate \code{RasterBrick} objects for the parameters, theoretical L-moments, data
+L-moments, and GoF metrics. A density comparison plot of the six GoF metrics
+across all grid cells is assembled with \code{ggplot2}, faceted by metric
+and coloured by candidate distribution. When \code{parallel = TRUE}, the work is distributed across available cores
+via the \pkg{future} framework, with either file-backed shared memory (bigmemory
+memory-mapped matrices for single-machine parallelism) or serialised column chunks
+(for multi-node clusters). File-backed shared memory can be enabled by \code{shared_memory = TRUE}.
+This is reccomended for single machine usage and especially windows for efficiency and reduced RAM consumption.
 }
 \examples{
-TO BE FILLED
+\dontrun{
+# Simulated 3-cell grid
+n <- 365
+dates <- seq.Date(as.Date("2020-01-01"), by = "day", length.out = n)
+vals <- cbind(cell1 = rgamma(n, shape = 0.8, scale = 3),
+              cell2 = rgamma(n, shape = 1.2, scale = 2),
+              cell3 = rgamma(n, shape = 0.6, scale = 4))
+coords <- data.frame(lon = c(10, 11, 12), lat = c(45, 46, 47))
+grid <- sxts(vals, order.by = dates, coords = coords,
+             projection = "+proj=longlat +datum=WGS84")
+
+fits <- fitlm_nc(grid, candidates = c("exp", "gamma3"), ignore_zeros = TRUE)
+names(fits$fit_results)
+fits$gof_plots
+}
 
 }

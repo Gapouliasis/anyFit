@@ -12,17 +12,45 @@ fitlm_expweibull(
 )
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
 
-\item{order}{Integer vector of L-moment orders matched by the optimiser. Default 1:3 (exact
-method-of-L-moments for the 3 parameters).}
+\item{order}{Integer vector of L-moment orders matched by the
+optimiser. Default \code{1:3} (exact method-of-L-moments for the
+three parameters).}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+\code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+L-moments), and \code{GoF} (goodness-of-fit metrics).
 }
 \description{
-Function for fitting the Exponentiated Weibull distribution using the L-Moments method.
-Uses the fast closed-form tanh-sinh L-moment engine (lmom_expweibull) with a two-step seed
-(scale-free shape nearest-neighbour over ExpWeibull_InitValues, then analytic scale).
+Fits the three-parameter Exponentiated Weibull
+distribution to an xts series by numerical minimisation of
+L-moments. L-moments are computed at each optimisation step via a
+fast tanh-sinh (double-exponential) quadrature engine
+(\code{lmom_expweibull}), chosen for its well-conditioned behaviour
+across the full positive parameter range. The L-BFGS-B optimiser
+minimises the normalised root-sum-square error between the sample and
+theoretical L-moments of orders specified by \code{order}. A
+two-step seeding procedure initialises the shape parameters from the
+\code{ExpWeibull_InitValues} lookup table and derives the scale
+analytically. The distribution is meant to be fitted only to
+non-negative data. Zero values below \code{zero_threshold} may be
+excluded via \code{ignore_zeros}.
+}
+\examples{
+x <- xts::xts(rexpweibull(365, scale = 3, shape1 = 1.5, shape2 = 2),
+              order.by = as.Date("2020-01-01") + 0:364)
+\dontrun{
+fit <- fitlm_expweibull(x)
+fit$Param
+}
+
 }

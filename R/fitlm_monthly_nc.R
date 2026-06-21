@@ -1,44 +1,72 @@
-#' @title fitlm_monthly_nc
+#' @title Monthly Distribution Fitting on Gridded Data
 #'
-#' @description This function fits a list of candidate distributions on a monthly
-#' basis to gridded data (a NetCDF raster file or an sxts object) using the
-#' L-moments method. For each calendar month present in the data it returns the
-#' same output as \code{\link{fitlm_nc}}: per-candidate rasters of the fitted
-#' distribution parameters, the theoretical and sample L-moments, the
-#' goodness-of-fit statistics, and a GoF density plot.
+#' @description Gridded counterpart of \code{\link{fitlm_monthly}} that fits a
+#'   list of candidate distributions to every calendar month of a NetCDF raster
+#'   or an \code{sxts} object via the L-moments method. The input is first
+#'   normalised to an \code{sxts} object (accepting \code{sxts}, \code{Raster*},
+#'   or NetCDF filename and variable name), and each calendar month present in
+#'   the record is extracted as a sub-grid. Per-month fitting is dispatched to
+#'   \code{\link{fitlm_nc}}, which delegates to \code{\link{fitlm_nxts}} for
+#'   per-cell L-moment fitting and returns parameter rasters, theoretical and
+#'   sample L-moment rasters, GoF rasters, and a density GoF comparison plot.
+#'   Parallelism is controlled by \code{parallel_by}: \code{"cells"} parallelises
+#'   the cell-level fits within each month,
+#'   whereas \code{"months"} parallelises across months but is serial across
+#'   cells. The \code{shared_memory} flag determines whether the grid is shared
+#'   with workers via a file-backed \code{big.matrix} or
+#'   serialised in column chunks (suitable for multi-node plans).
+#'   This is reccomended for single machine usage and especially windows for efficiency 
+#' and reduced RAM consumption.The returned
+#'   list is named by month and contains the full \code{fitlm_nc} output for each.
 #'
-#' Parallelism can be applied on either axis via \code{parallel_by}: across grid
-#' cells (the \code{fitlm_nxts} engine, best for large grids) or across the
-#' calendar months (a coarse outer loop of at most twelve tasks).
-#'
-#' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
-#' @param filename (optional) A NetCDF file name to import if data is not provided.
-#' @param varname (optional) The name of the variable to extract from 'filename'.
-#' @param candidates A list of distribution to fit.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param data An \code{sxts} object, or a \code{Raster*} object. Leave
+#'   \code{NULL} when supplying \code{filename} and \code{varname}.
+#' @param filename A NetCDF file name to import if \code{data} is not provided.
+#' @param varname The name of the variable to extract from \code{filename}.
+#' @param candidates A character vector of distribution names to fit.
+#' @param ignore_zeros A logical value, if \code{TRUE} zeros will be ignored.
+#'   Default is \code{FALSE}.
+#' @param zero_threshold The threshold below which values are considered zero.
+#'   Default is 0.01.
 #' @param parallel Logical, whether to use parallel processing.
-#' @param ncores Number of cores to use in the case of parallel computations.
+#' @param ncores Number of cores to use for parallel computations. Default is 2.
 #' @param shared_memory Logical, when parallel on the cell axis, share the grid
-#'   with workers via a filebacked big.matrix (mmap, single machine) instead of
-#'   serializing column chunks. Set FALSE for multi-node \code{plan(cluster)}
-#'   setups. Default TRUE.
-#' @param parallel_by Character, the axis to parallelize over when
-#'   \code{parallel = TRUE}: \code{"cells"} (default) parallelizes the grid-cell
-#'   fits within each month via \code{fitlm_nxts}; \code{"months"} parallelizes
+#'   with workers via a file-backed \code{big.matrix} (mmap, single machine)
+#'   instead of serialising column chunks. Set \code{FALSE} for multi-node
+#'   \code{plan(cluster)} setups. Default \code{TRUE}.
+#' @param parallel_by Character, the axis to parallelise over when
+#'   \code{parallel = TRUE}: \code{"cells"} (default) parallelises the grid-cell
+#'   fits within each month via \code{fitlm_nxts}; \code{"months"} parallelises
 #'   the per-month fits, each run serially across cells.
-#' @param order Optional named list mapping a candidate name to the vector of L-moment
-#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-#'   Only the numerically-fitted distributions accept it; passed through to
-#'   \code{\link{fitlm_nc}}. Default NULL.
-#' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
+#' @param order Optional named list mapping a candidate name to the vector of
+#'   L-moment orders matched by its optimiser, e.g.
+#'   \code{list(gengamma = 1:5, expweibull = 1:3)}. Only the numerically-fitted
+#'   distributions accept it; passed through to \code{\link{fitlm_nc}}.
+#'   Default \code{NULL}.
+#' @param ... Additional arguments passed to \code{\link{nc2xts}} when
+#'   \code{filename} and \code{varname} are provided.
 #'
 #' @return A named list with one element per calendar month present in the data
-#' (named after \code{month.name}). Each element is the standard
-#' \code{\link{fitlm_nc}} output: a list with \code{fit_results} (per-candidate
-#' rasters) and \code{gof_plots}.
+#'   (named after \code{month.name}). Each element is the standard
+#'   \code{\link{fitlm_nc}} output: a list with \code{fit_results} (per-candidate
+#'   rasters) and \code{gof_plots}.
 #'
-#' @examples TO BE FILLED
+#' @examples
+#' \dontrun{
+#' # Simulated 3-cell grid over two years
+#' n <- 730
+#' dates <- seq.Date(as.Date("2020-01-01"), by = "day", length.out = n)
+#' vals <- cbind(cell1 = rgamma(n, shape = 0.8, scale = 3),
+#'               cell2 = rgamma(n, shape = 1.2, scale = 2),
+#'               cell3 = rgamma(n, shape = 0.6, scale = 4))
+#' coords <- data.frame(lon = c(10, 11, 12), lat = c(45, 46, 47))
+#' grid <- sxts(vals, order.by = dates, coords = coords,
+#'              projection = "+proj=longlat +datum=WGS84")
+#'
+#' monthly_fits <- fitlm_monthly_nc(grid, candidates = c("exp", "gamma3"),
+#'                                   ignore_zeros = TRUE)
+#' names(monthly_fits)
+#' }
 #'
 #' @importFrom lubridate month parse_date_time
 #'

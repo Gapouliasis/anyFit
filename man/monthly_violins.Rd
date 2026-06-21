@@ -12,28 +12,37 @@ monthly_violins(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data}
+\item{ts}{An xts object containing the time series data. Multi-column xts
+are supported; each column is treated as a separate variable.}
 
-\item{palette}{The color palette to use. Default is 'Set3'.}
+\item{palette}{Character; the RColorBrewer palette name for the fill scale.
+Default \code{"Set3"}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical; if \code{TRUE}, values at or below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric; threshold below which values are treated as
+zero. Default \code{0.01}.}
 }
 \value{
 A ggplot2 object.
 }
 \description{
-Plots a violin plot of monthly values
+Produces a ggplot2 violin plot of monthly values from an xts
+time series. Single-column series overlay a boxplot inside each violin;
+multi-column series facet by variable using a brewer fill palette.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Synthetic daily precipitation
+set.seed(123)
+n <- 365 * 2
+dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+precip <- pmax(0, rnorm(n, mean = 3, sd = 5))
+ts <- xts::xts(precip, order.by = dates)
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
+monthly_violins(ts, palette = "Set3")
 
-violins <- monthly_violins(data[,4], palette = 'Set3', ignore_zeros = TRUE)
+# Exclude zeros
+monthly_violins(ts, ignore_zeros = TRUE, zero_threshold = 0.1)
 
 }

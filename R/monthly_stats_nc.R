@@ -1,32 +1,50 @@
 #' @title monthly_stats_nc
 #'
-#' @description This function calculates basic statistics on a monthly basis for
-#' gridded data (a NetCDF raster file or an sxts object). For each calendar month
-#' present in the data it returns the same output as \code{\link{basic_stats_nc}}:
-#' a multi-layer raster of per-cell statistics (mean, min, max, SD, L-moments,
-#' probability dry, quantiles, and, unless \code{ignore_zeros = TRUE}, wet/dry
-#' transition statistics).
+#' @description Computes calendar-month statistics on gridded data — either an
+#'   sxts object, a NetCDF file, or a raster object. For each calendar month
+#'   present in the dataset, the function calls \code{\link{basic_stats_nc}},
+#'   returning a multi-layer raster of per-cell statistics: mean, min, max,
+#'   standard deviation, L-moments, probability dry, empirical quantiles, and
+#'   (unless \code{ignore_zeros = TRUE}) wet/dry transition statistics. The
+#'   outer loop over up to twelve calendar months is separable from the
+#'   already-vectorised per-cell computations inside \code{basic_stats_nc}, so
+#'   parallelisation is offered at the month level only. NetCDF input is loaded
+#'   once via \code{\link{nc2xts}} and then sliced by month index; raster input
+#'   is converted to sxts with automatic date parsing.
 #'
-#' Computation can optionally be parallelized across the calendar months (a
-#' coarse outer loop of at most twelve tasks). The per-cell statistics are
-#' already vectorized inside \code{basic_stats_nc}, so no cell-axis parallelism
-#' is offered here.
+#' @param data An sxts object, or a Raster* object. Leave \code{NULL} when
+#'   supplying \code{filename} and \code{varname}.
+#' @param filename Optional; path to a NetCDF file to import when \code{data}
+#'   is not provided.
+#' @param varname Optional; name of the variable to extract from
+#'   \code{filename}.
+#' @param ignore_zeros Logical; if \code{TRUE}, zeros are ignored in the
+#'   per-cell statistics. Default \code{FALSE}.
+#' @param zero_threshold Numeric; threshold below which values are treated as
+#'   zero. Default \code{0.01}.
+#' @param parallel Logical; whether to compute per-month statistics in parallel.
+#'   Default \code{FALSE}.
+#' @param ncores Integer; number of cores for parallel computation. Default
+#'   \code{2}.
+#' @param ... Additional arguments passed to \code{\link{nc2xts}} when
+#'   \code{filename} and \code{varname} are supplied.
 #'
-#' @param data An sxts object, or a raster file. Leave NULL when supplying filename/varname.
-#' @param filename (optional) A NetCDF file name to import if data is not provided.
-#' @param varname (optional) The name of the variable to extract from 'filename'.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param parallel Logical, whether to compute the per-month statistics in
-#'   parallel across calendar months.
-#' @param ncores Number of cores to use in the case of parallel computations.
-#' @param ... Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).
+#' @return A named list with one element per calendar month present in the data,
+#'   named after \code{\link[base]{month.name}}. Each element is the
+#'   \code{\link{basic_stats_nc}} output raster for that month.
 #'
-#' @return A named list with one element per calendar month present in the data
-#' (named after \code{month.name}). Each element is the \code{\link{basic_stats_nc}}
-#' raster of per-cell statistics for that month.
+#' @examples
+#' # Synthetic sxts with 4 cells and 2 years of daily data
+#' set.seed(123)
+#' n <- 365 * 2
+#' dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+#' vals <- matrix(pmax(0, rnorm(n * 4, mean = 3, sd = 5)), nrow = n, ncol = 4)
+#' coords <- data.frame(x = c(0, 1, 0, 1), y = c(50, 50, 51, 51))
+#' ts_sxts <- sxts(data = vals, order.by = dates, coords = coords,
+#'                 projection = "+proj=longlat +datum=WGS84")
 #'
-#' @examples TO BE FILLED
+#' ms_nc <- monthly_stats_nc(data = ts_sxts)
+#' names(ms_nc)
 #'
 #' @importFrom lubridate month parse_date_time
 #' @importFrom xts xts

@@ -16,6 +16,37 @@ qgev(p, shape, scale, location)
 
 rgev(n, location, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Generalized Extreme Value distribution
+Three-parameter Generalised Extreme Value (GEV)
+distribution with location \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and
+shape \eqn{\xi}{j}. The GEV encompasses the Gumbel (\eqn{\xi = 0}),
+Frechet (\eqn{\xi > 0}), and reversed Weibull (\eqn{\xi < 0})
+families. Density, distribution, quantile, and random generation
+functions are implemented natively. Fitting is performed via
+closed-form L-moments through \code{\link[lmom]{pelgev}}.
+
+Define \eqn{t(x) = (1 + \xi(x-\mu)/\sigma)^{-1/\xi}}{t(x) = (1 + j*(x-m)/s)^(-1/j)}. The probability density
+function is:
+\deqn{f(x) = \frac{1}{\sigma} t(x)^{\xi+1} \exp(-t(x)), \quad \xi \neq 0}{f(x) = t(x)^(j+1) * exp(-t(x)) / s}
+\deqn{f(x) = \frac{1}{\sigma} \exp\left(-\frac{x-\mu}{\sigma} - \exp\left(-\frac{x-\mu}{\sigma}\right)\right), \quad \xi = 0}{f(x) = exp(-(x-m)/s - exp(-(x-m)/s)) / s}
+with \eqn{1 + \xi(x-\mu)/\sigma > 0}{1 + j*(x-m)/s > 0}.
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+\item \eqn{\xi}{j} --- shape parameter (\code{shape})
+}
 }

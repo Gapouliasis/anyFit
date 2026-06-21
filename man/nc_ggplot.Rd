@@ -14,37 +14,56 @@ nc_ggplot(
 )
 }
 \arguments{
-\item{data}{An sxts object or a 'raster' Raster* object
-(RasterLayer/RasterStack/RasterBrick). Layer names that do not parse as dates
-are kept verbatim as plot titles.}
+\item{data}{An sxts object or a raster Raster* object (RasterLayer,
+RasterStack, RasterBrick).}
 
-\item{title}{Logical, whether to add variable names as plot titles.}
+\item{title}{Logical; if \code{TRUE}, layer names are added as plot titles.
+Default \code{FALSE}.}
 
-\item{legend.title}{The title for the color legend.}
+\item{legend.title}{Character; title for the colour legend. Use \code{NA}
+to omit. Default \code{NA}.}
 
-\item{common_legend}{Add a common legend to all subplots. This will scale fill according to the min and max of the entire dataset.}
+\item{common_legend}{Logical; if \code{TRUE}, a single common legend is
+collected across all panels with fill scaled to the global data range.
+Default \code{FALSE}.}
 
-\item{viridis.option}{The viridis color palette option (e.g., "viridis", "magma", "plasma").}
+\item{viridis.option}{Character; the viridis colour palette option
+(\code{"viridis"}, \code{"magma"}, \code{"plasma"}, etc.). Default
+\code{"viridis"}.}
 
-\item{...}{Additional arguments to pass to 'wrap_plots' function from the 'patchwork' package.}
+\item{...}{Additional arguments passed to
+\code{\link[patchwork]{wrap_plots}}.}
 }
 \value{
-A ggplot2 object representing the raster plot.
+A ggplot2 object representing the raster map.
 }
 \description{
-This function takes an sxts object or a raster object and generates
-a ggplot2 raster plot. It accepts any 'raster' package Raster* object
-(RasterLayer/RasterStack/RasterBrick), including timeseries of rasters and
-non-timeseries rasters such as the statistic/parameter outputs of
-'basic_stats_nc' and 'fitlm_nc'. Layer names that parse as dates are used as
-titles; otherwise the layer names are used verbatim.
+Produces ggplot2 raster maps from an sxts object or a Raster*
+object (RasterLayer, RasterStack, or RasterBrick). The function handles
+both timeseries layers — where individual time steps are mapped as
+separate panels — and statistical layers such as the parameter and
+goodness-of-fit rasters returned by \code{\link{basic_stats_nc}} or
+\code{\link{fitlm_nc}}. Layer names that parse as dates are reformatted
+as titles; statistic names are kept verbatim. All rasters are rendered
+with viridis colour scales via \pkg{ggplot2} and composited into a
+multi-panel layout by \pkg{patchwork}. A common legend across all panels
+can be enforced by setting \code{common_legend = TRUE}, which scales the
+fill range to the global minimum and maximum of the entire dataset.
 }
 \examples{
+# Synthetic sxts with 4 cells and 5 daily steps
+set.seed(42)
+n <- 5
+dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+vals <- matrix(rnorm(n * 4, mean = 10, sd = 2), nrow = n, ncol = 4)
+coords <- data.frame(x = c(0, 1, 0, 1), y = c(0, 0, 1, 1))
+ts_sxts <- sxts(data = vals, order.by = dates, coords = coords,
+                projection = "+proj=longlat +datum=WGS84")
 
-# Example usage:
-# Create a ggplot2 raster plot from a raster brick
-nc_file <- system.file("extdata/ncfile.nc", package = "raster")
-r <- raster::brick(nc_file)
-nc_ggplot(r, title = TRUE)
+nc_ggplot(ts_sxts, title = TRUE)
+
+# With a common legend
+nc_ggplot(ts_sxts, title = TRUE, common_legend = TRUE,
+          legend.title = "Value")
 
 }

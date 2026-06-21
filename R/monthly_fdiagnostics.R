@@ -1,29 +1,33 @@
-#' @title monthly_fdiagnostics
+#' Monthly Distribution Diagnostics
 #'
-#' @description Performs a goodness-of-fit test to diagnose fitted distributions by month.
+#' @description Computes Q-Q and P-P diagnostic plots and Cramer-von Mises /
+#' Kolmogorov-Smirnov goodness-of-fit statistics for a fitted distribution,
+#' applied separately to each calendar month and assembled into 12-panel grids.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param distr The distribution function to be tested.
-#' @param params A list object containing the parameters of the fitted distribution.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param nrow Number of rows of the plots.
-#' @param ncol Number of columns of the plots.
+#' @param ts An xts object containing the time series data.
+#' @param distr Character string naming the distribution (e.g. \code{'gamma3'}).
+#' @param params A named list of monthly parameter vectors, as returned by
+#'   \code{\link{fitlm_monthly}}$params_monthly.
+#' @param ignore_zeros Logical. If \code{TRUE}, zeros are excluded. Default
+#'   \code{FALSE}.
+#' @param zero_threshold Numeric. Values below this threshold are treated as
+#'   zero. Default 0.01.
+#' @param nrow Number of rows in the plot grid. Default 3.
+#' @param ncol Number of columns in the plot grid. Default 4.
 #'
-#' @return A list containing a Q-Q plot and a P-P plot for each month and a goodness-of-fit table.
-#' The GoF metric calculated are the Kramer von-Mises and Kolmogorov-Smirnov. NEEDS EXPANSION
+#' @return A list with elements \code{monthly_QQplot} (12-panel Q-Q grid),
+#'   \code{monthly_PPplot} (12-panel P-P grid), and \code{GoF_monthly} (list of
+#'   per-month CM/KS statistics).
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
-#'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#'monthly_fits <- fitlm_monthly(smonthly_ts,candidates = 'gamma3', ignore_zeros = TRUE)
-#'
-#'monthly_fcheck <- monthly_fdiagnostics(simXts, distr = 'gamma3', params = monthly_fits$params_monthly, ignore_zeros = TRUE)
+#' # Synthetic daily data
+#' set.seed(42)
+#' ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+#'           order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+#' monthly_fits <- fitlm_monthly(ts, candidates = 'gamma3', ignore_zeros = TRUE)
+#' monthly_fcheck <- monthly_fdiagnostics(ts, distr = 'gamma3',
+#'                                        params = monthly_fits$params_monthly,
+#'                                        ignore_zeros = TRUE)
 #'
 #' @export
 #'
@@ -39,7 +43,9 @@ monthly_fdiagnostics <- function(ts, distr, params, ignore_zeros = FALSE, zero_t
     month_name[i] <- month.name[i]
     I <- which(month(ts) == i)
     monthly_ts <- ts[I]
-    params_temp <- list(param = eval(parse(text = paste0('params$',month.name[i]))))
+    param_col <- params[[distr]][[month.name[i]]]
+    names(param_col) <- rownames(params[[distr]])
+    params_temp <- list(params = as.list(param_col))
     params_temp <- c(params_temp, list(ts = monthly_ts, dist = distr,
                                        ignore_zeros = ignore_zeros, zero_threshold = zero_threshold))
     monthly_fit <- do.call(fit_diagnostics, params_temp)

@@ -4,3 +4,6 @@
 ^.kilo$
 ^.claude$
 ^data-raw$
+^docs$
+^paper$
+^paper_figures$

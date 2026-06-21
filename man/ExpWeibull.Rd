@@ -16,6 +16,39 @@ qexpweibull(p, scale, shape1, shape2)
 
 rexpweibull(n, scale, shape1, shape2)
 }
+\arguments{
+\item{scale}{scale parameter.}
+
+\item{shape1}{first shape parameter.}
+
+\item{shape2}{second shape parameter.}
+
+\item{x, q}{vector of quantiles.}
+
+\item{log, log.p}{logical; if \code{TRUE}, probabilities p are given as log(p).}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Exponential Weibull distribution
+Three-parameter Exponentiated Weibull distribution with
+scale \eqn{s}{s}, first shape \eqn{a}{a} (\code{shape1}, the
+Weibull shape), and second shape \eqn{b}{b} (\code{shape2}, the
+exponentiation power). The distribution is supported on \eqn{x > 0}
+and contains the ordinary Weibull (\eqn{b = 1}) and Exponential
+(\eqn{a = 1, b = 1}) as special cases. L-moments are computed by
+tanh-sinh (double-exponential) quadrature, which is well-conditioned
+across the full positive parameter range. Fitting uses L-BFGS-B
+minimisation seeded from the \code{ExpWeibull_InitValues} lookup
+table with scale-free L-ratio matching and analytic scale derivation.
+
+The probability density function is:
+\deqn{f(x) = \frac{b a}{s} \left(\frac{x}{s}\right)^{a-1} \exp\left(-\left(\frac{x}{s}\right)^a\right) \left(1 - \exp\left(-\left(\frac{x}{s}\right)^a\right)\right)^{b-1}, \quad x > 0}{f(x) = b*a/s * (x/s)^(a-1) * exp(-(x/s)^a) * (1-exp(-(x/s)^a))^(b-1), x > 0}
+where:
+\itemize{
+\item \eqn{s}{s} --- scale parameter (\code{scale})
+\item \eqn{a}{a} --- first shape parameter (\code{shape1}), the Weibull shape; a = 1 gives the exponential baseline
+\item \eqn{b}{b} --- second shape parameter (\code{shape2}), the exponentiation power; b = 1 recovers the ordinary Weibull
+}
 }

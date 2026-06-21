@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitlm_nxts.R
 \name{fitlm_nxts}
 \alias{fitlm_nxts}
-\title{fitlm_nxts}
+\title{Fit Distributions to Multiple Time Series}
 \usage{
 fitlm_nxts(
   ts,
@@ -19,52 +19,66 @@ fitlm_nxts(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data (multiple columns).}
 
-\item{candidates}{A list of distribution to fit.}
+\item{candidates}{A list of distribution names to fit (e.g. \code{list('exp','gamma3','gengamma')}).}
 
-\item{nrow}{Number of rows for plotting.}
+\item{nrow}{Number of rows per panel page in the diagnostic-plot grid.}
 
-\item{ncol}{Number of columns for plotting.}
+\item{ncol}{Number of columns per panel page in the diagnostic-plot grid.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, zeros are excluded before fitting. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Values below this threshold are treated as zero. Default 0.01.}
 
-\item{parallel}{Logical, whether to use parallel processing.}
+\item{parallel}{Logical. If \code{TRUE}, use parallel processing via \pkg{future}. Default \code{FALSE}.}
 
-\item{ncores}{Number of cores to use in the case of parallel computations}
+\item{ncores}{Number of worker processes when \code{parallel = TRUE} and no
+pre-existing \code{future::plan()} is set. Default 2.}
 
-\item{shared_memory}{Logical, when parallel, share the grid with workers via a
-filebacked big.matrix (mmap, single machine) instead of serializing column
-chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.}
+\item{shared_memory}{Logical. When \code{parallel = TRUE}, share the data grid
+with workers via a file-backed bigmatrix (memory-mapped, single machine only).
+Set \code{FALSE} for multi-node \code{plan(cluster)} setups. Default \code{TRUE}.}
 
-\item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
+\item{diagnostic_plots}{Logical. If \code{TRUE}, produce Q-Q and P-P diagnostic
+plots. Default \code{TRUE}.}
 
-\item{order}{Optional named list mapping a candidate name to the vector of L-moment
-orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-Only the numerically-fitted distributions accept it; passed through to
-\code{\link{fitlm_multi}}. Default NULL.}
+\item{order}{Optional named list mapping candidate distribution names to the
+vector of L-moment orders used by their optimiser, e.g.
+\code{list(gengamma = 1:5, expweibull = 1:3)}. Passed through to
+\code{\link{fitlm_multi}}. Default \code{NULL}.}
 }
 \value{
-A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.
+A list with elements \code{params} (per-column parameter tables and
+GoF summaries), and, if \code{diagnostic_plots = TRUE}, \code{diagnostic_plots},
+\code{QQ_plots}, \code{PP_plots}, \code{QQ_panels}, and \code{PP_panels}.
 }
 \description{
-This function fits a list of candidate distributions using the L-moments method
-to an arbitrary number of timeseries in xts format. Additionally to the list of the fitted parameters,
-goodness-of-fit metric, PP and QQ plots.
+Fits a set of candidate probability distributions to every column
+of an xts object using the L-moment method. The function wraps
+\code{\link{fitlm_multi}} for each series and collects the estimated parameters,
+goodness-of-fit metrics, and diagnostic plots (Q-Q, P-P) into a list.
+When \code{parallel = TRUE}, the work is distributed across available cores
+via the \pkg{future} framework, with either file-backed shared memory (bigmemory
+memory-mapped matrices for single-machine parallelism) or serialised column chunks
+(for multi-node clusters). File-backed shared memory can be enabled by \code{shared_memory = TRUE}.
+This is reccomended for single machine usage and especially windows for efficiency and reduced RAM consumption.
+Panel layouts of the per-series Q-Q and P-P plots are
+assembled via \pkg{patchwork} in pages of \code{nrow} by \code{ncol} sub-plots.
+This function is designed for large ensembles of grid cells or stations where
+fitting individually would be impractical.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Synthetic daily data: 3 stations, 10 years
+set.seed(123)
+n <- 3650
+ts <- xts::xts(cbind(station1 = rgamma(n, shape = 2, scale = 5),
+                station2 = rgamma(n, shape = 3, scale = 7),
+                station3 = rgamma(n, shape = 2.5, scale = 6)),
+          order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = n))
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-candidates <- list('exp','expweibull', 'gamma3')
-
-fits_all <- fitlm_nxts(data, candidates, nrow = 5, ncol = 4, ignore_zeros = TRUE)
-fits_all$QQ_panels[[1]]
+fits <- fitlm_nxts(ts, candidates = list('exp','gamma3'),
+                   nrow = 2, ncol = 2, ignore_zeros = FALSE)
+fits$params[[1]]
 
 }

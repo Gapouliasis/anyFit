@@ -16,6 +16,38 @@ qgengamma(p, scale, shape1, shape2)
 
 rgengamma(n, scale, shape1, shape2)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{scale}{scale parameter.}
+
+\item{shape1}{first shape parameter.}
+
+\item{shape2}{second shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Generalized Gamma distribution
+Three-parameter Generalised Gamma (Stacy) distribution
+with scale \eqn{s}{s}, first shape \eqn{\alpha}{a} (\code{shape1}),
+and second shape \eqn{\beta}{b} (\code{shape2}). The distribution is
+supported on \eqn{x > 0} and contains the ordinary Gamma
+(\eqn{\beta = 1}) and Weibull (\eqn{\beta = \alpha}) as special
+cases. Density, distribution, quantile, and random generation
+functions are provided via \pkg{VGAM} using the Stacy
+parameterisation. Fitting is performed numerically via L-BFGS-B
+minimisation of a normalised L-moment error function, seeded from a
+pre-computed lookup table (\code{GG_InitValues}) with Gauss-Legendre
+quadrature evaluation of the L-moments at each optimisation step.
+
+The probability density function is:
+\deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} x^{\alpha-1} \exp\left(-\left(\frac{x}{s}\right)^\beta\right), \quad x > 0}{f(x) = b * x^(a-1) * exp(-(x/s)^b) / (Gamma(a/b) * s^a), x > 0}
+where:
+\itemize{
+\item \eqn{s}{s} --- scale parameter (\code{scale})
+\item \eqn{\alpha}{a} --- first shape parameter (\code{shape1}); \eqn{k = \alpha/\beta}{k = a/b} is the Stacy shape
+\item \eqn{\beta}{b} --- second shape parameter (\code{shape2}); the distribution reduces to Gamma(\eqn{\alpha}{a}, \eqn{s}{s}) when \eqn{\beta=1}{b=1}, and to Weibull(\eqn{s}{s}, \eqn{\alpha}{a}) when \eqn{\beta=\alpha}{b=a}
+}
 }

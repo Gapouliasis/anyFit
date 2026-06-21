@@ -2,7 +2,7 @@
 % Please edit documentation in R/basic_stats.R
 \name{basic_stats}
 \alias{basic_stats}
-\title{basic_stats}
+\title{Basic statistics and diagnostic panel for time series data}
 \usage{
 basic_stats(
   ts,
@@ -22,85 +22,94 @@ basic_stats(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object. If multi-column, each column is treated as an
+independent series.}
 
-\item{pstart}{Plotting start date. If not included, the first date of the timeseries will be used.
-Usefull for long timeseries.}
+\item{pstart}{Plot start date (character or date). If \code{NA}, the first
+date of the series is used.}
 
-\item{pend}{Plotting end date. If not included, the last date of the timeseries will be used.
-Usefull for long timeseries.}
+\item{pend}{Plot end date (character or date). If \code{NA}, the last date
+of the series is used.}
 
-\item{show_label}{A logical value, if TRUE the timeseries title will be plotted.
-It is assumed to be the column name. Default is TRUE.}
+\item{show_label}{Logical. If \code{TRUE}, a label with the series name is
+plotted on the timeseries panel. Default is \code{TRUE}.}
 
-\item{label_prefix}{A character value wich contains the prefix of the timeseries title. Default is 'station'}
+\item{label_prefix}{Character prefix for the series label, e.g.
+\code{"Station"}. Default is \code{"Station"}.}
 
-\item{show_table}{A logical value, if TRUE a table with the mean value, the standard deviation, the skewness and
-the probability dry is plotted together with the timeseries. Default is true.}
+\item{show_table}{Logical. If \code{TRUE}, a table of key statistics (mean,
+coefficient of variation, skewness, probability dry) is overlaid on the
+timeseries panel. Default is \code{TRUE}.}
 
-\item{xpos_label}{The x position of the timeseries label. Takes values from 0 to 1.}
+\item{xpos_label}{Horizontal position of the series label, as a fraction of
+the plot width (0–1). Default is \code{0.1}.}
 
-\item{ypos_label}{The y position of the timeseries label. Takes values from 0 to 1.}
+\item{ypos_label}{Vertical position of the series label, as a fraction of
+the data range (0–1). Default is \code{0.95}.}
 
-\item{xpos_table}{The x position of the timeseries table with the basic statistics. Takes values from 0 to 1.}
+\item{xpos_table}{Horizontal position of the statistics table, as a fraction
+of the plot width (0–1). Default is \code{0.1}.}
 
-\item{ypos_table}{The y position of the timeseries table with the basic statistics. Takes values from 0 to 1.}
+\item{ypos_table}{Vertical position of the statistics table, as a fraction
+of the data range (0–1). Default is \code{0.15}.}
 
-\item{nbins}{The number of bins to split the data from the PDF calculation. Default is 30.}
+\item{nbins}{Number of bins for the PDF histogram. Default is \code{30}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values at or below
+\code{zero_threshold} are excluded from distributional statistics and
+transition statistics are omitted. Default is \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric threshold below which values are treated as
+zero. Default is \code{0.01}.}
 
-\item{plot}{A logical value, if TRUE the timeseries/PDF/ECDF/ACF panel is built. Default is FALSE.
-For a multi-column input one panel is built per column.}
+\item{plot}{Logical. If \code{TRUE}, the diagnostic panel is built. Default
+is \code{FALSE}. For multi-column input one panel is produced per column.}
 }
 \value{
-A list with two elements: \code{stats_table}, a data.frame of statistics
-(rows are the statistics, columns are the input series - named after the input columns
-when more than one is supplied, otherwise \code{"Value"}); and \code{plot}, which is
-\code{NULL} when \code{plot = FALSE}, a single combined plot for a single-column input,
-or a named list of one combined plot per column for a multi-column input.
+A list with two elements: \code{stats_table}, a data frame of
+statistics (rows are the statistics, columns are the input series — named
+after the input columns when more than one is supplied, otherwise
+\code{"Value"}); and \code{plot}, which is \code{NULL} when
+\code{plot = FALSE}, a single combined ggplot for a single-column input,
+or a named list of one combined ggplot per column for a multi-column input.
 }
 \description{
-This function provides basic statistics and plots of a timeseries in xts format.
-It plots the timeseries values, the empirical probability density function (PDF),
-the empirical cumulative density function (CDF) and the autocorrelation. Additionally, it will calculate
-all major statistics.
-\itemize{
-\item Number of Data - Number of missing data - Percentage of missing Data
-\item Minimum - Maximum - Average - Variance - Coefficient of Variation - Standard Deviation - Third moment - Skewness
-\itemize{
-\item Kurtosis
-\item L-mean, L-scale , 3rd and 4th L-coefficients
-\item Probability Dry
-\item Quantiles 5th , 25th, 50th, 75th, 95th - Interquartile range.
-\item Mean value and variance from a dry (defined by zero_threshold argument) to a wet state
-\item Mean value and variance from a wet to a dry (defined by zero_threshold argument) state
-\item Mean value and variance from a wet to a wet state
-\item Transition probability from a wet to a wet state
-\item Transition probability from a dry to a dry state
-}
-With arguments for plotting position of stats table and timeseries plotting period.
-}
+Computes a comprehensive set of summary statistics for one or more time
+series stored as xts columns and optionally produces a four-panel diagnostic
+plot (time series, probability density function, empirical cumulative
+distribution function, and autocorrelation function). The statistics include
+sample moments (mean, variance, skewness, kurtosis), L-moments, quantiles,
+probability dry, and wet/dry transition statistics. When \code{ignore_zeros}
+is \code{TRUE}, distributional statistics are computed only on values
+exceeding \code{zero_threshold}, and transition statistics are omitted.
+Multi-column input is supported: the statistics table then contains one
+column per input series (named after the xts columns), and the plot output
+is a named list of one panel per series. The internal computation is
+vectorised across columns via \code{matrixStats} for computational efficiency.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Synthetic daily precipitation series (two stations)
+set.seed(123)
+n <- 1000
+dates <- seq(as.Date("2000-01-01"), by = "day", length.out = n)
+prec <- xts::xts(cbind(
+  StationA = rgamma(n, shape = 0.6, scale = 5),
+  StationB = rgamma(n, shape = 0.7, scale = 4)),
+  order.by = dates)
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
+# Single-column: statistics table only
+bs <- basic_stats(prec[, 1], ignore_zeros = TRUE)
+bs$stats_table
 
-bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
-show_label = FALSE, ignore_zeros = TRUE, plot = TRUE)
+# Single-column: with diagnostic panel
+bs <- basic_stats(prec[, 1], pstart = "2001", pend = "2002",
+                   show_table = FALSE, show_label = FALSE,
+                   ignore_zeros = TRUE, plot = TRUE)
+bs$plot
 
-bstats$plot
-bstats$stats_table
-
-# Wide input: one column of statistics per series, plus one plot per series
-wstats <- basic_stats(data[, 1:4], plot = TRUE)
-wstats$stats_table          # columns named after the input series
-wstats$plot[[1]]            # plot for the first series
+# Multi-column: one column of statistics per series, named plot list
+wbs <- basic_stats(prec, plot = TRUE)
+wbs$stats_table
+wbs$plot[[1]]
 
 }

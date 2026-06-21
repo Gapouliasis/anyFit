@@ -19,44 +19,59 @@ delim2xts(
 )
 }
 \arguments{
-\item{file_path}{Path to the file with the data.}
+\item{file_path}{Character. Path to the delimited data file.}
 
-\item{time_zone}{Time zone of the data.}
+\item{time_zone}{Character. Time zone for date parsing (e.g. \code{"UTC"}).}
 
-\item{date_index}{Position of the date column in the data file.}
+\item{date_index}{Integer. Column position of the date/time variable.
+Default \code{1}.}
 
-\item{strict_step}{Logical that indicates if the timeseries are recorded in strict timestep.}
+\item{strict_step}{Logical. If \code{TRUE} (default), gaps are filled
+with \code{NA} at the detected regular interval.}
 
-\item{delim}{Delimiter used in the data file.}
+\item{delim}{Character. Field delimiter. Default \code{"\t"}.}
 
-\item{skip_rows}{Number of rows to be skipped in the data file.}
+\item{skip_rows}{Integer. Number of header rows to skip. Default \code{0}.}
 
-\item{col_names}{Logical that indicates if the data file has column names.}
+\item{col_names}{Logical. If \code{TRUE} (default), the first non-skipped
+row contains column names.}
 
-\item{no_value}{Value used as NA.}
+\item{no_value}{Value to be treated as missing (\code{NA}). Default
+\code{NA}.}
 
-\item{exc_leaps}{Logical that indicates if leap years shall be excluded.}
+\item{exc_leaps}{Logical. If \code{TRUE} (default), 29 February is
+excluded from leap years.}
 
-\item{save_Xts}{Logical that indicates if the xts shall be saved as a txt file.}
+\item{save_Xts}{Logical. If \code{TRUE}, the xts is saved as a
+tab-delimited text file. Default \code{FALSE}.}
 
-\item{filename}{Name of the file where the xts will be saved.}
+\item{filename}{Character. Output filename (without extension) used when
+\code{save_Xts = TRUE}. Default \code{NA}.}
 }
 \value{
-An xts object.
+An \code{\link[xts]{xts}} object with parsed timestamps as the
+index and the remaining columns as the data matrix.
 }
 \description{
-A function to convert data from delimited files to xts objects.
-The function takes a file path, time zone, date index, time step, delimiter,
-skip rows, column names, no value, and exc_leaps (exclude 29th of February from leap years) as arguments.
-If the time step of the timeseries is strict then the function will try to identify potential gaps in the data and indicate them with NANs.
-Otherwise the function will return the raw dataset.
-The user is given the option to save the xts dataset in a text file.
+Reads a delimited text file and returns an xts object with
+auto-detected timestamps. The date column is parsed via
+\code{\link[lubridate]{parse_date_time}} using a comprehensive set of
+order formats (ymd, dmy, mdy, and variants with hours, minutes, and
+seconds). When \code{strict_step = TRUE}, the function detects the
+regular time step from the first difference of parsed dates, constructs
+a complete index spanning the full date range, and fills missing
+positions with \code{NA} entries. Leap days (29 February) may be
+excluded from leap years via \code{exc_leaps}. A sentinel
+no-data value may be specified via \code{no_value} and replaced with
+\code{NA}. The resulting xts can optionally be saved to a
+tab-delimited text file.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", strict_step = TRUE)
+# Create a temporary delimited file
+tf <- tempfile(fileext = ".csv")
+writeLines(c("date,value", "2020-01-01,10.5", "2020-01-02,12.3",
+             "2020-01-03,11.0", "2020-01-04,9.8"), tf)
+x <- delim2xts(tf, time_zone = "UTC", delim = ",", strict_step = TRUE)
+head(x)
 
 }

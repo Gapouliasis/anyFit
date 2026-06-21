@@ -2,31 +2,32 @@
 % Please edit documentation in R/lmom_stats.R
 \name{lmom_stats}
 \alias{lmom_stats}
-\title{lmom_stats}
+\title{L-Moment Statistics}
 \usage{
 lmom_stats(ts, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, zeros are excluded before
+computing L-moments. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Values below this threshold are treated as
+zero. Default 0.01.}
 }
 \value{
-A dataframe with the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of the time series
+A data frame with rows for L-mean, L-scale, L-skewness, L-kurtosis,
+and L-CV, and one column per input series.
 }
 \description{
-Calculate the L-Mean, L-Scale, L-Skew, L-Kurtosis and L-CV of a time series.
+Computes the L-mean, L-scale, L-skewness, L-kurtosis, and L-CV
+for each column of an xts object using \code{lmom::samlmu}.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-ts_lmoms <- lmom_stats(data, ignore_zeros = TRUE)
-
+# Synthetic daily data
+set.seed(42)
+ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+          order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+ts_lmoms <- lmom_stats(ts, ignore_zeros = TRUE)
 
 }

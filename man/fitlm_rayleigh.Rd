@@ -7,12 +7,33 @@
 fitlm_rayleigh(x, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+\code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+metrics).
 }
 \description{
-Function for fitting the Rayleigh distribution using the L-Moments method
+Fits the two-parameter Rayleigh distribution to an xts
+series by the method of L-moments. Closed-form expressions derived
+from gamma-function integrals are used: the location is recovered
+from \eqn{\lambda_1} and \eqn{\lambda_2}, and the scale follows from
+the squared second L-moment ratio. Zero values below
+\code{zero_threshold} may be excluded via \code{ignore_zeros}.
+Goodness-of-fit is assessed via \code{GOF_tests}.
+}
+\examples{
+x <- xts::xts(rrayleigh(365, location = 0, scale = 2),
+              order.by = as.Date("2020-01-01") + 0:364)
+fit <- fitlm_rayleigh(x)
+fit$Param
+
 }

@@ -1,37 +1,51 @@
-#' @title aggregate_xts
+#' Aggregate an xts time series to coarser temporal scales
 #'
-#' @description Aggregates a xts timeseries to different time scales
-#' and returns a list of plots and aggregated timeseries.
+#' @description
+#' Aggregates an xts object to one or more coarser temporal scales using
+#' \code{\link[xts]{endpoints}} and \code{\link[xts]{period.apply}}. Supports
+#' user-defined seasonal aggregation via \code{season_end} dates and non-integer
+#' period multipliers. Returns both the aggregated series and a combined
+#' \code{patchwork} plot.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param periods A vector of periods to aggregate the timeseries to.
-#' Accepts 'mins' or 'minutes', 'hours', 'days', 'weeks', 'months', 'quarters', and 'years'.
-#' @param FUN The function used to aggregate the data. Defaults to 'mean'.
-#' @param period_multiplier Multiplier to aggregate data to a non-standard time scale.
-#'  Must be a vector with the same length as periods.
-#' @param pstart Plotting start date. If not included, the first date of the timeseries will be used.
-#' Usefull for long timeseries.
-#' @param pend Plotting end date. If not included, the last date of the timeseries will be used.
-#' Usefull for long timeseries.
-#' @param season_end Vector of season end dates. Can be used to aggregate into user-defined seasons.
-#' Must be in the form of '%m-%d', e.g. '10-15'
-#' @param mseason_title Title for the user-defined season.
-#' @param ... additional arguments for FUN
+#' @param ts An xts object containing the time series data.
+#' @param periods Character vector of aggregation periods. Accepts \code{"mins"},
+#'   \code{"minutes"}, \code{"hours"}, \code{"days"}, \code{"weeks"},
+#'   \code{"months"}, \code{"quarters"}, and \code{"years"}.
+#' @param FUN Function to aggregate the data. Defaults to \code{"mean"}.
+#' @param period_multiplier Numeric vector of multipliers for non-standard
+#'   aggregation intervals. Must have the same length as \code{periods}.
+#'   Defaults to 1 for each period.
+#' @param pstart Plot start date (character or date). If \code{NA}, the first
+#'   date of the series is used.
+#' @param pend Plot end date (character or date). If \code{NA}, the last date
+#'   of the series is used.
+#' @param season_end Character vector of season end dates in \code{"\%m-\%d"}
+#'   format, e.g. \code{"10-15"}.
+#' @param mseason_title Title for the user-defined season plot.
+#' @param ... Additional arguments passed to \code{FUN}.
 #'
-#' @return A list with the aggregated timeseries for every selected period in xts format and
-#' a plot containing the aggregated timeseries.
+#' @return A named list. The first element \code{Combined_Plot} is a
+#'   \code{patchwork} object combining all period plots. Subsequent elements
+#'   are named \code{list_<period>}, each a sub-list containing the
+#'   \code{aggregated} xts and its \code{figure}.
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Synthetic daily precipitation series
+#' set.seed(123)
+#' n <- 1000
+#' x <- xts::xts(rgamma(n, shape = 0.6, scale = 5),
+#'               order.by = seq(as.Date("2000-01-01"), by = "day", length.out = n))
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
+#' # Aggregate to monthly sums
+#' agg <- aggregate_xts(x, c("months", "years"), FUN = "sum")
+#' agg$Combined_Plot
 #'
-#' agg_ts <- aggregate_xts(data[,4], c("months","quarters","years"), FUN = 'sum')
-#' smonthly_ts <- agg_ts$list_months$aggregated
+#' # Custom seasonal aggregation
+#' agg_seas <- aggregate_xts(x, periods = NA, FUN = "sum",
+#'                            season_end = "09-30",
+#'                            mseason_title = "Custom season")
 #'
+#' @importFrom lubridate day
 #' @export
 
 # Function to aggregate the original timeseries to different scales. Plots the results and saves the aggregated

@@ -16,6 +16,39 @@ qgpd(p, location, scale, shape)
 
 rgpd(n, location, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Generalized Pareto distribution
+Three-parameter Generalised Pareto distribution (GPD) with
+location \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and shape
+\eqn{\xi}{j}. The GPD is the limiting distribution of peaks over a
+threshold and is widely used in extreme-value modelling. The
+distribution is lower-bounded at the location parameter. Density,
+distribution, quantile, and random generation functions are provided
+via the \pkg{lmom} package. Fitting is performed via closed-form
+L-moments through \code{\link[lmom]{pelgpa}}; an optional fixed lower
+bound is supported.
+
+Define \eqn{z = (x - \mu)/\sigma}{z = (x-m)/s}. The probability
+density function is:
+\deqn{f(x) = \frac{1}{\sigma} (1 - \xi z)^{1/\xi - 1}, \quad \xi \neq 0}{f(x) = (1 - j*z)^(1/j - 1) / s}
+\deqn{f(x) = \frac{1}{\sigma} e^{-z}, \quad \xi = 0}{f(x) = exp(-z) / s}
+with \eqn{z \ge 0}{z >= 0} and \eqn{1 - \xi z > 0}{1 - j*z > 0}.
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+\item \eqn{\xi}{j} --- shape parameter (\code{shape})
+}
 }

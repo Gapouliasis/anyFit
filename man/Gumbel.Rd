@@ -16,6 +16,32 @@ qgumbel(p, location, scale)
 
 rgumbel(n, location, scale)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Gumbel distribution
+Two-parameter Gumbel (Extreme Value type I) distribution
+with location \eqn{\mu}{m} and scale \eqn{\sigma}{s}. The Gumbel
+distribution is the limiting distribution of block maxima and is
+widely used in extreme-value analysis of hydroclimatic variables.
+Density, distribution, quantile, and random generation functions are
+provided via the \pkg{FAdist} package. Fitting is performed via
+closed-form L-moments through \code{\link[lmom]{pelgum}}.
+
+Define \eqn{z = (x - \mu)/\sigma}{z = (x-m)/s}. The probability
+density function is:
+\deqn{f(x) = \frac{1}{\sigma} \exp(-z - e^{-z})}{f(x) = exp(-z - exp(-z)) / s}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+}
 }

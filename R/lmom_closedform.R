@@ -8,7 +8,16 @@
 # independent quantile-/density-integration oracles, and more accurate than lmom::lmrp,
 # which fails in the light-tail corner. Internal helpers used by fitlm_burr / fitlm_dagum.
 
-# PWM -> L-moment general inverse: lambda_r = sum_{j=0}^{r-1} (-1)^(r-1-j) C(r-1,j) C(r-1+j,j) beta_j
+#' Convert Probability-Weighted Moments to L-Moments
+#'
+#' Applies the general PWM-to-L-moment inverse:
+#' \eqn{\lambda_r = \sum_{j=0}^{r-1} (-1)^{r-1-j} \binom{r-1}{j} \binom{r-1+j}{j} \beta_j}.
+#'
+#' @param beta Numeric vector of probability-weighted moments
+#'   \eqn{\beta_0, \beta_1, \ldots}.
+#'
+#' @return Numeric vector of L-moments \eqn{\lambda_1, \lambda_2, \ldots}.
+#' @noRd
 .pwm_to_lmom <- function(beta) {
   rmax <- length(beta)
   lambda <- numeric(rmax)
@@ -19,8 +28,22 @@
   lambda
 }
 
-#' Closed-form L-moments of the Burr XII distribution
+#' Closed-Form L-Moments of the Burr Type XII Distribution
 #'
+#' Computes L-moments of the Burr XII distribution via closed-form Beta-function
+#' expressions for the probability-weighted moments. The mean and all higher
+#' L-moments exist only when \code{shape2 < 1}; the function returns \code{Inf}
+#' outside this domain. Exact to machine precision and more accurate than
+#' \code{lmom::lmrp} in the light-tail corner.
+#'
+#' @param order Integer vector of L-moment orders (e.g. \code{1:5}).
+#' @param scale Scale parameter (\eqn{s > 0}).
+#' @param shape1 First shape parameter (\eqn{\zeta > 0}).
+#' @param shape2 Second shape parameter (\eqn{\theta > 0}); the mean exists
+#'   only when \code{shape2 < 1}.
+#'
+#' @return Named numeric vector of L-moments (\code{lambda_1}, \code{lambda_2},
+#'   \code{tau_3}, \code{tau_4}, ...) or \code{Inf} when the mean diverges.
 #' @keywords internal
 #' @noRd
 #
@@ -57,8 +80,22 @@ lmom_burr <- function(order = 1:5, scale, shape1, shape2) {
   out
 }
 
-#' Closed-form L-moments of the Dagum (Burr III) distribution
+#' Closed-Form L-Moments of the Dagum (Burr III) Distribution
 #'
+#' Computes L-moments of the Dagum distribution via closed-form Beta-function
+#' expressions for the probability-weighted moments. The mean and all higher
+#' L-moments exist only when \code{shape2 < 1}; the function returns \code{Inf}
+#' outside this domain.
+#'
+#' @param order Integer vector of L-moment orders (e.g. \code{1:5}).
+#' @param scale Scale parameter (\eqn{s > 0}).
+#' @param shape1 First shape parameter (\eqn{\alpha > 0}), controls upper-tail
+#'   heaviness.
+#' @param shape2 Second shape parameter (\eqn{\theta > 0}); tail index — the mean
+#'   exists only when \code{shape2 < 1}.
+#'
+#' @return Named numeric vector of L-moments (\code{lambda_1}, \code{lambda_2},
+#'   \code{tau_3}, \code{tau_4}, ...) or \code{Inf} when the mean diverges.
 #' @keywords internal
 #' @noRd
 #
@@ -93,7 +130,26 @@ lmom_dagum <- function(order = 1:5, scale, shape1, shape2) {
 # Gauss-Legendre nodes/weights on [-1,1] via Golub-Welsch (base R; no statmod dep).
 # Eigen-decomposition of the symmetric tridiagonal Jacobi matrix; nodes = eigenvalues,
 # weights = 2*(first eigenvector component)^2. Cached by N.
+
+#' Cache Environment for Gauss-Legendre Rules
+#'
+#' Environment storing pre-computed Gauss-Legendre nodes and weights keyed by
+#' the number of nodes N. Populated lazily by \code{.gl_rule}.
+#'
+#' @noRd
 .gl_cache <- new.env(parent = emptyenv())
+
+#' Gauss-Legendre Nodes and Weights (Golub-Welsch)
+#'
+#' Computes N-point Gauss-Legendre quadrature nodes and weights on \eqn{[-1, 1]}
+#' via the Golub-Welsch algorithm (eigen-decomposition of the symmetric
+#' tridiagonal Jacobi matrix). Results are cached in \code{.gl_cache} by N.
+#'
+#' @param N Number of quadrature nodes.
+#'
+#' @return A list with elements \code{x} (nodes on \eqn{[-1, 1]}) and \code{w}
+#'   (weights).
+#' @noRd
 .gl_rule <- function(N) {
   key <- as.character(N)
   if (is.null(.gl_cache[[key]])) {
@@ -109,8 +165,25 @@ lmom_dagum <- function(order = 1:5, scale, shape1, shape2) {
   .gl_cache[[key]]
 }
 
-#' Quadrature L-moments of the Stacy Generalized Gamma distribution
+#' Quadrature L-Moments of the Stacy Generalised Gamma Distribution
 #'
+#' Computes L-moments of the generalised gamma distribution via Gauss-Legendre
+#' quadrature of the probability-weighted moments. A change of variable maps
+#' the PWM integrals to the smooth, bounded unit interval, eliminating endpoint
+#' singularities and producing a continuous, optimiser-friendly surface.
+#' A fixed 128-node Gauss-Legendre rule yields accuracy far below sampling
+#' variability.
+#'
+#' @param order Integer vector of L-moment orders (e.g. \code{1:5}).
+#' @param scale Scale parameter (\eqn{s > 0}).
+#' @param shape1 First shape parameter (\eqn{\alpha > 0}); the Stacy shape is
+#'   \eqn{k = \alpha/\beta}.
+#' @param shape2 Second shape parameter (\eqn{\beta > 0}); \eqn{\beta = 1}
+#'   recovers the ordinary gamma distribution.
+#' @param N Number of Gauss-Legendre nodes. Default 128.
+#'
+#' @return Named numeric vector of L-moments (\code{lambda_1}, \code{lambda_2},
+#'   \code{tau_3}, \code{tau_4}, ...).
 #' @keywords internal
 #' @noRd
 #
@@ -167,6 +240,22 @@ lmom_gengamma <- function(order = 1:5, scale, shape1, shape2, N = 128) {
 # tanh-sinh nodes/weights for integral_0^1 g(y) dy. y(x) = sigma(2c), c = (pi/2) sinh(x),
 # sigma = logistic. y, log(y) and -log(1-y) via stats::plogis(..., log.p=) stay stable for large
 # |c| (no underflow of y to exactly 0/1, which would make y^m = Inf at far nodes).
+
+#' Tanh-Sinh Quadrature Rule on (0, 1)
+#'
+#' Computes tanh-sinh (double-exponential) quadrature nodes and weights for
+#' integrals over \eqn{[0, 1]}. The transformation \eqn{y = \sigma(2c)} with
+#' \eqn{c = (\pi/2) \sinh(x)} maps the real line to \eqn{(0, 1)} with doubly
+#' exponential endpoint decay. Log-scale values \code{logy} and \code{-log(1-y)}
+#' are returned for stable evaluation of endpoint-singular integrands.
+#'
+#' @param h Node spacing on the transformed axis. Default \code{1/32}.
+#' @param X Half-width on the transformed axis. Default \code{3}.
+#'
+#' @return A list with elements \code{y} (nodes in \eqn{(0, 1)}), \code{w}
+#'   (weights), \code{logy} (\eqn{\log(y)}), and \code{g0}
+#'   (\eqn{-\log(1-y)}).
+#' @noRd
 .tanh_sinh <- function(h = 1/32, X = 3) {
   x  <- seq(-X, X, by = h)
   c. <- (pi / 2) * sinh(x)
@@ -176,15 +265,52 @@ lmom_gengamma <- function(order = 1:5, scale, shape1, shape2, N = 128) {
   w  <- h * (pi / 2) * cosh(x) / (2 * cosh(c.)^2)
   list(y = y, w = w, logy = logy, g0 = g0)
 }
+
+#' Cache Environment for Tanh-Sinh Rules
+#'
+#' Environment storing pre-computed tanh-sinh quadrature rules keyed by
+#' \code{(h, X)} pair. Populated lazily by \code{.ts_rule}.
+#'
+#' @noRd
 .ts_cache <- new.env(parent = emptyenv())
+
+#' Cached Tanh-Sinh Quadrature Rule
+#'
+#' Returns a tanh-sinh quadrature rule for the given node spacing and
+#' half-width, retrieving from cache if available or computing via
+#' \code{.tanh_sinh} and caching the result.
+#'
+#' @param h Node spacing on the transformed axis. Default \code{1/32}.
+#' @param X Half-width on the transformed axis. Default \code{3}.
+#'
+#' @return A list with elements \code{y}, \code{w}, \code{logy}, \code{g0}.
+#' @noRd
 .ts_rule <- function(h = 1/32, X = 3) {
   key <- sprintf("%g_%g", h, X)
   if (is.null(.ts_cache[[key]])) .ts_cache[[key]] <- .tanh_sinh(h, X)
   .ts_cache[[key]]
 }
 
-#' Closed-form L-moments of the Exponentiated Weibull distribution
+#' Quadrature L-Moments of the Exponentiated Weibull Distribution
 #'
+#' Computes L-moments of the exponentiated Weibull distribution via tanh-sinh
+#' (double-exponential) quadrature of the probability-weighted moments. The
+#' tanh-sinh rule ensures doubly exponential convergence at both endpoints,
+#' giving machine-precision accuracy for all positive parameter values with
+#' pure \eqn{\mathcal{O}(N)} arithmetic — no adaptive integration required.
+#' All L-moments exist for any \eqn{a, b, s > 0}.
+#'
+#' @param order Integer vector of L-moment orders (e.g. \code{1:5}).
+#' @param scale Scale parameter (\eqn{s > 0}).
+#' @param shape1 First shape parameter (\eqn{a > 0}), the Weibull shape;
+#'   \eqn{a = 1} gives the exponential baseline.
+#' @param shape2 Second shape parameter (\eqn{b > 0}), the exponentiation
+#'   power; \eqn{b = 1} recovers the ordinary Weibull.
+#' @param h Tanh-sinh step size. Automatically chosen if \code{NULL}.
+#' @param X Tanh-sinh half-width. Automatically chosen if \code{NULL}.
+#'
+#' @return Named numeric vector of L-moments (\code{lambda_1}, \code{lambda_2},
+#'   \code{tau_3}, \code{tau_4}, ...).
 #' @keywords internal
 #' @noRd
 lmom_expweibull <- function(order = 1:5, scale, shape1, shape2, h = NULL, X = NULL) {

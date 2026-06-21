@@ -18,28 +18,29 @@ zonal_stats(x, ...)
 )
 }
 \arguments{
-\item{x}{An \code{sxts} object}
+\item{x}{An \code{sxts} object.}
 
-\item{...}{Additional arguments forwarded to \code{FUN} (e.g. \code{na.rm = TRUE})}
+\item{...}{Additional arguments forwarded to \code{FUN} (e.g. \code{na.rm = TRUE}).}
 
-\item{shapefile}{An \code{sf} object, \code{Spatial*} object, or file path to a shapefile}
+\item{shapefile}{An \code{sf} object, \code{Spatial*} object, or file path to a shapefile.}
 
-\item{name_col}{Character; column in \code{shapefile} whose values become output column names}
+\item{name_col}{Character; column in \code{shapefile} whose values become output column names.}
 
-\item{country}{Character; country name (matches \code{world_data$name})}
+\item{country}{Character; country name (matches \code{world_data$name}).}
 
-\item{continent}{Character; continent name (matches \code{world_data$continent})}
+\item{continent}{Character; continent name (matches \code{world_data$continent}).}
 
-\item{FUN}{Aggregation function applied row-wise within each polygon (default: \code{mean})}
+\item{FUN}{Aggregation function applied row-wise within each polygon (default: \code{mean}).}
 }
 \value{
-A plain \code{xts} with one column per polygon that contains at least one sxts point
+A plain \code{xts} with one column per polygon that contains at
+least one sxts point.
 }
 \description{
-For each polygon, finds all sxts spatial points that fall
-within it and aggregates them row-wise (per time step) using \code{FUN}.
-Returns a plain \code{xts} with polygon names as column names. Points that
-do not fall within any polygon are silently dropped.
+For each polygon, finds all sxts spatial points that fall within it and
+aggregates them row-wise (per time step) using \code{FUN}. Returns a
+plain \code{xts} with polygon names as column names. Points that do not
+fall within any polygon are silently dropped.
 
 The polygon source can be supplied in three ways (mutually exclusive):
 \itemize{
@@ -50,4 +51,8 @@ yields one output column named after the country.
 \item \code{continent} — a continent name matching \code{world_data$continent};
 yields one output column per country within the continent.
 }
+
+Aggregates sxts cells within polygon zones (shapefile, country, or
+continent), returning a plain xts with one column per zone. Points
+outside all zones are dropped.
 }

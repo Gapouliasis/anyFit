@@ -1,33 +1,46 @@
-#' @title fitlm_monthly
+#' @title Monthly Distribution Fitting
 #'
-#' @description This function fits a list of candidate distributions on a monthly basis using the L-moments method
-#' to a timeseries in xts format. Additionally to the list of the fitted parameters,
-#'  goodness-of-fit metric, PP and QQ plots.
+#' @description Fits a list of candidate distributions to each calendar month of
+#'   a time series via the L-moments method. The series is partitioned by month,
+#'   and \code{\link{fitlm_multi}} is applied to each monthly subset independently.
+#'   Parameter estimates for each candidate are aggregated into monthly tables,
+#'   and the six goodness-of-fit metrics (MLE, CM, KS, MSEquant, DiffOfMax,
+#'   MeanDiffOf10Max) are collected into per-candidate matrices with months as
+#'   rows. Twelve-panel Q-Q and P-P diagnostic grids are assembled with
+#'   \code{patchwork::wrap_plots}, using the \code{nrow} and \code{ncol} arguments
+#'   to control the layout. Months absent from the data are filled with empty
+#'   \code{ggplot} panels so that the grid always has twelve cells. The returned
+#'   list provides the monthly parameter tables, GoF matrices, and the combined
+#'   Q-Q and P-P panel plots.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param candidates A list of distribution to fit.
-#' @param nrow Number of rows for plotting.
-#' @param ncol Number of columns for plotting.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Optional named list mapping a candidate name to the vector of L-moment
-#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-#'   Only the numerically-fitted distributions accept it; passed through to
-#'   \code{\link{fitlm_multi}}. Default NULL.
+#' @param ts An xts object containing the time series data.
+#' @param candidates A character vector of distribution names to fit.
+#' @param nrow Number of rows for the diagnostic plot grid. Default is 4.
+#' @param ncol Number of columns for the diagnostic plot grid. Default is 3.
+#' @param ignore_zeros A logical value, if \code{TRUE} zeros will be ignored.
+#'   Default is \code{FALSE}.
+#' @param zero_threshold The threshold below which values are considered zero.
+#'   Default is 0.01.
+#' @param order Optional named list mapping a candidate name to the vector of
+#'   L-moment orders matched by its optimiser, e.g.
+#'   \code{list(gengamma = 1:5, expweibull = 1:3)}. Only the numerically-fitted
+#'   distributions accept it; passed through to \code{\link{fitlm_multi}}.
+#'   Default \code{NULL}.
 #'
-#' @return A list containing the monthly fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.
+#' @return A list with components \code{params_monthly} (a list of data frames,
+#'   one per candidate, with columns for each month), \code{GoF_monthly} (a list
+#'   of transposed matrices, one per candidate, with months as rows and GoF
+#'   metrics as columns), \code{monthly_QQplot}, and \code{monthly_PPplot}
+#'   (twelve-panel diagnostic grids).
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Two years of daily precipitation-like data
+#' x <- xts::xts(rgamma(730, shape = 0.8, scale = 3),
+#'          order.by = seq.Date(as.Date("2020-01-01"), by = "day", length.out = 730))
+#' x[sample(1:730, 200)] <- 0
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#'candidates <- list('exp','expweibull', 'gamma3')
-#'monthly_fits <- fitlm_monthly(data[,4],candidates = candidates, ignore_zeros = TRUE)
-#'
+#' candidates <- c('exp', 'gamma3')
+#' monthly_fits <- fitlm_monthly(x, candidates = candidates, ignore_zeros = TRUE)
 #' monthly_fits$monthly_QQplot
 #'
 #' @export

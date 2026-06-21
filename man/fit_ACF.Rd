@@ -13,35 +13,44 @@ fit_ACF(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{lag_max}{Maximum lag to use in fitting.}
+\item{lag_max}{Integer. Maximum lag to use in fitting.}
 
-\item{type}{A list of character strings, containing the type of ACF to fit.
-Options include: \code{'CAS'}, \code{'HK'}, and \code{'SRD'}.}
+\item{type}{Character vector of ACF model types. Options are
+\code{"CAS"}, \code{"HK"}, and \code{"SRD"}. Default all three.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
 }
 \value{
-A list containing a vector of fitted parameters, a data frame of
-fitted ACF values, and a plot of the fitted ACFs.
+A list with elements \code{ACF_params} (named list of fitted
+parameter vectors per model), \code{ACF_fitted} (data frame of
+theoretical ACF values with a \code{lag} column), and
+\code{ACF_plot} (\code{ggplot} of sample ACF with fitted curves
+overlaid).
 }
 \description{
-Function to fit theoretical Autocorrelation Functions (ACFs) to timeseries data.
-Three functions are available, the Cauchy-type autocorrelation structure,
-the Hurst - Kolmogorov and the Short Range dependence structure.
+Fits one or more theoretical autocorrelation functions to
+the sample ACF of an xts series. Three parametric models are
+available: the Cauchy-type autocorrelation structure (CAS, a
+two-parameter model with algebraic decay), the Hurst-Kolmogorov
+process (HK, a one-parameter fractional Gaussian noise model), and
+the short-range dependence model (SRD, a one-parameter exponential
+decay). Parameters are estimated by minimising the root-mean-square
+error between the theoretical and sample ACFs up to
+\code{lag_max}, using the L-BFGS-B optimiser with positivity
+constraints on all parameters. The function returns fitted parameter
+vectors for each model type, a data frame of theoretical ACF values at
+each lag, and a \code{ggplot} overlay of the fitted curves on the
+empirical autocorrelation.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-acfs <- fit_ACF(data[,4], lag = 10, ignore_zeros = TRUE )
+ts <- xts::xts(rnorm(365), order.by = as.Date("2020-01-01") + 0:364)
+acfs <- fit_ACF(ts, lag_max = 10, type = c("CAS", "HK", "SRD"))
 acfs$ACF_plot
 
 }

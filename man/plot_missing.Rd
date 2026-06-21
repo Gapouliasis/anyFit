@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_missing.R
 \name{plot_missing}
 \alias{plot_missing}
-\title{plot_missing}
+\title{Plot missing value positions}
 \usage{
 plot_missing(ts)
 }
@@ -10,22 +10,21 @@ plot_missing(ts)
 \item{ts}{An xts time series object.}
 }
 \value{
-A \code{ggplot} object with the missing values.
+A \code{ggplot} object marking measured and missing values.
 }
 \description{
-Function to plot missing values position.
-Assigns the mean value of timeseries to NA for easy identification of empties.
-Meant for quick and dirty (i.e. Engineering) visual checks
+Replaces NAs with the series mean to make gaps visually identifiable as a
+horizontal line at the mean level. Intended for quick diagnostic checks.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Synthetic xts with artificial gaps
+set.seed(123)
+dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-12-31"), by = "day")
+vals <- matrix(rnorm(length(dates) * 2, 10, 5), nrow = length(dates), ncol = 2)
+colnames(vals) <- c("A", "B")
+vals[sample(length(vals), 20)] <- NA
+ts <- xts::xts(vals, order.by = dates)
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-
-plot_missing(data[,seq(1,4)])
+plot_missing(ts)
 
 }

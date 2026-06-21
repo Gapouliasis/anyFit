@@ -1,45 +1,58 @@
 #' @title nc2xts
 #'
-#' @description Reads a NetCDF file and converts it into an sxts object.
-#' Optionally masks the result by country, continent, or a user-supplied shapefile.
-#' Reads data directly with ncdf4 — no raster intermediate — making it
-#' substantially faster and more memory-efficient for large files.
+#' @description Reads a variable from a NetCDF file directly via \pkg{ncdf4} and
+#'   converts it into an sxts (spatial xts) object. The CRS is detected automatically from
+#'   the NetCDF metadata — checking the variable's \code{grid_mapping} attribute
+#'   and global \code{crs_wkt} / \code{spatial_ref} attributes — and cross-checked
+#'   against any user-supplied \code{projection} argument, raising an error on
+#'   mismatch. Axis coordinates are regularised to remove floating-point rounding errors
+#'   that would otherwise cause downstream raster functions to reject the grid as
+#'   irregular. Spatial subsetting is handled either by a polygon mask (country,
+#'   continent, or shapefile) or by explicit \code{xlim}/\code{ylim} bounding-box
+#'   coordinates. For polygon masks the bounding box is computed in the grid's
+#'   own CRS and used as a hyperslab prefilter, avoiding a full-grid read; the
+#'   prefilter is skipped with a warning for rotated-pole grids where the
+#'   projected bounding box cannot be mapped to a contiguous index window.
 #'
-#' The CRS is detected automatically from the NetCDF metadata (grid_mapping
-#' variable attributes or global crs_wkt/spatial_ref attributes). If no CRS
-#' is found in the file the \code{projection} argument must be supplied.
-#' When both sources are present they are compared and an error is raised if
-#' they disagree.
+#' @param filename Character; path to the NetCDF file.
+#' @param varname Character; name of the variable to extract.
+#' @param shapefile Optional; path to a shapefile for spatial masking.
+#' @param country Optional; country name for masking (must match
+#'   \code{world_data$name}).
+#' @param continent Optional; continent name for masking (must match
+#'   \code{world_data$continent}).
+#' @param xlim Optional; numeric vector of length 2 giving the x-axis
+#'   (longitude) range in the grid's coordinate units. Requires \code{ylim}.
+#' @param ylim Optional; numeric vector of length 2 giving the y-axis
+#'   (latitude) range in the grid's coordinate units. Requires \code{xlim}.
+#' @param projection Character; CRS string used as a fallback when the NetCDF
+#'   file contains no projection metadata. If the file does contain CRS
+#'   metadata, both are compared and an error is raised on mismatch. Default
+#'   \code{"+proj=longlat +datum=WGS84"}.
 #'
-#' @param filename Path to the NetCDF file.
-#' @param varname Name of the variable to extract.
-#' @param shapefile (optional) Path to a shapefile for masking.
-#' @param country (optional) Country name for masking (matches world_data$name).
-#' @param continent (optional) Continent name for masking (matches world_data$continent).
-#' @param xlim (optional) Numeric length-2 vector giving the longitude/x range to
-#'   read, expressed in the grid's own coordinate units. Used as an alternative to a
-#'   polygon mask to restrict the read to a bounding box. Requires \code{ylim}.
-#' @param ylim (optional) Numeric length-2 vector giving the latitude/y range to
-#'   read, expressed in the grid's own coordinate units. Requires \code{xlim}.
-#' @param projection (optional) CRS string (PROJ4 or WKT) used as a fallback when
-#'   the NetCDF file contains no projection metadata.  If the file does contain CRS
-#'   metadata both values are compared and the function errors on disagreement.
-#'   Defaults to \code{NA}.
+#' @return An sxts object with rows = time steps and columns = spatial
+#'   locations, with spatial attributes (coordinates, projection, elements).
 #'
 #' @details For large files, supplying a \code{country}, \code{continent},
-#'   \code{shapefile}, or \code{xlim}/\code{ylim} restricts the NetCDF read to the
-#'   bounding box of the requested region, so only that hyperslab is loaded from disk
-#'   rather than the whole grid. For polygon masks the bounding box is computed in the
-#'   grid's own CRS, so the prefilter is correct for both geographic and projected
-#'   grids. The prefilter is skipped (full read, with a warning) for rotated-pole grids.
-#'
-#' @return An sxts object with rows = time steps and columns = spatial locations.
+#'   \code{shapefile}, or \code{xlim}/\code{ylim} restricts the NetCDF read to
+#'   the bounding box of the requested region, so only that hyperslab is loaded
+#'   from disk rather than the whole grid. For polygon masks the bounding box is
+#'   computed in the grid's own CRS, so the prefilter is correct for both
+#'   geographic and projected grids. The prefilter is skipped (full read, with a
+#'   warning) for rotated-pole grids.
 #'
 #' @examples
-#' result <- nc2xts(filename = "data/ncfile.nc", varname = "tp",
-#'                  projection = "+proj=longlat +datum=WGS84")
-#' result <- nc2xts(filename = "data/ncfile.nc", varname = "tp", country = "France",
-#'                  projection = "+proj=longlat +datum=WGS84")
+#' \dontrun{
+#' # Read precipitation from a NetCDF file
+#' sxts_data <- nc2xts("era5_daily.nc", varname = "tp")
+#'
+#' # Mask by country
+#' sxts_fr <- nc2xts("era5_daily.nc", varname = "tp", country = "France")
+#'
+#' # Mask by bounding box
+#' sxts_bb <- nc2xts("era5_daily.nc", varname = "tp",
+#'                   xlim = c(-10, 10), ylim = c(40, 60))
+#' }
 #'
 #' @importFrom ncdf4 nc_open nc_close ncatt_get ncvar_get
 #' @importFrom sf st_crs st_read

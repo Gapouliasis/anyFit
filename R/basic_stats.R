@@ -1,49 +1,55 @@
-#' @title basic_stats
+#' Basic statistics and diagnostic panel for time series data
 #'
-#' @description  This function provides basic statistics and plots of a timeseries in xts format.
-#' It plots the timeseries values, the empirical probability density function (PDF),
-#' the empirical cumulative density function (CDF) and the autocorrelation. Additionally, it will calculate
-#' all major statistics.
-#' \itemize{
-#' \item Number of Data - Number of missing data - Percentage of missing Data
-#' \item Minimum - Maximum - Average - Variance - Coefficient of Variation - Standard Deviation - Third moment - Skewness
-#' - Kurtosis
-#' \item L-mean, L-scale , 3rd and 4th L-coefficients
-#' \item Probability Dry
-#' \item Quantiles 5th , 25th, 50th, 75th, 95th - Interquartile range.
-#' \item Mean value and variance from a dry (defined by zero_threshold argument) to a wet state
-#' \item Mean value and variance from a wet to a dry (defined by zero_threshold argument) state
-#' \item Mean value and variance from a wet to a wet state
-#' \item Transition probability from a wet to a wet state
-#' \item Transition probability from a dry to a dry state
-#' }
-#' With arguments for plotting position of stats table and timeseries plotting period.
+#' @description
+#' Computes a comprehensive set of summary statistics for one or more time
+#' series stored as xts columns and optionally produces a four-panel diagnostic
+#' plot (time series, probability density function, empirical cumulative
+#' distribution function, and autocorrelation function). The statistics include
+#' sample moments (mean, variance, skewness, kurtosis), L-moments, quantiles,
+#' probability dry, and wet/dry transition statistics. When \code{ignore_zeros}
+#' is \code{TRUE}, distributional statistics are computed only on values
+#' exceeding \code{zero_threshold}, and transition statistics are omitted.
+#' Multi-column input is supported: the statistics table then contains one
+#' column per input series (named after the xts columns), and the plot output
+#' is a named list of one panel per series. The internal computation is
+#' vectorised across columns via \code{matrixStats} for computational efficiency.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param pstart Plotting start date. If not included, the first date of the timeseries will be used.
-#' Usefull for long timeseries.
-#' @param pend Plotting end date. If not included, the last date of the timeseries will be used.
-#' Usefull for long timeseries.
-#' @param show_label A logical value, if TRUE the timeseries title will be plotted.
-#' It is assumed to be the column name. Default is TRUE.
-#' @param label_prefix A character value wich contains the prefix of the timeseries title. Default is 'station'
-#' @param show_table A logical value, if TRUE a table with the mean value, the standard deviation, the skewness and
-#' the probability dry is plotted together with the timeseries. Default is true.
-#' @param xpos_label The x position of the timeseries label. Takes values from 0 to 1.
-#' @param ypos_label The y position of the timeseries label. Takes values from 0 to 1.
-#' @param xpos_table The x position of the timeseries table with the basic statistics. Takes values from 0 to 1.
-#' @param ypos_table The y position of the timeseries table with the basic statistics. Takes values from 0 to 1.
-#' @param nbins The number of bins to split the data from the PDF calculation. Default is 30.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param plot A logical value, if TRUE the timeseries/PDF/ECDF/ACF panel is built. Default is FALSE.
-#' For a multi-column input one panel is built per column.
+#' @param ts An xts object. If multi-column, each column is treated as an
+#'   independent series.
+#' @param pstart Plot start date (character or date). If \code{NA}, the first
+#'   date of the series is used.
+#' @param pend Plot end date (character or date). If \code{NA}, the last date
+#'   of the series is used.
+#' @param show_label Logical. If \code{TRUE}, a label with the series name is
+#'   plotted on the timeseries panel. Default is \code{TRUE}.
+#' @param label_prefix Character prefix for the series label, e.g.
+#'   \code{"Station"}. Default is \code{"Station"}.
+#' @param show_table Logical. If \code{TRUE}, a table of key statistics (mean,
+#'   coefficient of variation, skewness, probability dry) is overlaid on the
+#'   timeseries panel. Default is \code{TRUE}.
+#' @param xpos_label Horizontal position of the series label, as a fraction of
+#'   the plot width (0–1). Default is \code{0.1}.
+#' @param ypos_label Vertical position of the series label, as a fraction of
+#'   the data range (0–1). Default is \code{0.95}.
+#' @param xpos_table Horizontal position of the statistics table, as a fraction
+#'   of the plot width (0–1). Default is \code{0.1}.
+#' @param ypos_table Vertical position of the statistics table, as a fraction
+#'   of the data range (0–1). Default is \code{0.15}.
+#' @param nbins Number of bins for the PDF histogram. Default is \code{30}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values at or below
+#'   \code{zero_threshold} are excluded from distributional statistics and
+#'   transition statistics are omitted. Default is \code{FALSE}.
+#' @param zero_threshold Numeric threshold below which values are treated as
+#'   zero. Default is \code{0.01}.
+#' @param plot Logical. If \code{TRUE}, the diagnostic panel is built. Default
+#'   is \code{FALSE}. For multi-column input one panel is produced per column.
 #'
-#' @return A list with two elements: \code{stats_table}, a data.frame of statistics
-#' (rows are the statistics, columns are the input series - named after the input columns
-#' when more than one is supplied, otherwise \code{"Value"}); and \code{plot}, which is
-#' \code{NULL} when \code{plot = FALSE}, a single combined plot for a single-column input,
-#' or a named list of one combined plot per column for a multi-column input.
+#' @return A list with two elements: \code{stats_table}, a data frame of
+#'   statistics (rows are the statistics, columns are the input series — named
+#'   after the input columns when more than one is supplied, otherwise
+#'   \code{"Value"}); and \code{plot}, which is \code{NULL} when
+#'   \code{plot = FALSE}, a single combined ggplot for a single-column input,
+#'   or a named list of one combined ggplot per column for a multi-column input.
 #'
 #' @importFrom ggplot2 ggplot aes geom_histogram geom_density labs ggtitle stat_ecdf scale_y_continuous geom_point geom_line annotate annotation_custom xlab theme element_text after_stat
 #' @importFrom patchwork plot_layout
@@ -52,23 +58,29 @@
 #' @importFrom matrixStats colMins colMaxs colMeans2 colVars colSds colSums2 colQuantiles
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Synthetic daily precipitation series (two stations)
+#' set.seed(123)
+#' n <- 1000
+#' dates <- seq(as.Date("2000-01-01"), by = "day", length.out = n)
+#' prec <- xts::xts(cbind(
+#'   StationA = rgamma(n, shape = 0.6, scale = 5),
+#'   StationB = rgamma(n, shape = 0.7, scale = 4)),
+#'   order.by = dates)
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
+#' # Single-column: statistics table only
+#' bs <- basic_stats(prec[, 1], ignore_zeros = TRUE)
+#' bs$stats_table
 #'
-#' bstats <- basic_stats(data[,4], pstart = '2002',pend = '2005', show_table = FALSE,
-#' show_label = FALSE, ignore_zeros = TRUE, plot = TRUE)
+#' # Single-column: with diagnostic panel
+#' bs <- basic_stats(prec[, 1], pstart = "2001", pend = "2002",
+#'                    show_table = FALSE, show_label = FALSE,
+#'                    ignore_zeros = TRUE, plot = TRUE)
+#' bs$plot
 #'
-#' bstats$plot
-#' bstats$stats_table
-#'
-#' # Wide input: one column of statistics per series, plus one plot per series
-#' wstats <- basic_stats(data[, 1:4], plot = TRUE)
-#' wstats$stats_table          # columns named after the input series
-#' wstats$plot[[1]]            # plot for the first series
+#' # Multi-column: one column of statistics per series, named plot list
+#' wbs <- basic_stats(prec, plot = TRUE)
+#' wbs$stats_table
+#' wbs$plot[[1]]
 #'
 #' @export
 
@@ -128,11 +140,20 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 }
 
 
-# Column-wise statistics engine. Returns an UNROUNDED matrix with one row per
-# statistic (rownames are the stat labels) and one column per input series.
-# When ignore_zeros = TRUE the distributional statistics are computed on the
-# non-zero values (sub-threshold values masked to NA) and the transition
-# statistics are omitted, mirroring the original single-series behaviour.
+#' Column-wise statistics engine
+#'
+#' @description
+#' Computes an unrounded statistics matrix with one row per statistic and one
+#' column per input series. When \code{ignore_zeros = TRUE}, distributional
+#' statistics are computed on the non-zero values only (sub-threshold values
+#' masked to \code{NA}) and transition statistics are omitted.
+#'
+#' @param m A numeric matrix (columns = series, rows = observations).
+#' @param zero_threshold Numeric threshold. Default is \code{0.01}.
+#' @param ignore_zeros Logical. Default is \code{FALSE}.
+#'
+#' @return A numeric matrix with rownames identifying each statistic and
+#'   colnames inherited from \code{m}.
 .basic_stats_core <- function(m, zero_threshold = 0.01, ignore_zeros = FALSE) {
   storage.mode(m) <- 'double'
   n <- nrow(m); k <- ncol(m)
@@ -192,7 +213,17 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   rows
 }
 
-# Per-column L-moments: LMean, LScale, L3, L4, L-CV, L-Skewness, L-Kurtosis.
+#' Per-column L-moments
+#'
+#' @description
+#' Computes L-mean, L-scale, L3, L4, L-CV, L-skewness, and L-kurtosis for a
+#' single numeric vector via \code{\link[lmom]{samlmu}}.
+#'
+#' @param x A numeric vector.
+#'
+#' @return A numeric vector of length 7: LMean, LScale, L3, L4, L-CV,
+#'   L-Skewness, L-Kurtosis. Returns \code{NA} for all elements on error or
+#'   if \code{x} is empty.
 .basic_stats_lmom <- function(x) {
   x <- x[!is.na(x)]
   if (length(x) < 1) return(rep(NA_real_, 7))
@@ -203,9 +234,18 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   }, error = function(e) rep(NA_real_, 7))
 }
 
-# Vectorised wet/dry transition statistics across all columns. The lag masks and
-# the -99 sentinel reproduce the original single-series logic exactly, including
-# NA propagation and the 0/0 = NaN behaviour of the transition probabilities.
+#' Vectorised wet/dry transition statistics
+#'
+#' @description
+#' Computes per-column transition statistics (mean and variance after/before
+#' zero, mean and variance after non-zero, and transition probabilities) using
+#' lag masks and a sentinel-based counting scheme.
+#'
+#' @param m A numeric matrix (columns = series, rows = observations).
+#' @param thr Numeric threshold defining the zero/non-zero boundary.
+#'
+#' @return A list with eight named numeric vectors, each of length
+#'   \code{ncol(m)}.
 .basic_stats_transition <- function(m, thr) {
   n <- nrow(m); k <- ncol(m)
   na_k <- rep(NA_real_, k)
@@ -248,8 +288,18 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
                matrixStats::colSums2(!is.na(zNDp)))
 }
 
-# Apply the original per-statistic rounding to the unrounded core matrix.
-# PercOfMissingData is left unrounded (as in the original).
+#' Apply per-statistic rounding rules
+#'
+#' @description
+#' Rounds each row of the core statistics matrix according to a fixed
+#' per-statistic precision table. \code{PercOfMissingData} is left unrounded.
+#'
+#' @param core A numeric matrix with rownames identifying each statistic.
+#' @param ignore_zeros Logical. When \code{TRUE}, quantile rows are rounded to
+#'   5 decimal places; otherwise transition statistic rows are rounded to 5
+#'   decimal places.
+#'
+#' @return The rounded numeric matrix (same dimensions as \code{core}).
 .basic_stats_round <- function(core, ignore_zeros = FALSE) {
   labs   <- rownames(core)
   digits <- stats::setNames(rep(2L, length(labs)), labs)
@@ -268,7 +318,28 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
   out
 }
 
-# Build the timeseries / PDF / ECDF / ACF panel for a single-column series.
+#' Build the diagnostic panel for a single series
+#'
+#' @description
+#' Constructs a four-panel \code{patchwork} plot (raw time series, PDF
+#' histogram with density overlay, empirical CDF on log-probability scale, and
+#' sample ACF) for a single-column xts series.
+#'
+#' @param ts A single-column xts object.
+#' @param pstart Plot start date (\code{NA} for series start).
+#' @param pend Plot end date (\code{NA} for series end).
+#' @param show_label Logical. Overlay series label.
+#' @param label_prefix Character prefix for the label.
+#' @param show_table Logical. Overlay statistics table.
+#' @param xpos_label Horizontal label position (0–1 fraction).
+#' @param ypos_label Vertical label position (0–1 fraction).
+#' @param xpos_table Horizontal table position (0–1 fraction).
+#' @param ypos_table Vertical table position (0–1 fraction).
+#' @param nbins Number of PDF histogram bins.
+#' @param ignore_zeros Logical. Exclude sub-threshold values.
+#' @param zero_threshold Numeric zero threshold.
+#'
+#' @return A \code{patchwork} object combining four ggplot panels.
 .basic_stats_panel <- function(ts, pstart, pend, show_label, label_prefix, show_table,
                                xpos_label, ypos_label, xpos_table, ypos_table, nbins,
                                ignore_zeros, zero_threshold) {

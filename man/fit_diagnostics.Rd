@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_diagnostics.R
 \name{fit_diagnostics}
 \alias{fit_diagnostics}
-\title{fit_diagnostics}
+\title{Diagnostics for a Fitted Distribution}
 \usage{
 fit_diagnostics(
   ts,
@@ -13,33 +13,47 @@ fit_diagnostics(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{params}{A list object containing the parameters of the fitted distribution.}
+\item{dist}{A character string naming the distribution, e.g. \code{"gamma3"}.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{params}{A named list of the fitted distribution parameters.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{ignore_zeros}{A logical value, if \code{TRUE} zeros will be ignored.
+Default is \code{FALSE}.}
 
-\item{distr}{The distribution function to be tested.}
+\item{zero_threshold}{The threshold below which values are considered zero.
+Default is 0.01.}
 }
 \value{
-A list containing a Q-Q plot and a P-P plot and a goodness-of-fit table.
-The GoF metric calculated are the Kramer von-Mises and Kolmogorov-Smirnov. NEEDS EXPANSION
+A list with components \code{Diagnostic_Plots} (a combined Q-Q and P-P
+panel via \code{patchwork::wrap_plots}), \code{GoF} (a named list of
+Cramér-von Mises and Kolmogorov-Smirnov statistics), \code{QQplot}, and
+\code{PPplot} (the individual ggplot objects).
 }
 \description{
-Performs a goodness-of-fit test to diagnose fitted distributions.
+Produces diagnostic Q-Q and P-P plots together with two-sample
+goodness-of-fit statistics for a distribution previously fitted to a time
+series. The empirical quantiles are plotted against the theoretical quantiles
+computed from the supplied parameter list via the distribution's quantile
+function; the empirical cumulative probabilities are likewise compared with
+the theoretical CDF values in the P-P panel. Two-sample Cramér-von Mises and
+Kolmogorov-Smirnov statistics are computed on the empirical and fitted
+quantile vectors using pre-sorted, allocation-free routines. An optional
+zero-ignoring step filters values below a user-supplied threshold before
+constructing the diagnostic plots. The returned list contains the combined diagnostic panel, the
+individual Q-Q and P-P ggplot objects, and a GoF summary.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Daily precipitation-like data: gamma-distributed with zeros
+x <- xts::xts(rgamma(365, shape = 0.8, scale = 3),
+         order.by = seq.Date(as.Date("2020-01-01"), by = "day", length.out = 365))
+x[sample(1:365, 100)] <- 0
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-fit <- fitlm_multi(data[,4],candidates = 'gamma3', ignore_zeros = TRUE)
-
-fcheck <- fit_diagnostics(data[,4], distr = 'gamma3', params = fit$parameter_list[[1]], ignore_zeros = TRUE)
+fit <- fitlm_multi(x, candidates = 'gamma3', ignore_zeros = TRUE)
+fcheck <- fit_diagnostics(x, dist = 'gamma3',
+                          params = fit$parameter_list[[1]]$Param,
+                          ignore_zeros = TRUE)
+fcheck$Diagnostic_Plots
 
 }

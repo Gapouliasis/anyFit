@@ -7,12 +7,34 @@
 fitlm_gev(x, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+\code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+metrics).
 }
 \description{
-Function for fitting the Generalized Extreme Value distribution using the L-Moments method
+Fits the three-parameter GEV distribution to an xts series
+by the method of L-moments. Parameters are obtained in closed form
+via \code{\link[lmom]{pelgev}}, which matches the sample L-moment
+ratios to the theoretical L-moment ratios of the GEV distribution.
+Zero values below \code{zero_threshold} may be excluded via
+\code{ignore_zeros}. Goodness-of-fit is assessed via
+\code{GOF_tests}, and theoretical L-moments are computed from the
+fitted parameters for comparison with the sample.
+}
+\examples{
+x <- xts::xts(rgev(365, location = 0, scale = 1, shape = -0.5),
+              order.by = as.Date("2020-01-01") + 0:364)
+fit <- fitlm_gev(x)
+fit$Param
+
 }

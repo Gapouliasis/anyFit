@@ -13,18 +13,44 @@ fitlm_gengamma_loc(
 )
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{location}{The location parameter of the distribution}
+\item{location}{Numeric. The location parameter of the distribution.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
 
-\item{order}{Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4}
+\item{order}{Integer vector of L-moment orders passed to
+\code{fitlm_gengamma}. Default \code{1:5}.}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted \code{location}, \code{scale}, \code{shape1},
+\code{shape2}), \code{TheorLMom} (theoretical L-moments),
+\code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+metrics).
 }
 \description{
-Function for fitting the Generalized Gamma with location distribution using the L-Moments method.
-Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+Fits the four-parameter Generalised Gamma distribution
+with location to an xts series. The location parameter is supplied by
+the user and is subtracted from the data before fitting; the
+remaining three parameters (scale, shape1, shape2) are then fitted by
+delegating to \code{\link{fitlm_gengamma}}. The theoretical first
+L-moment is adjusted by adding back the location after the fit. Zero
+values below \code{zero_threshold} may be excluded via
+\code{ignore_zeros}. Goodness-of-fit is assessed via
+\code{GOF_tests} evaluated on the full four-parameter set.
+}
+\examples{
+x <- xts::xts(rgengamma_loc(365, location = 1, scale = 2,
+        shape1 = 0.8, shape2 = 0.5),
+        order.by = as.Date("2020-01-01") + 0:364)
+\dontrun{
+fit <- fitlm_gengamma_loc(x, location = 1)
+fit$Param
+}
+
 }

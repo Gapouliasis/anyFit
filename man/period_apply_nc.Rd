@@ -2,7 +2,7 @@
 % Please edit documentation in R/period_apply_nc.R
 \name{period_apply_nc}
 \alias{period_apply_nc}
-\title{period_apply_nc}
+\title{Temporal aggregation of gridded data}
 \usage{
 period_apply_nc(
   data = NULL,
@@ -15,37 +15,52 @@ period_apply_nc(
 )
 }
 \arguments{
-\item{data}{An sxts object, or a raster file. Leave NULL when supplying filename/varname.}
+\item{data}{An \code{sxts} object, or a \code{Raster*} object. Leave
+\code{NULL} when supplying \code{filename} and \code{varname}.}
 
-\item{filename}{(optional) A NetCDF file name to import if data is not provided.}
+\item{filename}{Optional NetCDF file path to import if \code{data} is not provided.}
 
-\item{varname}{(optional) The name of the variable to extract from 'filename'.}
+\item{varname}{Optional variable name to extract from \code{filename}.}
 
-\item{period}{The time period to apply the function (e.g., "months", "years").}
+\item{period}{Period string passed to \code{xts::endpoints} (e.g.\code{"months"}, \code{"years"}).}
 
-\item{period_multiplier}{a multiplier to define arbitrary periods based on the period argument}
+\item{period_multiplier}{Integer multiplier for custom period lengths (default 1).}
 
-\item{FUN}{The summary function to apply (e.g., "mean", "sum").}
+\item{FUN}{Summary function as a string (\code{"mean"}, \code{"sum"}, etc.) or a function.}
 
-\item{...}{Additional arguments to pass to 'nc2xts' function (if 'filename' and 'varname' are provided).}
+\item{...}{Additional arguments passed to \code{\link{nc2xts}} when
+\code{filename} and \code{varname} are supplied.}
 }
 \value{
-An sxts object (when input is sxts or NetCDF) or an xts object (when input is raster)
-with the summary statistics for the specified time periods.
+An \code{sxts} object when the input is \code{sxts} or NetCDF; an
+\code{xts} when the input is a \code{Raster*}.
 }
 \description{
-This function applies a summary function (e.g., mean, sum) to spatiotemporal data
-over specified time periods (e.g., months, years). Accepts an sxts object, a raster file,
-or a NetCDF file path. When the input is an sxts object the output preserves spatial
-metadata (coordinates, projection) and is returned as an sxts object.
+Aggregates gridded time series data to coarser temporal scales. Accepts an \code{sxts}
+object, a \code{Raster*} object, or a NetCDF file path; when a filename is
+supplied, data are imported through \code{\link{nc2xts}} first. The
+aggregation period is controlled by \code{period} and
+\code{period_multiplier}. For common
+aggregation functions (\code{"mean"}, \code{"sum"}, \code{"min"}, \code{"max"},
+\code{"median"}, \code{"var"}, \code{"sd"}), the function very efficient
+column-wise function from \code{matrixStats} package, which ensures good computational
+efficiency. Unsupported functions (e.g. custom functions) fall back to a per-column
+lapply which is significantly slower.
 }
 \examples{
-# Example usage 1: Using an sxts object directly
+# Synthetic sxts
+set.seed(123)
+dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-12-31"), by = "day")
+coords <- data.frame(x = c(1, 2, 3, 4), y = c(1, 1, 1, 1))
+vals <- matrix(rnorm(length(dates) * 4, 10, 5), nrow = length(dates), ncol = 4)
+ncdf_sxts <- sxts(vals, order.by = dates, coords = coords,
+                  projection = "+proj=longlat")
+
+# Monthly mean
 result <- period_apply_nc(ncdf_sxts, period = "months", FUN = "mean")
 
-# Example usage 2: Using a filename and variable name
-nc_file <- "data/ncfile.nc"
-result <- period_apply_nc(filename = nc_file, varname = "tp", period = "months", FUN = "sum")
-nc_ggplot(result)
+# Quarterly sum
+result <- period_apply_nc(ncdf_sxts, period = "months",
+                          period_multiplier = 3, FUN = "sum")
 
 }

@@ -6,42 +6,31 @@
 \alias{summary.sxts}
 \alias{print.sxts}
 \alias{attributes.sxts}
-\alias{coords}
 \alias{coords.sxts}
-\alias{projection}
 \alias{projection.sxts}
-\alias{elements}
 \alias{elements.sxts}
 \alias{[.sxts}
 \alias{is.sxts}
 \alias{lag.sxts}
 \alias{diff.sxts}
 \alias{Ops.sxts}
-\alias{mask.sxts}
 \alias{rasterFromSxts.sxts}
 \alias{sxtsFromRaster}
-\alias{rbindlist.sxts}
-\title{sxts Class - Spatial eXtensible Time Series}
+\title{Spatial xts (sxts) class}
 \usage{
 sxts(data, order.by, coords = NULL, projection = NULL)
 
 \method{str}{sxts}(object, ...)
 
-\method{summary}{sxts}(obj, ...)
+\method{summary}{sxts}(object, ...)
 
 \method{print}{sxts}(x, ...)
 
 attributes.sxts(obj)
 
-coords(x)
-
 \method{coords}{sxts}(x)
 
-projection(x)
-
 \method{projection}{sxts}(x)
-
-elements(x)
 
 \method{elements}{sxts}(x)
 
@@ -55,39 +44,108 @@ is.sxts(x)
 
 \method{Ops}{sxts}(e1, e2)
 
-mask.sxts(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
-
-\method{rasterFromSxts}{sxts}(obj, ...)
+\method{rasterFromSxts}{sxts}(x, ...)
 
 sxtsFromRaster(raster, ...)
-
-rbindlist.sxts(sxts_list)
 }
 \arguments{
-\item{data}{Matrix or data.frame of time series data}
+\item{data}{Matrix or data.frame of time series data.}
 
-\item{order.by}{POSIXct vector for time index}
+\item{order.by}{POSIXct vector for the time index.}
 
-\item{coords}{A data.frame or matrix with coordinates (x, y columns)}
+\item{coords}{A data.frame or matrix with coordinates (x, y columns).}
 
-\item{projection}{Character string specifying the coordinate reference system}
+\item{projection}{Character string specifying the coordinate reference system.}
 
-\item{...}{Additional arguments passed to xts()}
+\item{object, x, obj}{An xts or sxts object.}
 
-\item{sxts_list}{A list of \code{sxts} objects sharing the same columns (spatial
-locations). Coordinates and projection are taken from the first element.}
+\item{...}{Additional arguments passed to \code{xts()}.}
+
+\item{i, j}{Row and column indices for subsetting.}
+
+\item{drop}{Logical; whether to drop dimensions (passed to \code{NextMethod("[")}).}
+
+\item{k}{Number of periods to shift (passed to \code{lag}).}
+
+\item{lag}{Integer; number of periods to lag (passed to \code{diff}).}
+
+\item{differences}{Integer; order of differencing (passed to \code{diff}).}
+
+\item{e1, e2}{Operands for arithmetic and comparison operations.}
+
+\item{raster}{A \code{Raster*} object to convert to an sxts object.}
+
+\item{xlim}{Numeric vector of length 2; x-axis bounding box limits.}
+
+\item{ylim}{Numeric vector of length 2; y-axis bounding box limits.}
+
+\item{shapefile_name}{Character; path to a shapefile for spatial masking.}
+
+\item{mask}{An \code{sf} or \code{Spatial*} object used as a spatial mask.}
 }
 \value{
-An sxts object
+An sxts object.
 }
 \description{
-A spatial extension of xts class using attributes to store
-spatial information. This approach is more elegant and memory-efficient.
-Create a spatial xts (sxts) object
+Spatial extension of the xts class that stores coordinates, projection,
+and element count as object attributes rather than slots, keeping memory
+overhead low and allowing standard xts operations to work transparently.
+The constructor validates that the number of coordinate rows matches the
+number of data columns and that \code{coords} has at least two columns
+(x and y).
 
-Drop-in replacement for \code{do.call(rbind.xts, list)} that is much faster and
-lighter on memory. \code{rbind.xts} merges objects pairwise, re-checking the index
-and copying attributes at every step. This collects the bare coordinate data
-once and rebuilds a single \code{sxts} object, so the time index is concatenated
-and the data matrices are bound in one pass.
+\code{str.sxts} Prints the structure of an sxts object, displaying spatial extent,
+projection, number of elements, and the range of dates.
+
+\code{summaruy.sxts} Summarises an sxts object by reporting element count, date range, time
+step regularity, spatial projection and extent, and value range.
+
+\code{print.sxts} Prints a compact summary of an sxts object including spatial extent,
+projection, and dimensions.
+
+\code{attributes.sxts} Returns a named list of the three spatial attributes (\code{elements},
+\code{coords}, \code{projection}) stored in an sxts object.
+
+\code{coords.sxts} Returns the spatial coordinates data frame attached to an sxts object.
+
+\code{projection.sxts} Returns the coordinate reference system (CRS) string attached to an sxts object.
+
+\code{elements.sxts} Returns the number of spatial locations (columns) in an sxts object.
+
+\code{[} Subset method for sxts objects that preserves spatial attributes. When
+\code{j} is specified, coordinates are subset to match the selected
+columns and the spatial element count is updated accordingly.
+
+\code{is.sxts} Tests whether an object inherits from the \code{sxts} class.
+
+\code{lag.sxts} Lag method that dispatches to \code{NextMethod("lag")} and re-attaches
+spatial attributes via \code{restore_sxts}.
+
+\code{diff.sxts} Diff method that dispatches to \code{NextMethod("diff")} and re-attaches
+spatial attributes via \code{restore_sxts}.
+
+\code{Ops.sxts} Group method for arithmetic and comparison operators. Dispatches via
+\code{NextMethod("Ops")} and preserves spatial attributes from whichever
+operand is an sxts object.
+
+\code{rasterFromSxts.sxts} Converts an sxts object to a \code{RasterBrick}, preserving coordinates,
+projection, and time-indexed layers.
+
+\code{sxtsFromRaster} Converts a \code{Raster*} object to an sxts object, auto-detecting date
+formats from layer names via \code{lubridate::parse_date_time}.
+}
+\examples{
+# Synthetic sxts
+set.seed(123)
+dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-01-10"), by = "day")
+coords <- data.frame(x = c(1, 2, 3, 4), y = c(1, 1, 1, 1))
+vals <- matrix(rnorm(length(dates) * 4, 10, 5), nrow = length(dates), ncol = 4)
+ncdf_sxts <- sxts(vals, order.by = dates, coords = coords,
+                  projection = "+proj=longlat")
+str(ncdf_sxts)
+summary(ncdf_sxts)
+
+# Subsetting preserves spatial attributes
+ncdf_sxts[1:5, 1:2]
+
 }

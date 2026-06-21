@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitlm_multi.R
 \name{fitlm_multi}
 \alias{fitlm_multi}
-\title{fitlm_multi}
+\title{Multi-Distribution Fitting}
 \usage{
 fitlm_multi(
   ts,
@@ -14,41 +14,55 @@ fitlm_multi(
 )
 }
 \arguments{
-\item{ts}{A xts object containing the time series data.}
+\item{ts}{An xts object containing the time series data.}
 
-\item{candidates}{A list of distribution to fit.}
+\item{candidates}{A character vector of distribution names to fit.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{A logical value, if \code{TRUE} zeros will be ignored.
+Default is \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{The threshold below which values are considered zero.
+Default is 0.01.}
 
-\item{diagnostic_plots}{A logical value, controls the output of diagnostic plots}
+\item{diagnostic_plots}{A logical value controlling whether Q-Q and P-P
+diagnostic plots are produced. Default is \code{TRUE}.}
 
-\item{order}{Optional named list mapping a candidate name to the vector of L-moment
-orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-Only the numerically-fitted distributions (gengamma, gengamma_loc, burr, dagum,
-expweibull) accept it; entries for other candidates are ignored. Candidates not named
-keep their own default. Default NULL (every distribution uses its default).}
+\item{order}{Optional named list mapping a candidate name to the vector of
+L-moment orders matched by its optimiser, e.g.
+\code{list(gengamma = 1:5, expweibull = 1:3)}. Only the numerically-fitted
+distributions (\code{gengamma}, \code{gengamma_loc}, \code{burr},
+\code{dagum}, \code{expweibull}) accept it; entries for other candidates are
+ignored. Candidates not named keep their own default. Default \code{NULL}
+(every distribution uses its default).}
 }
 \value{
-A list containing the fitted parameters, Goodness-of-Fit Summary, and diagnostic plots.
+A list with components \code{parameter_list} (a named list of
+per-candidate fit results, each containing \code{Distribution},
+\code{Param}, \code{TheorLMom}, \code{DataLMom}, and \code{GoF}),
+\code{GoF_summary} (a data frame of GoF metrics with candidates as columns),
+and, when \code{diagnostic_plots = TRUE}, \code{diagnostics} (a combined
+Q-Q and P-P panel), \code{QQplot}, and \code{PPplot}.
 }
 \description{
-This function fits a list of candidate distributions using the L-moments method
-to a timeseries in xts format. Additionally to the list of the fitted parameters,
-goodness-of-fit metric, PP and QQ plots.
+Fits a list of candidate distributions to a single time series
+via the L-moments method. Each candidate is dispatched to its corresponding
+\code{fitlm_*} function, which returns the fitted parameters, theoretical
+L-moments, sample L-moments, and six goodness-of-fit metrics (MLE, CM, KS,
+MSEquant, DiffOfMax, MeanDiffOf10Max). When \code{diagnostic_plots = TRUE}, Q-Q and P-P
+comparison plots are produced with all candidates overlaid on a single panel,
+using colour-coded points and a 1:1 reference line. An empty series or one with all values
+below the zero threshold after filtering returns an \code{NA} placeholder
+for every candidate.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
+# Daily precipitation-like data: gamma-distributed with zeros
+x <- xts::xts(rgamma(365, shape = 0.8, scale = 3),
+         order.by = seq.Date(as.Date("2020-01-01"), by = "day", length.out = 365))
+x[sample(1:365, 100)] <- 0
 
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-candidates <- list('exp','expweibull', 'gamma3')
-fits <- fitlm_multi(data['2010',4],candidates = candidates, ignore_zeros = TRUE)
-
+candidates <- c('exp', 'gamma3', 'weibull')
+fits <- fitlm_multi(x, candidates = candidates, ignore_zeros = TRUE)
 fits$diagnostics
+fits$GoF_summary
 
 }

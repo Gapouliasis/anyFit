@@ -13,37 +13,43 @@ correl_plots(
 )
 }
 \arguments{
-\item{x, y}{A xts objects containing the time series data.}
+\item{x, y}{xts objects containing the time series data.}
 
-\item{check_common}{logical value, if TRUE the function will test for common dates and excludes the rest.
-Default is TRUE.}
+\item{check_common}{Logical. If \code{TRUE} (default), only dates present
+in both series are used.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
 }
 \value{
-A list with the combined plots and the individual plots for greater flexibility.
+A list with elements \code{combined} (patchwork of the three
+panels), \code{scatter_plot}, \code{copula_plot},
+\code{normal_plot} (individual \code{ggplot} objects), and
+\code{correl_table} (matrix of Pearson, Spearman, and four
+semi-correlation coefficients).
 }
 \description{
-Function that calculates correlation plots for two timeseries.
-Scatter plot with Pearson correlation coefficient
-Empirical copula plot with Spearman correlation coefficient
-Standardized or Normal plot with Pearson semi-correlations
-Handles missing values (NA) with casewise deletion
-Can check and retain only common dates. Useful for cross-correlation between different stations and variables.
+Computes bivariate correlation diagnostics for two xts
+timeseries. The function produces a three-panel plot consisting of a
+scatter plot annotated with the Pearson correlation coefficient, an
+empirical copula plot annotated with the Spearman correlation
+coefficient, and a standard-normal semi-correlation plot that
+decomposes the joint dependence into four quadrant-specific
+correlations. Missing values are handled via casewise deletion, and
+zero values below a supplied threshold may optionally be filtered
+before computation. When \code{check_common = TRUE}, only dates common
+to both series are retained, ensuring paired comparisons on
+synchronised indices. The panels are assembled via
+\code{patchwork::wrap_plots} and returned as a list alongside the
+individual \code{ggplot} objects and a correlation table.
 }
 \examples{
-file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-time_zone <- "UTC"
-time_step <- "1 day"
-
-data <- delim2xts(file_path = file_path,
-                 time_zone = "UTC", delim = " ", time_step = time_step)
-
-correls <- correl_plots(data[,1],data[,4], check_common = TRUE, ignore_zeros = TRUE)
-
+x <- xts::xts(rnorm(365), order.by = as.Date("2020-01-01") + 0:364)
+y <- xts::xts(rnorm(365), order.by = as.Date("2020-01-01") + 0:364)
+correls <- correl_plots(x, y, check_common = TRUE)
 correls$combined
-
 
 }

@@ -7,16 +7,44 @@
 fitlm_burr(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
 
-\item{order}{Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4}
+\item{order}{Integer vector of L-moment orders matched by the
+optimiser. Default \code{1:5}.}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+\code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+L-moments), and \code{GoF} (goodness-of-fit metrics).
 }
 \description{
-Function for fitting the Burr Type XII distribution using the L-Moments method
-Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+Fits the three-parameter Burr Type XII distribution to an
+xts series by numerical minimisation of L-moments. Closed-form
+L-moment expressions via Beta-function PWMs are evaluated at each
+optimisation step. The L-BFGS-B optimiser minimises the normalised
+root-sum-square error between the sample and theoretical L-moments of
+orders specified by \code{order}. A two-step seeding procedure
+initialises the shape parameters by min-max nearest-neighbour search
+over the scale-free L-ratios in the \code{Burr_InitValues} lookup
+table, and the scale is then derived analytically from the sample
+first L-moment and the matched shapes' unit-scale L-moment. The
+mean exists only when \eqn{\theta < 1}, imposing an effective upper
+bound on the tail index during optimisation. Zero values below
+\code{zero_threshold} may be excluded via \code{ignore_zeros}.
+}
+\examples{
+x <- xts::xts(rburr(365, scale = 1.5, shape1 = 2, shape2 = 0.3),
+              order.by = as.Date("2020-01-01") + 0:364)
+\dontrun{
+fit <- fitlm_burr(x)
+fit$Param
+}
+
 }

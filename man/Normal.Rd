@@ -16,6 +16,30 @@ qnorm(p, mean = 0, sd = 1)
 
 rnorm(n, mean = 0, sd = 1)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{mean}{mean parameter.}
+
+\item{sd}{standard deviation parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Normal distribution
+Two-parameter Normal (Gaussian) distribution with mean
+\eqn{\mu}{m} and standard deviation \eqn{\sigma}{s}. Fitting is performed via
+closed-form L-moments. The
+L-moment estimates coincide with the conventional method-of-moments
+estimates (\code{mean} = \eqn{\lambda_1}, \code{sd} =
+\eqn{\lambda_2 \sqrt{\pi}}).
+
+The probability density function is:
+\deqn{f(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{1}{2}\left(\frac{x - \mu}{\sigma}\right)^2\right)}{f(x) = exp(-0.5*((x-m)/s)^2) / (s*sqrt(2*pi))}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location/mean parameter (\code{mean})
+\item \eqn{\sigma}{s} --- scale/standard deviation parameter (\code{sd})
+}
 }

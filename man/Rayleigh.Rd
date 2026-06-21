@@ -16,6 +16,30 @@ qrayleigh(p, location, scale)
 
 rrayleigh(n, location, scale)
 }
+\arguments{
+\item{x}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Rayleigh distribution
+Two-parameter Rayleigh distribution with location
+\eqn{\mu}{m} and scale \eqn{\sigma}{s}. The distribution is
+lower-bounded at the location parameter. Fitting uses closed-form L-moment expressions
+derived from gamma-function relationships; the location is obtained
+from the first two L-moments and the scale from the second L-moment
+ratio.
+
+The probability density function is:
+\deqn{f(x) = \frac{x - \mu}{\sigma^2} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right), \quad x \ge \mu}{f(x) = (x-m)/s^2 * exp(-(x-m)^2 / (2s^2)), x >= m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+}
 }

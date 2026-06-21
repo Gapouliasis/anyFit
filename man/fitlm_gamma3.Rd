@@ -7,12 +7,34 @@
 fitlm_gamma3(x, ignore_zeros = FALSE, zero_threshold = 0.01)
 }
 \arguments{
-\item{x}{A xts object containing the time series data.}
+\item{x}{An xts object containing the time series data.}
 
-\item{ignore_zeros}{A logical value, if TRUE zeros will be ignored. Default is FALSE.}
+\item{ignore_zeros}{Logical. If \code{TRUE}, values below
+\code{zero_threshold} are excluded. Default \code{FALSE}.}
 
-\item{zero_threshold}{The threshold below which values are considered zero. Default is 0.01.}
+\item{zero_threshold}{Numeric. Threshold below which values are treated
+as zero. Default \code{0.01}.}
+}
+\value{
+A list with elements \code{Distribution}, \code{Param} (named
+list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+\code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+metrics).
 }
 \description{
-Function for fitting the 3-parameter Gamma distribution using the L-Moments method
+Fits the three-parameter Gamma (Pearson type III)
+distribution to an xts series by the method of L-moments. Parameters
+are obtained via \code{\link[lmom]{pelpe3}} and then transformed to
+the standard location, scale, and shape parameterisation used
+throughout the package. Zero values below \code{zero_threshold} may be
+excluded via \code{ignore_zeros}. Goodness-of-fit is assessed via
+\code{GOF_tests}, and theoretical L-moments are computed from the
+fitted parameters.
+}
+\examples{
+x <- xts::xts(rgamma3(365, location = 5, scale = 0.5, shape = 3),
+              order.by = as.Date("2020-01-01") + 0:364)
+fit <- fitlm_gamma3(x)
+fit$Param
+
 }

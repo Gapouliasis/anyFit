@@ -16,6 +16,30 @@ qexp(p, location, scale)
 
 rexp(n, location, scale)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Exponential distribution
+Two-parameter Exponential distribution with location
+\eqn{\mu}{m} and scale \eqn{\sigma}{s}. The distribution is
+lower-bounded at the location parameter. Fitting
+is performed via closed-form L-moments. An optional fixed lower bound
+\code{bound} is supported for cases where the minimum is known a
+priori.
+
+The probability density function is:
+\deqn{f(x) = \frac{1}{\sigma} \exp\left(-\frac{x-\mu}{\sigma}\right), \quad x \ge \mu}{f(x) = (1/s) exp(-(x-m)/s), x >= m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\sigma}{s} --- scale parameter (\code{scale})
+}
 }

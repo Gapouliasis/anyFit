@@ -1,5 +1,6 @@
-# Two-sample Cramer-von Mises statistic on already-ascending-sorted inputs.
-# Numerically identical to CDFt::CramerVonMisesTwoSamples (verified incl. ties).
+# Two-sample Cramer-von Mises statistic computed on already ascending-sorted
+# inputs. Numerically identical to CDFt::CramerVonMisesTwoSamples
+# (verified including ties).
 cvm_two_sample_sorted = function(xS1, xS2){
   M <- length(xS1); N <- length(xS2)
   somM <- sum(findInterval(xS1, xS2, left.open = TRUE)^2)  # #{xS2 <  xS1}
@@ -7,10 +8,13 @@ cvm_two_sample_sorted = function(xS1, xS2){
   U <- N * somN + M * somM
   ((U / (N * M)) / (N + M)) - ((4 * M * N - 1) / (6 * (M + N)))
 }
+
+# Two-sample Cramer-von Mises statistic. Wrapper that sorts inputs and
+# delegates to the pre-sorted engine.
 cvm_two_sample = function(S1, S2) cvm_two_sample_sorted(sort(S1), sort(S2))
 
-# Two-sample Kolmogorov-Smirnov statistic on already-ascending-sorted inputs.
-# Identical to CDFt::KolmogorovSmirnov.
+# Two-sample Kolmogorov-Smirnov statistic computed on already ascending-sorted
+# inputs. Identical to CDFt::KolmogorovSmirnov.
 ks_two_sample_sorted = function(xS1, xS2){
   M <- length(xS1); N <- length(xS2)
   cdf1     <- findInterval(xS1, xS1) / M
@@ -18,8 +22,20 @@ ks_two_sample_sorted = function(xS1, xS2){
   cdfRef   <- stats::approx(xS1, cdf1, xS2, yleft = 0, yright = 1, ties = "mean")$y
   max(abs(cdfRef - cdfEstim))
 }
+
+# Two-sample Kolmogorov-Smirnov statistic. Wrapper that sorts inputs and
+# delegates to the pre-sorted engine.
 ks_two_sample = function(S1, S2) ks_two_sample_sorted(sort(S1), sort(S2))
 
+# Computes six goodness-of-fit metrics for a fitted distribution against
+# empirical data: maximum-likelihood criterion (MLE), two-sample
+# Cramer-von Mises (CM), two-sample Kolmogorov-Smirnov (KS), mean
+# squared quantile error (MSEquant), percentage difference of maxima
+# (DiffOfMax), and mean absolute difference of the ten largest values
+# (MeanDiffOf10Max). Both the empirical and fitted quantile vectors are
+# sorted once and reused across all metrics. The function matches the
+# d/p/q/r family by prefix (e.g. distribution = "exp" resolves to dexp,
+# pexp, qexp, rexp).
 GOF_tests = function(x, fit, distribution){
   qfun <- match.fun(paste0('q', distribution))
   dfun <- match.fun(paste0('d', distribution))
@@ -50,6 +66,11 @@ GOF_tests = function(x, fit, distribution){
 }
 
 
+# Negative log-likelihood objective for maximum-likelihood parameter
+# optimisation. Accepts a trial parameter vector, an xts data series, and
+# the density function of a distribution, and returns the negative summed
+# log-likelihood. Infinite values are replaced with a large finite penalty
+# (1e10) to keep gradient-based optimisers from diverging.
 MLE_fun = function(trial = c(par1,par2,par3),x_ts,dfunction){
   #trial = c(par1,par2,par3)
   dist_args = formalArgs(dfunction)
@@ -68,8 +89,24 @@ MLE_fun = function(trial = c(par1,par2,par3),x_ts,dfunction){
 #' @name Exponential
 #' @title Exponential Distribution
 #'
-#' @description Exponential distribution
+#' @description Two-parameter Exponential distribution with location
+#'   \eqn{\mu}{m} and scale \eqn{\sigma}{s}. The distribution is
+#'   lower-bounded at the location parameter. Fitting
+#'   is performed via closed-form L-moments. An optional fixed lower bound
+#'   \code{bound} is supported for cases where the minimum is known a
+#'   priori.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{1}{\sigma} \exp\left(-\frac{x-\mu}{\sigma}\right), \quad x \ge \mu}{f(x) = (1/s) exp(-(x-m)/s), x >= m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
 #' @export
 #'
 
@@ -102,12 +139,32 @@ rexp=function(n,location,scale) {
 
 #' @title fitlm_exp
 #'
-#' @description Function for fitting the Exponential distribution using the L-Moments method
+#' @description Fits the two-parameter Exponential distribution to an xts
+#'   series by the method of L-moments. If \code{bound} is supplied, the
+#'   location is fixed to that value and the scale is derived from the
+#'   second L-moment; otherwise both parameters are obtained from
+#'   \code{\link[lmom]{pelexp}}. Zero values below \code{zero_threshold}
+#'   may be excluded via \code{ignore_zeros}. Goodness-of-fit is assessed
+#'   via \code{GOF_tests}, and theoretical L-moments are computed from the
+#'   fitted parameters for comparison with the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param bound Is the distribution bound? Default is NULL.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param bound Numeric or \code{NULL}. Optional fixed lower bound
+#'   (location). Default \code{NULL}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rexp(365, location = 0, scale = 10), order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_exp(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -155,8 +212,24 @@ fitlm_exp=function(x,bound=NULL, ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Rayleigh
 #' @title Rayleigh Distribution
 #'
-#' @description Rayleigh distribution
+#' @description Two-parameter Rayleigh distribution with location
+#'   \eqn{\mu}{m} and scale \eqn{\sigma}{s}. The distribution is
+#'   lower-bounded at the location parameter. Fitting uses closed-form L-moment expressions
+#'   derived from gamma-function relationships; the location is obtained
+#'   from the first two L-moments and the scale from the second L-moment
+#'   ratio.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{x - \mu}{\sigma^2} \exp\left(-\frac{(x-\mu)^2}{2\sigma^2}\right), \quad x \ge \mu}{f(x) = (x-m)/s^2 * exp(-(x-m)^2 / (2s^2)), x >= m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'
+#' @param x vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
 #' @export
 #'
 drayleigh = function(x, location, scale) {
@@ -186,11 +259,30 @@ rrayleigh = function(n, location, scale) {
 
 #' @title fitlm_rayleigh
 #'
-#' @description Function for fitting the Rayleigh distribution using the L-Moments method
+#' @description Fits the two-parameter Rayleigh distribution to an xts
+#'   series by the method of L-moments. Closed-form expressions derived
+#'   from gamma-function integrals are used: the location is recovered
+#'   from \eqn{\lambda_1} and \eqn{\lambda_2}, and the scale follows from
+#'   the squared second L-moment ratio. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
+#'   Goodness-of-fit is assessed via \code{GOF_tests}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rrayleigh(365, location = 0, scale = 2),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_rayleigh(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -232,8 +324,25 @@ fitlm_rayleigh = function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Gamma
 #' @title Gamma Distribution
 #'
-#' @description Gamma distribution
+#' @description Two-parameter Gamma distribution with scale \eqn{\beta}{b}
+#'   and shape \eqn{\alpha}{a}. The distribution is supported on
+#'   \eqn{x > 0} and is widely used for modelling positively skewed
+#'   variables such as precipitation amounts. Density, distribution,
+#'   quantile, and random generation functions are provided via base R
+#'   \code{\link[stats]{dgamma}}. Fitting is performed via closed-form
+#'   L-moments through \code{\link[lmom]{pelgam}}.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{1}{\beta^\alpha \Gamma(\alpha)} x^{\alpha-1} \exp\left(-\frac{x}{\beta}\right), \quad x > 0}{f(x) = x^(a-1) * exp(-x/b) / (b^a * Gamma(a)), x > 0}
+#'   where:
+#'   * \eqn{\beta}{b} --- scale parameter (\code{scale})
+#'   * \eqn{\alpha}{a} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -265,11 +374,31 @@ rgamma=function(n,scale,shape) {
 
 #' @title fitlm_gamma
 #'
-#' @description Function for fitting the Gamma distribution using the L-Moments method
+#' @description Fits the two-parameter Gamma distribution to an xts series
+#'   by the method of L-moments. Parameters are obtained in closed form
+#'   via \code{\link[lmom]{pelgam}}, which matches the sample L-moments
+#'   to the theoretical L-moment ratios of the Gamma distribution. Zero
+#'   values below \code{zero_threshold} may be excluded via
+#'   \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}, and theoretical L-moments are computed from the
+#'   fitted parameters for comparison with the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{scale} and \code{shape}), \code{TheorLMom}
+#'   (theoretical L-moments), \code{DataLMom} (sample L-moments), and
+#'   \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgamma(365, scale = 3, shape = 0.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_gamma(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -307,8 +436,27 @@ fitlm_gamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Gamma3
 #' @title 3-parameter Gamma Distribution
 #'
-#' @description 3-parameter Gamma distribution
+#' @description Three-parameter Gamma (Pearson type III) distribution with
+#'   location \eqn{\mu}{m}, scale \eqn{\beta}{b}, and shape
+#'   \eqn{\alpha}{a}. The distribution is lower-bounded at the location
+#'   parameter and is widely employed in flood-frequency analysis. Density,
+#'   distribution, quantile, and random generation functions are provided
+#'   via the \pkg{PearsonDS} package. Fitting is performed via closed-form
+#'   L-moments through \code{\link[lmom]{pelpe3}}.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{\beta^\alpha}{\Gamma(\alpha)} (x - \mu)^{\alpha-1} \exp\left(-\beta (x - \mu)\right), \quad x \ge \mu}{f(x) = b^a / Gamma(a) * (x-m)^(a-1) * exp(-b*(x-m)), x >= m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\beta}{b} --- scale parameter (\code{scale})
+#'   * \eqn{\alpha}{a} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -340,11 +488,31 @@ rgamma3=function(n,location,scale,shape) {
 
 #' @title fitlm_gamma3
 #'
-#' @description Function for fitting the 3-parameter Gamma distribution using the L-Moments method
+#' @description Fits the three-parameter Gamma (Pearson type III)
+#'   distribution to an xts series by the method of L-moments. Parameters
+#'   are obtained via \code{\link[lmom]{pelpe3}} and then transformed to
+#'   the standard location, scale, and shape parameterisation used
+#'   throughout the package. Zero values below \code{zero_threshold} may be
+#'   excluded via \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}, and theoretical L-moments are computed from the
+#'   fitted parameters.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgamma3(365, location = 5, scale = 0.5, shape = 3),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_gamma3(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -383,14 +551,46 @@ fitlm_gamma3=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 
 # x<-quaglo(runif(10000), c(0,1,-0.5))
 
+#' @name GenLogistic
+#' @title Generalized Logistic Distribution
+#'
+#' @description Three-parameter Generalised Logistic distribution with
+#'   location \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and shape
+#'   \eqn{\xi}{j}. Density, distribution, and quantile functions are
+#'   provided via the \pkg{lmomco} package. The distribution encompasses
+#'   symmetric (\eqn{\xi = 0}) and asymmetric forms and is used in
+#'   regional frequency analysis of hydrological extremes. Fitting is
+#'   performed via closed-form L-moments through
+#'   \code{\link[lmom]{pelglo}}.
+#'
+#'   Define \eqn{z = (x - \mu)/\sigma}{z = (x-m)/s}. The probability
+#'   density function is:
+#'   \deqn{f(x) = \frac{1}{\sigma} \frac{e^{-z}}{(1+e^{-z})^2}, \quad \xi = 0}{f(x) = exp(-z) / (s*(1+exp(-z))^2)}
+#'   \deqn{f(x) = \frac{1}{\sigma} \frac{(1-\xi z)^{1/\xi-1}}{(1+(1-\xi z)^{1/\xi})^2}, \quad \xi \neq 0}{f(x) = (1-j*z)^(1/j-1) / (s*(1+(1-j*z)^(1/j))^2)}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\xi}{j} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
+#' @export
+#'
 dgenlogi <- function(x, location, scale, shape) {
   para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
   lmomco::pdfglo(x, para)
 }
+#' @rdname GenLogistic
+#' @export
 pgenlogi <- function(q, location, scale, shape) {
   para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
   lmomco::cdfglo(q, para)
 }
+#' @rdname GenLogistic
+#' @export
 qgenlogi <- function(p, location, scale, shape) {
   para <- lmomco::vec2par(c(location, scale, shape), type = "glo")
   lmomco::quaglo(p, para)
@@ -398,11 +598,32 @@ qgenlogi <- function(p, location, scale, shape) {
 
 #' @title fitlm_genlogi
 #'
-#' @description Function for fitting the Generalized Logistic distribution using the L-Moments method
+#' @description Fits the three-parameter Generalised Logistic distribution
+#'   to an xts series by the method of L-moments. Parameters are obtained
+#'   in closed form via \code{\link[lmom]{pelglo}}, which matches the
+#'   sample L-moment ratios to the theoretical L-moment ratios of the
+#'   Generalised Logistic distribution. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
+#'   Goodness-of-fit is assessed via \code{GOF_tests}, and theoretical
+#'   L-moments are computed from the fitted parameters for comparison with
+#'   the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(qgenlogi(runif(365), location = 0, scale = 1, shape = -0.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_genlogi(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -444,8 +665,24 @@ fitlm_genlogi=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Normal
 #' @title Normal Distribution
 #'
-#' @description Normal distribution
+#' @description Two-parameter Normal (Gaussian) distribution with mean
+#'   \eqn{\mu}{m} and standard deviation \eqn{\sigma}{s}. Fitting is performed via
+#'   closed-form L-moments. The
+#'   L-moment estimates coincide with the conventional method-of-moments
+#'   estimates (\code{mean} = \eqn{\lambda_1}, \code{sd} =
+#'   \eqn{\lambda_2 \sqrt{\pi}}).
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{1}{\sigma\sqrt{2\pi}} \exp\left(-\frac{1}{2}\left(\frac{x - \mu}{\sigma}\right)^2\right)}{f(x) = exp(-0.5*((x-m)/s)^2) / (s*sqrt(2*pi))}
+#'   where:
+#'   * \eqn{\mu}{m} --- location/mean parameter (\code{mean})
+#'   * \eqn{\sigma}{s} --- scale/standard deviation parameter (\code{sd})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param mean mean parameter.
+#' @param sd standard deviation parameter.
 #' @export
 #'
 
@@ -477,11 +714,31 @@ rnorm=function(n,mean=0,sd=1) {
 
 #' @title fitlm_norm
 #'
-#' @description Function for fitting the Normal distribution using the L-Moments method
+#' @description Fits the Normal distribution to an xts series by the
+#'   method of L-moments. Parameters are obtained in closed form via
+#'   \code{\link[lmom]{pelnor}}, which maps the first two sample L-moments
+#'   directly to the mean and standard deviation. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
+#'   Goodness-of-fit is assessed via \code{GOF_tests}, and theoretical
+#'   L-moments are computed from the fitted parameters for comparison with
+#'   the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{mean} and \code{sd}), \code{TheorLMom}
+#'   (theoretical L-moments), \code{DataLMom} (sample L-moments), and
+#'   \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rnorm(365, mean = 0, sd = 3),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_norm(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -523,8 +780,27 @@ fitlm_norm=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Weibull3
 #' @title 3-parameter Weibull Distribution
 #'
-#' @description 3-parameter Weibull distribution
+#' @description Three-parameter Weibull distribution with location
+#'   \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and shape \eqn{k}{k}. The
+#'   distribution is lower-bounded at the location parameter and
+#'   generalises the Exponential (\eqn{k = 1}) and Rayleigh (\eqn{k = 2})
+#'   distributions. Fitting is
+#'   performed via closed-form L-moments. An optional fixed lower bound is
+#'   supported.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{k}{\sigma} \left(\frac{x - \mu}{\sigma}\right)^{k-1} \exp\left(-\left(\frac{x - \mu}{\sigma}\right)^k\right), \quad x \ge \mu}{f(x) = k/s * ((x-m)/s)^(k-1) * exp(-((x-m)/s)^k), x >= m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'   * \eqn{k}{k} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -556,12 +832,34 @@ rweibull=function(n,location,scale,shape) {
 
 #' @title fitlm_weibull
 #'
-#' @description Function for fitting the 3-parameter Weibull distribution using the L-Moments method
+#' @description Fits the three-parameter Weibull distribution to an xts
+#'   series by the method of L-moments. Parameters are obtained in closed
+#'   form via \code{\link[lmom]{pelwei}}, which matches the sample
+#'   L-moment ratios to the theoretical L-moment ratios of the Weibull
+#'   distribution. If \code{bound} is supplied, the location is fixed to
+#'   that value; otherwise all three parameters are free. Zero values
+#'   below \code{zero_threshold} may be excluded via
+#'   \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param bound Is the distribution bound? Default is NULL.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param bound Numeric or \code{NULL}. Optional fixed lower bound
+#'   (location). Default \code{NULL}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rweibull(365, location = 0, scale = 5, shape = 1.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_weibull(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -603,8 +901,26 @@ fitlm_weibull=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 #' @name Gumbel
 #' @title Gumbel Distribution
 #'
-#' @description Gumbel distribution
+#' @description Two-parameter Gumbel (Extreme Value type I) distribution
+#'   with location \eqn{\mu}{m} and scale \eqn{\sigma}{s}. The Gumbel
+#'   distribution is the limiting distribution of block maxima and is
+#'   widely used in extreme-value analysis of hydroclimatic variables.
+#'   Density, distribution, quantile, and random generation functions are
+#'   provided via the \pkg{FAdist} package. Fitting is performed via
+#'   closed-form L-moments through \code{\link[lmom]{pelgum}}.
 #'
+#'   Define \eqn{z = (x - \mu)/\sigma}{z = (x-m)/s}. The probability
+#'   density function is:
+#'   \deqn{f(x) = \frac{1}{\sigma} \exp(-z - e^{-z})}{f(x) = exp(-z - exp(-z)) / s}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
 #' @export
 #'
 
@@ -636,11 +952,31 @@ rgumbel=function(n,location,scale) {
 
 #' @title fitlm_gumbel
 #'
-#' @description Function for fitting the Gumbel distribution using the L-Moments method
+#' @description Fits the two-parameter Gumbel distribution to an xts
+#'   series by the method of L-moments. Parameters are obtained in closed
+#'   form via \code{\link[lmom]{pelgum}}, which matches the sample
+#'   L-moment ratios to the theoretical L-moment ratios of the Gumbel
+#'   distribution. Zero values below \code{zero_threshold} may be excluded
+#'   via \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}, and theoretical L-moments are computed from the
+#'   fitted parameters for comparison with the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgumbel(365, location = 1, scale = 3),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_gumbel(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -681,8 +1017,28 @@ fitlm_gumbel=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name Log-Normal
 #' @title Log-Normal Distribution
 #'
-#' @description Log-Normal distribution
+#' @description Three-parameter Log-Normal distribution with location
+#'   \eqn{\mu}{m}, scale \eqn{\beta}{b}, and shape \eqn{\sigma}{s}. The
+#'   distribution is lower-bounded at \eqn{\mu}{m} and arises when the
+#'   logarithm of \eqn{x - \mu} follows a Normal distribution. Density,
+#'   distribution, quantile, and random generation functions are provided
+#'   via the \pkg{FAdist} package. Fitting is performed via closed-form
+#'   L-moments through \code{\link[lmom]{pelln3}}; an optional fixed lower
+#'   bound is supported.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{1}{(x-\mu) \sigma \sqrt{2\pi}} \exp\left(-\frac{\left(\ln\left(\frac{x-\mu}{\beta}\right)\right)^2}{2\sigma^2}\right), \quad x > \mu}{f(x) = exp(-(ln((x-m)/b))^2 / (2s^2)) / ((x-m) * s * sqrt(2*pi)), x > m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\beta}{b} --- scale parameter (\code{scale})
+#'   * \eqn{\sigma}{s} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -714,12 +1070,33 @@ rlognorm=function(n,location=0,scale,shape) {
 
 #' @title fitlm_lognorm
 #'
-#' @description Function for fitting the 3-parameter Log-Normal distribution using the L-Moments method
+#' @description Fits the three-parameter Log-Normal distribution to an
+#'   xts series by the method of L-moments. Parameters are obtained in
+#'   closed form via \code{\link[lmom]{pelln3}}, which matches the sample
+#'   L-moment ratios to the theoretical L-moment ratios of the Log-Normal
+#'   distribution. If \code{bound} is supplied the location is fixed;
+#'   otherwise all three parameters are free. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
+#'   Goodness-of-fit is assessed via \code{GOF_tests}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param bound Is the distribution bound? Default is NULL.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param bound Numeric or \code{NULL}. Optional fixed lower bound
+#'   (location). Default \code{NULL}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rlognorm(365, location = 0, scale = 1, shape = 0.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_lognorm(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -761,8 +1138,30 @@ fitlm_lognorm=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01)
 #' @name GEV
 #' @title Generalized Extreme Value Distribution
 #'
-#' @description Generalized Extreme Value distribution
+#' @description Three-parameter Generalised Extreme Value (GEV)
+#'   distribution with location \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and
+#'   shape \eqn{\xi}{j}. The GEV encompasses the Gumbel (\eqn{\xi = 0}),
+#'   Frechet (\eqn{\xi > 0}), and reversed Weibull (\eqn{\xi < 0})
+#'   families. Density, distribution, quantile, and random generation
+#'   functions are implemented natively. Fitting is performed via
+#'   closed-form L-moments through \code{\link[lmom]{pelgev}}.
 #'
+#'   Define \eqn{t(x) = (1 + \xi(x-\mu)/\sigma)^{-1/\xi}}{t(x) = (1 + j*(x-m)/s)^(-1/j)}. The probability density
+#'   function is:
+#'   \deqn{f(x) = \frac{1}{\sigma} t(x)^{\xi+1} \exp(-t(x)), \quad \xi \neq 0}{f(x) = t(x)^(j+1) * exp(-t(x)) / s}
+#'   \deqn{f(x) = \frac{1}{\sigma} \exp\left(-\frac{x-\mu}{\sigma} - \exp\left(-\frac{x-\mu}{\sigma}\right)\right), \quad \xi = 0}{f(x) = exp(-(x-m)/s - exp(-(x-m)/s)) / s}
+#'   with \eqn{1 + \xi(x-\mu)/\sigma > 0}{1 + j*(x-m)/s > 0}.
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\xi}{j} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -808,11 +1207,31 @@ rgev=function(n,location,scale,shape) {
 
 #' @title fitlm_gev
 #'
-#' @description Function for fitting the Generalized Extreme Value distribution using the L-Moments method
+#' @description Fits the three-parameter GEV distribution to an xts series
+#'   by the method of L-moments. Parameters are obtained in closed form
+#'   via \code{\link[lmom]{pelgev}}, which matches the sample L-moment
+#'   ratios to the theoretical L-moment ratios of the GEV distribution.
+#'   Zero values below \code{zero_threshold} may be excluded via
+#'   \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}, and theoretical L-moments are computed from the
+#'   fitted parameters for comparison with the sample.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgev(365, location = 0, scale = 1, shape = -0.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_gev(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -855,8 +1274,32 @@ fitlm_gev=function(x,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name GenPareto
 #' @title Generalized Pareto Distribution
 #'
-#' @description Generalized Pareto distribution
+#' @description Three-parameter Generalised Pareto distribution (GPD) with
+#'   location \eqn{\mu}{m}, scale \eqn{\sigma}{s}, and shape
+#'   \eqn{\xi}{j}. The GPD is the limiting distribution of peaks over a
+#'   threshold and is widely used in extreme-value modelling. The
+#'   distribution is lower-bounded at the location parameter. Density,
+#'   distribution, quantile, and random generation functions are provided
+#'   via the \pkg{lmom} package. Fitting is performed via closed-form
+#'   L-moments through \code{\link[lmom]{pelgpa}}; an optional fixed lower
+#'   bound is supported.
 #'
+#'   Define \eqn{z = (x - \mu)/\sigma}{z = (x-m)/s}. The probability
+#'   density function is:
+#'   \deqn{f(x) = \frac{1}{\sigma} (1 - \xi z)^{1/\xi - 1}, \quad \xi \neq 0}{f(x) = (1 - j*z)^(1/j - 1) / s}
+#'   \deqn{f(x) = \frac{1}{\sigma} e^{-z}, \quad \xi = 0}{f(x) = exp(-z) / s}
+#'   with \eqn{z \ge 0}{z >= 0} and \eqn{1 - \xi z > 0}{1 - j*z > 0}.
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{\sigma}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\xi}{j} --- shape parameter (\code{shape})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape shape parameter.
 #' @export
 #'
 
@@ -892,10 +1335,36 @@ rgpd=function(n,location,scale,shape){
 
 #' @title fitlm_GPD
 #'
-#' @description Function for fitting the Generalized Pareto Distribution using the L-Moments method
+#' @description Fits the three-parameter Generalised Pareto distribution
+#'   to an xts series by the method of L-moments. Parameters are obtained
+#'   in closed form via \code{\link[lmom]{pelgpa}}, which matches the
+#'   sample L-moment ratios to the theoretical L-moment ratios of the GPD.
+#'   If \code{bound} is supplied the location is fixed; otherwise all three
+#'   parameters are free. The shape parameter governs tail behaviour:
+#'   values greater than -1/2 are required for finite variance, greater
+#'   than -1/3 for finite skewness, and greater than -1/4 for finite
+#'   kurtosis. Zero values below \code{zero_threshold} may be excluded via
+#'   \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param bound Is the distribution bound? Default is NULL.
+#' @param x An xts object containing the time series data.
+#' @param bound Numeric or \code{NULL}. Optional fixed lower bound
+#'   (location). Default \code{NULL}.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted parameters), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgpd(365, location = 0, scale = 1, shape = -0.2),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' fit <- fitlm_GPD(x)
+#' fit$Param
 #'
 #' @export
 #'
@@ -936,8 +1405,31 @@ fitlm_GPD=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #' @name GenGamma
 #' @title Generalized Gamma Distribution
 #'
-#' @description Generalized Gamma distribution
+#' @description Three-parameter Generalised Gamma (Stacy) distribution
+#'   with scale \eqn{s}{s}, first shape \eqn{\alpha}{a} (\code{shape1}),
+#'   and second shape \eqn{\beta}{b} (\code{shape2}). The distribution is
+#'   supported on \eqn{x > 0} and contains the ordinary Gamma
+#'   (\eqn{\beta = 1}) and Weibull (\eqn{\beta = \alpha}) as special
+#'   cases. Density, distribution, quantile, and random generation
+#'   functions are provided via \pkg{VGAM} using the Stacy
+#'   parameterisation. Fitting is performed numerically via L-BFGS-B
+#'   minimisation of a normalised L-moment error function, seeded from a
+#'   pre-computed lookup table (\code{GG_InitValues}) with Gauss-Legendre
+#'   quadrature evaluation of the L-moments at each optimisation step.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} x^{\alpha-1} \exp\left(-\left(\frac{x}{s}\right)^\beta\right), \quad x > 0}{f(x) = b * x^(a-1) * exp(-(x/s)^b) / (Gamma(a/b) * s^a), x > 0}
+#'   where:
+#'   * \eqn{s}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\alpha}{a} --- first shape parameter (\code{shape1}); \eqn{k = \alpha/\beta}{k = a/b} is the Stacy shape
+#'   * \eqn{\beta}{b} --- second shape parameter (\code{shape2}); the distribution reduces to Gamma(\eqn{\alpha}{a}, \eqn{s}{s}) when \eqn{\beta=1}{b=1}, and to Weibull(\eqn{s}{s}, \eqn{\alpha}{a}) when \eqn{\beta=\alpha}{b=a}
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param scale scale parameter.
+#' @param shape1 first shape parameter.
+#' @param shape2 second shape parameter.
 #' @export
 #'
 
@@ -969,14 +1461,40 @@ rgengamma=function(n,scale, shape1, shape2){
 
 #' @title fitlm_gengamma
 #'
-#' @description Function for fitting the Generalized Gamma distribution using the L-Moments method
-#' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-#' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+#' @description Fits the three-parameter Generalised Gamma (Stacy)
+#'   distribution to an xts series by numerical minimisation of
+#'   L-moments. As no closed-form L-moment expressions exist for this
+#'   distribution, the L-moments are computed at each optimisation step
+#'   via Gauss-Legendre quadrature of the PWMs. The L-BFGS-B optimiser
+#'   minimises the normalised root-sum-square error between the sample and
+#'   theoretical L-moments of orders specified by \code{order}. A
+#'   two-step seeding procedure is employed: the shape parameters are
+#'   initialised by a min-max nearest-neighbour search over the scale-free
+#'   L-ratios in the \code{GG_InitValues} lookup table, and the scale is
+#'   then derived analytically from the sample first L-moment and the
+#'   matched shapes' unit-scale L-moment. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#' @param order Integer vector of L-moment orders matched by the
+#'   optimiser. Default \code{1:5}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+#'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgengamma(365, scale = 2, shape1 = 0.8, shape2 = 0.5),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' \dontrun{
+#' fit <- fitlm_gengamma(x)
+#' fit$Param
+#' }
 #'
 #' @export
 #'
@@ -1048,8 +1566,31 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
 #' @name GenGamma-Location
 #' @title Generalized Gamma with Location Distribution
 #'
-#' @description Generalized Gamma with Location distribution
+#' @description Four-parameter Generalised Gamma distribution with
+#'   location \eqn{\mu}{m}, scale \eqn{s}{s}, first shape
+#'   \eqn{\alpha}{a}, and second shape \eqn{\beta}{b}. The distribution
+#'   is lower-bounded at the location parameter and extends the
+#'   three-parameter Stacy form by a shift. Fitting is delegated to
+#'   \code{\link{fitlm_gengamma}} after subtracting the location from the
+#'   data; the location is supplied by the user rather than fitted
+#'   automatically. Density, distribution, quantile, and random generation
+#'   functions are provided via \pkg{VGAM}.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} (x-\mu)^{\alpha-1} \exp\left(-\left(\frac{x-\mu}{s}\right)^\beta\right), \quad x \ge \mu}{f(x) = b * (x-m)^(a-1) * exp(-((x-m)/s)^b) / (Gamma(a/b) * s^a), x >= m}
+#'   where:
+#'   * \eqn{\mu}{m} --- location parameter (\code{location})
+#'   * \eqn{s}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\alpha}{a} --- first shape parameter (\code{shape1})
+#'   * \eqn{\beta}{b} --- second shape parameter (\code{shape2})
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param location location parameter.
+#' @param scale scale parameter.
+#' @param shape1 first shape parameter.
+#' @param shape2 second shape parameter.
 #' @export
 #'
 
@@ -1081,15 +1622,39 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 
 #' @title fitlm_gengamma_loc
 #'
-#' @description Function for fitting the Generalized Gamma with location distribution using the L-Moments method.
-#' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-#' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+#' @description Fits the four-parameter Generalised Gamma distribution
+#'   with location to an xts series. The location parameter is supplied by
+#'   the user and is subtracted from the data before fitting; the
+#'   remaining three parameters (scale, shape1, shape2) are then fitted by
+#'   delegating to \code{\link{fitlm_gengamma}}. The theoretical first
+#'   L-moment is adjusted by adding back the location after the fit. Zero
+#'   values below \code{zero_threshold} may be excluded via
+#'   \code{ignore_zeros}. Goodness-of-fit is assessed via
+#'   \code{GOF_tests} evaluated on the full four-parameter set.
 #'
-#' @param x A xts object containing the time series data.
-#' @param location The location parameter of the distribution
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
+#' @param x An xts object containing the time series data.
+#' @param location Numeric. The location parameter of the distribution.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#' @param order Integer vector of L-moment orders passed to
+#'   \code{fitlm_gengamma}. Default \code{1:5}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{location}, \code{scale}, \code{shape1},
+#'   \code{shape2}), \code{TheorLMom} (theoretical L-moments),
+#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
+#'   metrics).
+#'
+#' @examples
+#' x <- xts::xts(rgengamma_loc(365, location = 1, scale = 2,
+#'         shape1 = 0.8, shape2 = 0.5),
+#'         order.by = as.Date("2020-01-01") + 0:364)
+#' \dontrun{
+#' fit <- fitlm_gengamma_loc(x, location = 1)
+#' fit$Param
+#' }
 #'
 #' @export
 #'
@@ -1164,8 +1729,30 @@ fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 
 #' @name BurXII
 #' @title Burr Type XII Distribution
 #'
-#' @description Burr Type XII distribution
+#' @description Three-parameter Burr Type XII distribution with scale
+#'   \eqn{s}{s}, first shape \eqn{\zeta}{z} (\code{shape1}), and
+#'   second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
+#'   distribution is supported on \eqn{x > 0} and is widely used for
+#'   modelling heavy-tailed positive variables. L-moments are computed via
+#'   closed-form expressions involving Beta-function PWMs; a two-step
+#'   seeding procedure initialises the shapes from a pre-computed lookup
+#'   table (\code{Burr_InitValues}) and derives the scale analytically.
+#'   Fitting uses L-BFGS-B minimisation of the normalised L-moment error.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \zeta s^{-\zeta} x^{\zeta-1} \left(\zeta\theta\left(\frac{x}{s}\right)^\zeta + 1\right)^{-1/(\zeta\theta) - 1}, \quad x > 0}{f(x) = z*s^(-z) * x^(z-1) * (z*th*(x/s)^z + 1)^(-1/(z*th) - 1), x > 0}
+#'   where:
+#'   * \eqn{s}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\zeta}{z} --- first shape parameter (\code{shape1}), controls lower-tail behaviour
+#'   * \eqn{\theta}{th} --- second shape parameter (\code{shape2}), tail index; the mean exists only when \eqn{\theta < 1}{th < 1}
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param scale scale parameter.
+#' @param shape1 first shape parameter.
+#' @param shape2 second shape parameter.
+#' @param PW probability weight (point mass at zero for zero-inflated variants).
 #' @export
 #'
 
@@ -1210,14 +1797,40 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 
 #' @title fitlm_burr
 #'
-#' @description Function for fitting the Burr Type XII distribution using the L-Moments method
-#' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-#' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+#' @description Fits the three-parameter Burr Type XII distribution to an
+#'   xts series by numerical minimisation of L-moments. Closed-form
+#'   L-moment expressions via Beta-function PWMs are evaluated at each
+#'   optimisation step. The L-BFGS-B optimiser minimises the normalised
+#'   root-sum-square error between the sample and theoretical L-moments of
+#'   orders specified by \code{order}. A two-step seeding procedure
+#'   initialises the shape parameters by min-max nearest-neighbour search
+#'   over the scale-free L-ratios in the \code{Burr_InitValues} lookup
+#'   table, and the scale is then derived analytically from the sample
+#'   first L-moment and the matched shapes' unit-scale L-moment. The
+#'   mean exists only when \eqn{\theta < 1}, imposing an effective upper
+#'   bound on the tail index during optimisation. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#' @param order Integer vector of L-moment orders matched by the
+#'   optimiser. Default \code{1:5}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+#'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rburr(365, scale = 1.5, shape1 = 2, shape2 = 0.3),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' \dontrun{
+#' fit <- fitlm_burr(x)
+#' fit$Param
+#' }
 #'
 #' @export
 #'
@@ -1288,8 +1901,30 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
 #' @name Dagum
 #' @title Dagum Distribution
 #'
-#' @description Dagum distribution
+#' @description Three-parameter Dagum (Burr Type III) distribution with
+#'   scale \eqn{s}{s}, first shape \eqn{\alpha}{a} (\code{shape1}), and
+#'   second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
+#'   distribution is supported on \eqn{x > 0} and, unlike the Burr XII,
+#'   has a unimodal density with mode at the origin for certain parameter
+#'   ranges. L-moments are computed via closed-form Beta-function PWMs;
+#'   fitting uses L-BFGS-B minimisation seeded from the
+#'   \code{Dagum_InitValues} lookup table with scale-free L-ratio matching
+#'   and analytic scale derivation.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x > 0}{f(x) = 1/s * (x/s)^(-1/th - 1) * (1 + th/a * (x/s)^(-1/th))^(-a-1), x > 0}
+#'   where:
+#'   * \eqn{s}{s} --- scale parameter (\code{scale})
+#'   * \eqn{\alpha}{a} --- first shape parameter (\code{shape1}), controls upper-tail heaviness
+#'   * \eqn{\theta}{th} --- second shape parameter (\code{shape2}), tail index; the mean exists only when \eqn{\theta < 1}{th < 1}
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param scale scale parameter.
+#' @param shape1 first shape parameter.
+#' @param shape2 second shape parameter.
+#' @param PW probability weight (point mass at zero for zero-inflated variants).
 #' @export
 #'
 
@@ -1331,14 +1966,39 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 
 #' @title fitlm_dagum
 #'
-#' @description Function for fitting the Dagum distribution using the L-Moments method.
-#' Since there is not closed expression for the L-Moments of this distribution, the fitting must be done numerically.
-#' For this purpose we employ the lmom::pelp function which works by optimization and requires an initial set of parameters.
+#' @description Fits the three-parameter Dagum distribution to an xts
+#'   series by numerical minimisation of L-moments. Closed-form L-moment
+#'   expressions via Beta-function PWMs are evaluated at each optimisation
+#'   step. The L-BFGS-B optimiser minimises the normalised root-sum-square
+#'   error between the sample and theoretical L-moments of orders
+#'   specified by \code{order}. A two-step seeding procedure initialises
+#'   the shape parameters by min-max nearest-neighbour search over the
+#'   scale-free L-ratios in the \code{Dagum_InitValues} lookup table, and
+#'   the scale is derived analytically from the sample first L-moment and
+#'   the matched shapes' unit-scale L-moment. The mean exists only when
+#'   \eqn{\theta < 1}. Zero values below \code{zero_threshold} may be
+#'   excluded via \code{ignore_zeros}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Vector: The order of moments to the be matched. Can be discontinuous, e.g. 2,3,4
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#' @param order Integer vector of L-moment orders matched by the
+#'   optimiser. Default \code{1:5}.
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+#'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rdagum(365, scale = 1.5, shape1 = 2, shape2 = 0.3),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' \dontrun{
+#' fit <- fitlm_dagum(x)
+#' fit$Param
+#' }
 #'
 #' @export
 #'
@@ -1415,8 +2075,31 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
 #' @name ExpWeibull
 #' @title Exponential Weibull Distribution
 #'
-#' @description Exponential Weibull distribution
+#' @description Three-parameter Exponentiated Weibull distribution with
+#'   scale \eqn{s}{s}, first shape \eqn{a}{a} (\code{shape1}, the
+#'   Weibull shape), and second shape \eqn{b}{b} (\code{shape2}, the
+#'   exponentiation power). The distribution is supported on \eqn{x > 0}
+#'   and contains the ordinary Weibull (\eqn{b = 1}) and Exponential
+#'   (\eqn{a = 1, b = 1}) as special cases. L-moments are computed by
+#'   tanh-sinh (double-exponential) quadrature, which is well-conditioned
+#'   across the full positive parameter range. Fitting uses L-BFGS-B
+#'   minimisation seeded from the \code{ExpWeibull_InitValues} lookup
+#'   table with scale-free L-ratio matching and analytic scale derivation.
 #'
+#'   The probability density function is:
+#'   \deqn{f(x) = \frac{b a}{s} \left(\frac{x}{s}\right)^{a-1} \exp\left(-\left(\frac{x}{s}\right)^a\right) \left(1 - \exp\left(-\left(\frac{x}{s}\right)^a\right)\right)^{b-1}, \quad x > 0}{f(x) = b*a/s * (x/s)^(a-1) * exp(-(x/s)^a) * (1-exp(-(x/s)^a))^(b-1), x > 0}
+#'   where:
+#'   * \eqn{s}{s} --- scale parameter (\code{scale})
+#'   * \eqn{a}{a} --- first shape parameter (\code{shape1}), the Weibull shape; a = 1 gives the exponential baseline
+#'   * \eqn{b}{b} --- second shape parameter (\code{shape2}), the exponentiation power; b = 1 recovers the ordinary Weibull
+#'
+#' @param x,q vector of quantiles.
+#' @param p vector of probabilities.
+#' @param n number of observations. If \code{length(n) > 1}, the length is taken as the number required.
+#' @param scale scale parameter.
+#' @param shape1 first shape parameter.
+#' @param shape2 second shape parameter.
+#' @param log,log.p logical; if \code{TRUE}, probabilities p are given as log(p).
 #' @export
 #'
 
@@ -1453,15 +2136,41 @@ rexpweibull<- function(n,scale,shape1,shape2){
 
 #' @title fitlm_expweibull
 #'
-#' @description Function for fitting the Exponentiated Weibull distribution using the L-Moments method.
-#' Uses the fast closed-form tanh-sinh L-moment engine (lmom_expweibull) with a two-step seed
-#' (scale-free shape nearest-neighbour over ExpWeibull_InitValues, then analytic scale).
+#' @description Fits the three-parameter Exponentiated Weibull
+#'   distribution to an xts series by numerical minimisation of
+#'   L-moments. L-moments are computed at each optimisation step via a
+#'   fast tanh-sinh (double-exponential) quadrature engine
+#'   (\code{lmom_expweibull}), chosen for its well-conditioned behaviour
+#'   across the full positive parameter range. The L-BFGS-B optimiser
+#'   minimises the normalised root-sum-square error between the sample and
+#'   theoretical L-moments of orders specified by \code{order}. A
+#'   two-step seeding procedure initialises the shape parameters from the
+#'   \code{ExpWeibull_InitValues} lookup table and derives the scale
+#'   analytically. The distribution is meant to be fitted only to
+#'   non-negative data. Zero values below \code{zero_threshold} may be
+#'   excluded via \code{ignore_zeros}.
 #'
-#' @param x A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param order Integer vector of L-moment orders matched by the optimiser. Default 1:3 (exact
-#'   method-of-L-moments for the 3 parameters).
+#' @param x An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, values below
+#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Threshold below which values are treated
+#'   as zero. Default \code{0.01}.
+#' @param order Integer vector of L-moment orders matched by the
+#'   optimiser. Default \code{1:3} (exact method-of-L-moments for the
+#'   three parameters).
+#'
+#' @return A list with elements \code{Distribution}, \code{Param} (named
+#'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
+#'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
+#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'
+#' @examples
+#' x <- xts::xts(rexpweibull(365, scale = 3, shape1 = 1.5, shape2 = 2),
+#'               order.by = as.Date("2020-01-01") + 0:364)
+#' \dontrun{
+#' fit <- fitlm_expweibull(x)
+#' fit$Param
+#' }
 #'
 #' @export
 #'
@@ -1522,4 +2231,3 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order =
   return(Res)
 
 }
-

@@ -1,20 +1,38 @@
 #' @title normalise_xts
 #'
-#' @description This function normalizes an xts time series by transforming the data into standard normal
-#' distribution, either on a monthly basis or for the entire time series.
-#' Tranforming the data in the standard normal space can assist in visually identifying outliers.
-#' Using the monthly distribution to normalise the data can be useful in cyclo-stationary processes.
-#' In other cases, 'dist_period' should be set to NA.
+#' @description Empirical normal-score transform of an xts time series: values
+#'   are mapped to standard normal quantiles via their empirical cumulative
+#'   distribution function (ranking with average ties). Optionally applied
+#'   per calendar month to preserve seasonal structure in cyclo-stationary
+#'   processes.
 #'
+#' @param ts An xts object containing the time series data. Multi-column xts
+#'   are supported; each column is normalised independently.
+#' @param dist_period Character; the distribution period for normalisation.
+#'   Use \code{"monthly"} for per-calendar-month normalisation or \code{NA}
+#'   for the entire series. Default \code{"monthly"}.
+#' @param ignore_zeros Logical; if \code{TRUE}, zero values (at or below
+#'   \code{zero_threshold}) are excluded before normalisation. Default
+#'   \code{FALSE}.
+#' @param zero_threshold Numeric; threshold below which values are treated as
+#'   zero. Default \code{0.01}.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param dist_period The distribution period for normalization ('monthly' or NA).
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @return A named list of normalised xts objects, one per column of the input.
 #'
-#' @return A list of normalized xts time series.
+#' @examples
+#' # Synthetic daily precipitation
+#' set.seed(42)
+#' n <- 365 * 3
+#' dates <- seq(as.POSIXct("2000-01-01", tz = "UTC"), by = "day", length.out = n)
+#' precip <- pmax(0, rnorm(n, mean = 3, sd = 5))
+#' ts <- xts::xts(precip, order.by = dates)
 #'
-#' @examples TO BE FILLED
+#' # Monthly normal-score transform
+#' ns <- normalise_xts(ts, dist_period = "monthly")
+#' hist(zoo::coredata(ns[[1]]), main = "Normalised values")
+#'
+#' # Full-series transform
+#' ns_full <- normalise_xts(ts, dist_period = NA)
 #'
 #' @importFrom lubridate month
 #' @importFrom xts xts rbind.xts

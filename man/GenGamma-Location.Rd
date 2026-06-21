@@ -16,6 +16,39 @@ qgengamma_loc(p, location, scale, shape1, shape2)
 
 rgengamma_loc(n, location, scale, shape1, shape2)
 }
+\arguments{
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape1}{first shape parameter.}
+
+\item{shape2}{second shape parameter.}
+
+\item{x, q}{vector of quantiles.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Generalized Gamma with Location distribution
+Four-parameter Generalised Gamma distribution with
+location \eqn{\mu}{m}, scale \eqn{s}{s}, first shape
+\eqn{\alpha}{a}, and second shape \eqn{\beta}{b}. The distribution
+is lower-bounded at the location parameter and extends the
+three-parameter Stacy form by a shift. Fitting is delegated to
+\code{\link{fitlm_gengamma}} after subtracting the location from the
+data; the location is supplied by the user rather than fitted
+automatically. Density, distribution, quantile, and random generation
+functions are provided via \pkg{VGAM}.
+
+The probability density function is:
+\deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} (x-\mu)^{\alpha-1} \exp\left(-\left(\frac{x-\mu}{s}\right)^\beta\right), \quad x \ge \mu}{f(x) = b * (x-m)^(a-1) * exp(-((x-m)/s)^b) / (Gamma(a/b) * s^a), x >= m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{s}{s} --- scale parameter (\code{scale})
+\item \eqn{\alpha}{a} --- first shape parameter (\code{shape1})
+\item \eqn{\beta}{b} --- second shape parameter (\code{shape2})
+}
 }

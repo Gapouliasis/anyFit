@@ -1,30 +1,32 @@
 #' @title fit_ACF_monthly
 #'
-#' @description Function to fit theoretical Autocorrelation Functions (ACFs) to monthly values of timeseries data.
-#' Three functions are available, the Cauchy-type autocorrelation structure,
-#' the Hurst - Kolmogorov and the Short Range dependence structure.
+#' @description Wraps \code{\link{fit_ACF}} to fit ACF models separately
+#'   to each calendar-month sub-series of an xts object. The input series
+#'   is split by calendar month, \code{fit_ACF} is applied to each
+#'   resulting sub-series, and the fitted parameters are assembled into a
+#'   parameter matrix with months as rows. A 12-panel patchwork plot of
+#'   fitted ACF curves is produced, with empty panels for months absent
+#'   from the data. The grid layout is controlled by \code{nrow} and
+#'   \code{ncol}. The three model types (CAS, HK, SRD) supported by
+#'   \code{fit_ACF} are available and may be specified singly or in
+#'   combination.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param lag_max Maximum lag to use in fitting.
-#' @param type A list of character strings, containing the type of ACF to fit.
-#'   Options include: \code{'CAS'}, \code{'HK'}, and \code{'SRD'}.
-#' @param nrow Number of rows for plotting.
-#' @param ncol Number of columns for plotting.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param ts An xts object containing the time series data.
+#' @param lag Integer. Maximum lag passed to \code{fit_ACF}.
+#' @param type Character vector of ACF model types. Options are
+#'   \code{"CAS"}, \code{"HK"}, and \code{"SRD"}. Default all three.
+#' @param nrow Integer. Number of rows in the panel grid. Default \code{4}.
+#' @param ncol Integer. Number of columns in the panel grid. Default
+#'   \code{3}.
 #'
-#' @return A list containing a vector of monthly fitted parameters, a data frame of
-#'   fitted ACF values, and a plot of the fitted ACFs.
+#' @return A list with elements \code{ACF_params_monthly} (matrix of
+#'   fitted parameters with months as rows) and
+#'   \code{ACF_monthly_plot} (12-panel patchwork of fitted ACF
+#'   \code{ggplot} objects with a shared legend).
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
-#'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#' monthly_acfs <- fit_ACF_monthly(data[,4], lag = 10)
+#' ts <- xts::xts(rnorm(365), order.by = as.Date("2020-01-01") + 0:364)
+#' monthly_acfs <- fit_ACF_monthly(ts, lag = 10)
 #' monthly_acfs$ACF_monthly_plot
 #'
 #' @export
@@ -37,7 +39,7 @@ fit_ACF_monthly <- function(ts,lag,type = list('CAS','HK','SRD'), nrow = 4, ncol
     month_name[i] <- month.name[i]
     I <- which(month(ts) == i)
     monthly_ts <- ts[I]
-    monthly_acf <- fit_ACF(ts = monthly_ts, lag = lag, type = type)
+    monthly_acf <- fit_ACF(ts = monthly_ts, lag_max = lag, type = type)
     monthly_acf$ACF_plot <- monthly_acf$ACF_plot + ggtitle(month.name[i]) +
       theme(legend.position = "bottom")
     assign(sprintf('plot_%i',i),monthly_acf$ACF_plot)

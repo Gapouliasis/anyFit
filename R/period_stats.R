@@ -1,40 +1,43 @@
-#' @title period_stats
+#' Period-based summary statistics
 #'
-#' @description Function to calculate period based basic statistics. Specifically, the number of data points,
-#' number of missing data, percentage of missing data, min, max, mean, variance,
-#' standard deviation, variation, 3rd moment, skewness, kurtosis, l-statistics, i.e. mean, scale,
-#' 3rd and 4th order l-moments, l-moment variation, l-moment skewness, l-moment kurtosis,
-#' quantiles of 5, 25, 50, 75 and 95, and the inter quartile range.
+#' @description
+#' Computes a comprehensive suite of period-based summary statistics for
+#' one or more time series. Statistics include count, missing-data
+#' diagnostics, min, max, mean, variance, standard deviation, coefficient
+#' of variation, third moment, skewness, kurtosis, L-moments (mean, scale,
+#' L3, L4, L-CV, L-skewness, L-kurtosis), quantiles (5, 25, 50, 75, 95),
+#' and inter-quartile range. Each statistic is computed column-wise per
+#' period using \code{matrixStats} with
+#' \code{na.rm = TRUE}; L-moments are computed independently via
+#' \code{lmom::samlmu} since no column-wise matrixStats equivalent
+#' exists. The result is a named list of xts objects, one per statistic,
+#' each with one row per period and one column per input series. Accepts
+#' any period supported by \code{xts::endpoints} (e.g. \code{"months"},
+#' \code{"years"}) with an optional multiplier for custom period lengths.
 #'
-#' Accepts a multi-column (wide) xts: every statistic is computed column-wise for
-#' each period using single-pass \code{matrixStats} reducers (NA-robust, i.e.
-#' \code{na.rm = TRUE}). The result is one xts per statistic.
-#'
-#' @param ts a xts object containing the time series data
-#' @param period a period for which to calculate statistics. Default is 'months'
-#' @param period_multiplier a multiplier to define arbitrary periods based on the period argument.
-#' E.g. 2 months, 3 years etc. Default is 1.
+#' @param ts An xts object containing the time series data.
+#' @param period A period string passed to \code{endpoints} (default \code{"months"}).
+#' @param period_multiplier Integer multiplier for custom period lengths (default 1).
 #'
 #' @return A named list with one element per statistic (\code{NumofData},
-#' \code{NumofMisData}, \code{PercOfMissingData}, \code{Min}, \code{Max},
-#' \code{Mean}, \code{Var}, \code{StDev}, \code{Variation}, \code{Mom3},
-#' \code{Skewness}, \code{Kurtosis}, \code{LMean}, \code{LScale}, \code{L3},
-#' \code{L4}, \code{LVariation}, \code{LSkewness}, \code{LKurtosis}, \code{Q5},
-#' \code{Q25}, \code{Q50}, \code{Q75}, \code{Q95}, \code{IQR}). Each element is an
-#' xts with one row per period and one column per input series (columns named
-#' after the input).
+#'   \code{NumofMisData}, \code{PercOfMissingData}, \code{Min}, \code{Max},
+#'   \code{Mean}, \code{Var}, \code{StDev}, \code{Variation}, \code{Mom3},
+#'   \code{Skewness}, \code{Kurtosis}, \code{LMean}, \code{LScale}, \code{L3},
+#'   \code{L4}, \code{LVariation}, \code{LSkewness}, \code{LKurtosis}, \code{Q5},
+#'   \code{Q25}, \code{Q50}, \code{Q75}, \code{Q95}, \code{IQR}). Each element is an
+#'   xts with one row per period and one column per input series.
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Synthetic xts
+#' set.seed(123)
+#' dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-12-31"), by = "day")
+#' vals <- matrix(rnorm(length(dates) * 3, 10, 5), nrow = length(dates), ncol = 3)
+#' colnames(vals) <- c("A", "B", "C")
+#' ts <- xts::xts(vals, order.by = dates)
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#' # Wide input: statistics computed per column, per period
-#' pstats <- period_stats(data[, 1:4], period = "months", period_multiplier = 3)
-#' pstats$Mean   # xts of period means, one column per series
+#' # Statistics per 3-month periods
+#' pstats <- period_stats(ts, period = "months", period_multiplier = 3)
+#' pstats$Mean
 #' pstats$Q95
 #'
 #' @importFrom xts endpoints period.apply xts
@@ -90,6 +93,16 @@ period_stats <-function(ts, period = 'months', period_multiplier = 1){
        Q5 = Q5, Q25 = Q25, Q50 = Q50, Q75 = Q75, Q95 = Q95, IQR = IQR)
 }
 
+#' Column-wise moment statistics
+#'
+#' @description
+#' Computes column-wise skewness, kurtosis, or third central moment (Mom3)
+#' for a period slice, NA-robust. Switches on the \code{which} argument:
+#' \code{"skewness"} returns the population skewness,
+#' \code{"kurtosis"} the population (non-excess) kurtosis, and any other
+#' value returns Mom3 = \eqn{\sum(x-\mu)^3 / (n-1)}{sum((x-m)^3)/(n-1)}.
+#'
+#' @noRd
 # Column-wise central-moment statistic for a period slice (NA-robust). Reproduces
 # moments::skewness / moments::kurtosis (population / non-excess) and the
 # original Mom3 = sum((x-mean)^3)/(n-1).
@@ -104,6 +117,15 @@ period_stats <-function(ts, period = 'months', period_multiplier = 1){
   matrixStats::colSums2(xc^3, na.rm = TRUE) / (nobs - 1)
 }
 
+#' Per-period L-moments
+#'
+#' @description
+#' Computes per-period, per-column L-moments via \code{lmom::samlmu}, returning
+#' one xts per L-statistic aligned to the period timestamps in
+#' \code{order.by}. Handles both single-column and multi-column xts inputs.
+#' Re-uses \code{.basic_stats_lmom} from \code{basic_stats.R}.
+#'
+#' @noRd
 # Per-period, per-column L-moments, returned as one xts per L-statistic aligned
 # to the period timestamps in order.by. Reuses .basic_stats_lmom (basic_stats.R).
 .period_lmoments <- function(ts, ep, order.by){

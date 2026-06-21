@@ -1,11 +1,19 @@
-# Worker factories live at NAMESPACE top level (not inside fitlm_nxts) so the
-# closures they return have the package namespace as their parent environment and
-# therefore do NOT capture the caller's grid `ts`. A factory defined inside
-# fitlm_nxts would chain back to that frame and drag the whole grid into every
-# future export (gigabytes) -- the exact bug this design exists to avoid.
-# They precede the roxygen block below on purpose: a roxygen block attaches to the
-# NEXT object, so keeping these above it (with no roxygen tags) leaves fitlm_nxts'
-# documentation correctly bound to fitlm_nxts.
+#' Create a Per-Column Fitting Worker
+#'
+#' Closure factory that returns a function applying \code{\link{fitlm_multi}} to
+#' each column of a data chunk. Isolates candidate, zero-filtering, and plotting
+#' parameters from the outer calling environment so the returned closure can be
+#' safely exported to \pkg{future} workers without capturing large grid objects.
+#'
+#' @param candidates A list of distribution names to fit.
+#' @param ignore_zeros Logical; exclude zeros if \code{TRUE}.
+#' @param zero_threshold Numeric threshold for zero filtering.
+#' @param diagnostic_plots Logical; produce diagnostic plots if \code{TRUE}.
+#' @param order Named list of L-moment orders per candidate.
+#'
+#' @return A function that takes a data chunk and returns a list of
+#'   \code{fitlm_multi} results, one per column.
+#' @noRd
 .make_col_worker <- function(candidates, ignore_zeros, zero_threshold, diagnostic_plots, order) {
   force(candidates); force(ignore_zeros); force(zero_threshold); force(diagnostic_plots); force(order)
   function(chunk) lapply(seq_len(ncol(chunk)), function(j)
@@ -14,6 +22,20 @@
                 diagnostic_plots = diagnostic_plots, order = order))
 }
 
+#' Create a Bigmemory-Backed Fitting Worker
+#'
+#' Closure factory that returns a function which attaches a bigmemory descriptor
+#' inside each \pkg{future} worker, extracts the assigned columns from the
+#' shared memory-mapped matrix, and passes them to a column-wise fitting function.
+#' The worker releases the memory map after copying its slice so the master
+#' process can safely unlink the backing file.
+#'
+#' @param run_chunk A function taking a data chunk and returning fitting results.
+#' @param desc A bigmemory descriptor object.
+#'
+#' @return A function that takes a column-index vector and returns fitting
+#'   results for those columns.
+#' @noRd
 .make_mmap_worker <- function(run_chunk, desc) {
   force(run_chunk); force(desc)
   function(cols) {
@@ -24,43 +46,57 @@
   }
 }
 
-#' @title fitlm_nxts
+#' Fit Distributions to Multiple Time Series
 #'
-#' @description This function fits a list of candidate distributions using the L-moments method
-#' to an arbitrary number of timeseries in xts format. Additionally to the list of the fitted parameters,
-#'  goodness-of-fit metric, PP and QQ plots.
+#' @description Fits a set of candidate probability distributions to every column
+#' of an xts object using the L-moment method. The function wraps
+#' \code{\link{fitlm_multi}} for each series and collects the estimated parameters,
+#' goodness-of-fit metrics, and diagnostic plots (Q-Q, P-P) into a list.
+#' When \code{parallel = TRUE}, the work is distributed across available cores
+#' via the \pkg{future} framework, with either file-backed shared memory (bigmemory
+#' memory-mapped matrices for single-machine parallelism) or serialised column chunks
+#' (for multi-node clusters). File-backed shared memory can be enabled by \code{shared_memory = TRUE}. 
+#' This is reccomended for single machine usage and especially windows for efficiency and reduced RAM consumption. 
+#' Panel layouts of the per-series Q-Q and P-P plots are
+#' assembled via \pkg{patchwork} in pages of \code{nrow} by \code{ncol} sub-plots.
+#' This function is designed for large ensembles of grid cells or stations where
+#' fitting individually would be impractical.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param candidates A list of distribution to fit.
-#' @param nrow Number of rows for plotting.
-#' @param ncol Number of columns for plotting.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
-#' @param parallel Logical, whether to use parallel processing.
-#' @param ncores Number of cores to use in the case of parallel computations
-#' @param shared_memory Logical, when parallel, share the grid with workers via a
-#'   filebacked big.matrix (mmap, single machine) instead of serializing column
-#'   chunks. Set FALSE for multi-node \code{plan(cluster)} setups. Default TRUE.
-#' @param diagnostic_plots A logical value, controls the output of diagnostic plots
-#' @param order Optional named list mapping a candidate name to the vector of L-moment
-#'   orders matched by its optimiser, e.g. \code{list(gengamma = 1:5, expweibull = 1:3)}.
-#'   Only the numerically-fitted distributions accept it; passed through to
-#'   \code{\link{fitlm_multi}}. Default NULL.
+#' @param ts An xts object containing the time series data (multiple columns).
+#' @param candidates A list of distribution names to fit (e.g. \code{list('exp','gamma3','gengamma')}).
+#' @param nrow Number of rows per panel page in the diagnostic-plot grid.
+#' @param ncol Number of columns per panel page in the diagnostic-plot grid.
+#' @param ignore_zeros Logical. If \code{TRUE}, zeros are excluded before fitting. Default \code{FALSE}.
+#' @param zero_threshold Numeric. Values below this threshold are treated as zero. Default 0.01.
+#' @param parallel Logical. If \code{TRUE}, use parallel processing via \pkg{future}. Default \code{FALSE}.
+#' @param ncores Number of worker processes when \code{parallel = TRUE} and no
+#'   pre-existing \code{future::plan()} is set. Default 2.
+#' @param shared_memory Logical. When \code{parallel = TRUE}, share the data grid
+#'   with workers via a file-backed bigmatrix (memory-mapped, single machine only).
+#'   Set \code{FALSE} for multi-node \code{plan(cluster)} setups. Default \code{TRUE}.
+#' @param diagnostic_plots Logical. If \code{TRUE}, produce Q-Q and P-P diagnostic
+#'   plots. Default \code{TRUE}.
+#' @param order Optional named list mapping candidate distribution names to the
+#'   vector of L-moment orders used by their optimiser, e.g.
+#'   \code{list(gengamma = 1:5, expweibull = 1:3)}. Passed through to
+#'   \code{\link{fitlm_multi}}. Default \code{NULL}.
 #'
-#' @return A list with the estimated parameters, diagnostic plots, QQ plots and PP plots.
+#' @return A list with elements \code{params} (per-column parameter tables and
+#'   GoF summaries), and, if \code{diagnostic_plots = TRUE}, \code{diagnostic_plots},
+#'   \code{QQ_plots}, \code{PP_plots}, \code{QQ_panels}, and \code{PP_panels}.
 #'
 #' @examples
-#'file_path <- system.file("extdata", "KNMI_Daily.csv", package = "anyFit")
-#'time_zone <- "UTC"
-#'time_step <- "1 day"
+#' # Synthetic daily data: 3 stations, 10 years
+#' set.seed(123)
+#' n <- 3650
+#' ts <- xts::xts(cbind(station1 = rgamma(n, shape = 2, scale = 5),
+#'                 station2 = rgamma(n, shape = 3, scale = 7),
+#'                 station3 = rgamma(n, shape = 2.5, scale = 6)),
+#'           order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = n))
 #'
-#'data <- delim2xts(file_path = file_path,
-#'                  time_zone = "UTC", delim = " ", time_step = time_step)
-#'
-#' candidates <- list('exp','expweibull', 'gamma3')
-#'
-#' fits_all <- fitlm_nxts(data, candidates, nrow = 5, ncol = 4, ignore_zeros = TRUE)
-#' fits_all$QQ_panels[[1]]
+#' fits <- fitlm_nxts(ts, candidates = list('exp','gamma3'),
+#'                    nrow = 2, ncol = 2, ignore_zeros = FALSE)
+#' fits$params[[1]]
 #'
 #' @export
 fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
@@ -168,4 +204,3 @@ fitlm_nxts <- function(ts, candidates, nrow = 5, ncol = 4, ignore_zeros = FALSE,
 
   return(list_out)
 }
-

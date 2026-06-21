@@ -1,15 +1,47 @@
-#' @title sxts Class - Spatial eXtensible Time Series
+#' Spatial xts (sxts) class
 #'
-#' @description A spatial extension of xts class using attributes to store
-#' spatial information. This approach is more elegant and memory-efficient.
-#' Create a spatial xts (sxts) object
+#' @description
+#' Spatial extension of the xts class that stores coordinates, projection,
+#' and element count as object attributes rather than slots, keeping memory
+#' overhead low and allowing standard xts operations to work transparently.
+#' The constructor validates that the number of coordinate rows matches the
+#' number of data columns and that \code{coords} has at least two columns
+#' (x and y).
 #'
-#' @param data Matrix or data.frame of time series data
-#' @param order.by POSIXct vector for time index
-#' @param coords A data.frame or matrix with coordinates (x, y columns)
-#' @param projection Character string specifying the coordinate reference system
-#' @param ... Additional arguments passed to xts()
-#' @return An sxts object
+#' @param data Matrix or data.frame of time series data.
+#' @param order.by POSIXct vector for the time index.
+#' @param coords A data.frame or matrix with coordinates (x, y columns).
+#' @param projection Character string specifying the coordinate reference system.
+#' @param object,x,obj An xts or sxts object.
+#' @param i,j Row and column indices for subsetting.
+#' @param drop Logical; whether to drop dimensions (passed to \code{NextMethod("[")}).
+#' @param k Number of periods to shift (passed to \code{lag}).
+#' @param lag Integer; number of periods to lag (passed to \code{diff}).
+#' @param differences Integer; order of differencing (passed to \code{diff}).
+#' @param e1,e2 Operands for arithmetic and comparison operations.
+#' @param xlim Numeric vector of length 2; x-axis bounding box limits.
+#' @param ylim Numeric vector of length 2; y-axis bounding box limits.
+#' @param shapefile_name Character; path to a shapefile for spatial masking.
+#' @param mask An \code{sf} or \code{Spatial*} object used as a spatial mask.
+#' @param raster A \code{Raster*} object to convert to an sxts object.
+#' @param ... Additional arguments passed to \code{xts()}.
+#'
+#' @return An sxts object.
+#'
+#' @examples
+#' # Synthetic sxts
+#' set.seed(123)
+#' dates <- seq(as.POSIXct("2000-01-01"), as.POSIXct("2000-01-10"), by = "day")
+#' coords <- data.frame(x = c(1, 2, 3, 4), y = c(1, 1, 1, 1))
+#' vals <- matrix(rnorm(length(dates) * 4, 10, 5), nrow = length(dates), ncol = 4)
+#' ncdf_sxts <- sxts(vals, order.by = dates, coords = coords,
+#'                   projection = "+proj=longlat")
+#' str(ncdf_sxts)
+#' summary(ncdf_sxts)
+#'
+#' # Subsetting preserves spatial attributes
+#' ncdf_sxts[1:5, 1:2]
+#'
 #' @export
 sxts <- function(data, order.by, coords = NULL, projection = NULL) {
   obj <- xts::xts(data, order.by)  # Create an xts obj
@@ -36,6 +68,12 @@ sxts <- function(data, order.by, coords = NULL, projection = NULL) {
   return(obj)
 }
 
+#' Structure of an sxts object
+#'
+#' @description
+#' \code{str.sxts} Prints the structure of an sxts object, displaying spatial extent,
+#' projection, number of elements, and the range of dates.
+#'
 #' @rdname sxts
 #' @export
 str.sxts <- function(object, ...) {
@@ -52,14 +90,20 @@ str.sxts <- function(object, ...) {
 
 
 # Custom summary method for 'sxts'
+#' Summary of an sxts object
+#'
+#' @description
+#' \code{summaruy.sxts} Summarises an sxts object by reporting element count, date range, time
+#' step regularity, spatial projection and extent, and value range.
+#'
 #' @rdname sxts
 #' @export
-summary.sxts <- function(obj, ...) {
+summary.sxts <- function(object, ...) {
   cat("Summary of sxts object:\n")
-  cat("Number of elements:", ncol(obj), "\n")
-  cat("Number of dates:", nrow(obj), "\n")
-  cat("Range of dates is from:", as.character(min(index(obj))), "to:",  as.character(max(index(obj))), "\n")
-  time_diff <- diff(index(obj))
+  cat("Number of elements:", ncol(object), "\n")
+  cat("Number of dates:", nrow(object), "\n")
+  cat("Range of dates is from:", as.character(min(index(object))), "to:",  as.character(max(index(object))), "\n")
+  time_diff <- diff(index(object))
   if (length(unique(time_diff)) == 1) {
     cat("Time step is:",  "Strict", "\n")
     cat("Time step is:",   as.numeric(time_diff[1], units = "hours") , "hours",  "\n")
@@ -68,17 +112,23 @@ summary.sxts <- function(obj, ...) {
     cat("Min time step is:",  as.numeric(min(time_diff[1]), units = "hours") , "hours", "\n")
     cat("Max time step is:",  as.numeric(max(time_diff[1]), units = "hours") , "hours", "\n")
   }
-  cat("Number of dates:", nrow(obj), "\n")
-  cat("Spatial projection:", attr(obj, "projection"), "\n")
-  cat("Spatial extent is:", min(attr(obj, "coords")[,1]), ",", max(attr(obj, "coords")[,1]), ",",
-      min(attr(obj, "coords")[,2]), ",", max(attr(obj, "coords")[,2]), " (xmin, xmax, ymin, ymax)", "\n")
-  cat("Min value is:", min(obj),  "\n")
-  cat("Max value is:", max(obj),  "\n")
+  cat("Number of dates:", nrow(object), "\n")
+  cat("Spatial projection:", attr(object, "projection"), "\n")
+  cat("Spatial extent is:", min(attr(object, "coords")[,1]), ",", max(attr(object, "coords")[,1]), ",",
+      min(attr(object, "coords")[,2]), ",", max(attr(object, "coords")[,2]), " (xmin, xmax, ymin, ymax)", "\n")
+  cat("Min value is:", min(object),  "\n")
+  cat("Max value is:", max(object),  "\n")
   # NextMethod("summary")  # Call the default summary method for xts
 }
 
 
 # Print method
+#' Print an sxts object
+#'
+#' @description
+#' \code{print.sxts} Prints a compact summary of an sxts object including spatial extent,
+#' projection, and dimensions.
+#'
 #' @rdname sxts
 #' @export
 print.sxts <- function(x, ...) {
@@ -101,10 +151,23 @@ print.sxts <- function(x, ...) {
 }
 
 # Null-default operator
+#' Null-default infix operator
+#'
+#' @description
+#' Returns the left-hand side unless it is \code{NULL}, in which case
+#' returns the right-hand side.
+#'
+#' @noRd
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 
 # Method to retrieve the additional attributes
+#' Retrieve sxts spatial attributes
+#'
+#' @description
+#' \code{attributes.sxts} Returns a named list of the three spatial attributes (\code{elements},
+#' \code{coords}, \code{projection}) stored in an sxts object.
+#'
 #' @rdname sxts
 #' @export
 attributes.sxts <- function(obj) {
@@ -117,36 +180,57 @@ attributes.sxts <- function(obj) {
 
 
 # Accessor functions for attributes
-#' @rdname sxts
+#' Spatial coordinates of an sxts object
+#'
+#' @description
+#' S3 generic for retrieving the spatial coordinates data frame from an object.
+#'
 #' @export
 coords <- function(x) {
   UseMethod("coords")
 }
 
+#' @description
+#' \code{coords.sxts} Returns the spatial coordinates data frame attached to an sxts object.
+#'
 #' @rdname sxts
 #' @export
 coords.sxts <- function(x) {
   attr(x, "coords")
 }
 
-#' @rdname sxts
+#' Coordinate reference system of an sxts object
+#'
+#' @description
+#' S3 generic for retrieving the coordinate reference system string from an object.
+#'
 #' @export
 projection <- function(x) {
   UseMethod("projection")
 }
 
+#' @description
+#' \code{projection.sxts} Returns the coordinate reference system (CRS) string attached to an sxts object.
+#'
 #' @rdname sxts
 #' @export
 projection.sxts <- function(x) {
   attr(x, "projection")
 }
 
-#' @rdname sxts
+#' Number of spatial locations in an sxts object
+#'
+#' @description
+#' S3 generic for retrieving the number of spatial locations from an object.
+#'
 #' @export
 elements <- function(x) {
   UseMethod("elements")
 }
 
+#' @description
+#' \code{elements.sxts} Returns the number of spatial locations (columns) in an sxts object.
+#'
 #' @rdname sxts
 #' @export
 elements.sxts <- function(x) {
@@ -154,6 +238,13 @@ elements.sxts <- function(x) {
 }
 
 # Subset method that preserves sxts attributes
+#' Subset sxts objects preserving spatial attributes
+#'
+#' @description
+#' \code{[} Subset method for sxts objects that preserves spatial attributes. When
+#' \code{j} is specified, coordinates are subset to match the selected
+#' columns and the spatial element count is updated accordingly.
+#'
 #' @rdname sxts
 #' @export
 `[.sxts` <- function(x, i, j, drop = FALSE, ...) {
@@ -184,12 +275,25 @@ elements.sxts <- function(x) {
 
 
 # Validation function
+#' Test for sxts class
+#'
+#' @description
+#' \code{is.sxts} Tests whether an object inherits from the \code{sxts} class.
+#'
 #' @rdname sxts
 #' @export
 is.sxts <- function(x) {
   inherits(x, "sxts")
 }
 
+#' Re-attach sxts spatial attributes
+#'
+#' @description
+#' \code{restore_sxts} Re-attaches the sxts class and spatial attributes (\code{description},
+#' \code{projection}, \code{coords}, \code{elements}) to a result object
+#' after \code{NextMethod} operations that strip them.
+#'
+#' @noRd
 restore_sxts <- function(result, original) {
   if (xts::is.xts(result)) {
     class(result) <- c("sxts", class(result))
@@ -203,6 +307,13 @@ restore_sxts <- function(result, original) {
 }
 
 # S3 Methods (these work with NextMethod)
+#' Lag method for sxts objects
+#'
+#' @description
+#' \code{lag.sxts} Lag method that dispatches to \code{NextMethod("lag")} and re-attaches
+#' spatial attributes via \code{restore_sxts}.
+#'
+#' @importFrom stats lag
 #' @rdname sxts
 #' @export
 lag.sxts <- function(x, k = 1, ...) {
@@ -210,6 +321,12 @@ lag.sxts <- function(x, k = 1, ...) {
   restore_sxts(result, x)
 }
 
+#' Diff method for sxts objects
+#'
+#' @description
+#' \code{diff.sxts} Diff method that dispatches to \code{NextMethod("diff")} and re-attaches
+#' spatial attributes via \code{restore_sxts}.
+#'
 #' @rdname sxts
 #' @export
 diff.sxts <- function(x, lag = 1, differences = 1, ...) {
@@ -217,6 +334,13 @@ diff.sxts <- function(x, lag = 1, differences = 1, ...) {
   restore_sxts(result, x)
 }
 
+#' Arithmetic operations for sxts objects
+#'
+#' @description
+#' \code{Ops.sxts} Group method for arithmetic and comparison operators. Dispatches via
+#' \code{NextMethod("Ops")} and preserves spatial attributes from whichever
+#' operand is an sxts object.
+#'
 #' @rdname sxts
 #' @export
 Ops.sxts <- function(e1, e2) {
@@ -230,9 +354,16 @@ Ops.sxts <- function(e1, e2) {
   }
 }
 
-#' Simple mask for sxts
-#' @rdname sxts
-#' @importFrom sf st_crs st_transform st_as_sf st_within st_union st_coordinates NA_crs_
+#' Spatial masking of sxts objects
+#'
+#' @description
+#' Spatially subsets an sxts object by bounding box (\code{xlim},
+#' \code{ylim}), country name, continent name, or a shapefile. When using
+#' polygons, point-in-polygon membership is determined via
+#' \code{sf::st_within} with CRS-aware coordinate transformation between the
+#' sxts CRS and the mask CRS. Points falling outside the mask are dropped.
+#'
+#' @importFrom sf st_read st_crs st_transform st_as_sf st_within st_union st_coordinates NA_crs_
 #' @export
 #'
 mask.sxts <- function(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA) {
@@ -282,17 +413,28 @@ mask.sxts <- function(obj, xlim = NA, ylim = NA, shapefile_name = NA, mask = NA)
 
 
 # S3 generic for sxts -> raster conversion
+#' Convert sxts to RasterBrick
+#'
+#' @description
+#' S3 generic for converting an sxts object to a \code{RasterBrick}.
+#'
+#' @param x An sxts object.
+#' @param ... Additional arguments passed to methods.
 #' @export
 rasterFromSxts <- function(x, ...) UseMethod("rasterFromSxts")
 
 # Add a sxts to raster method
+#' @description
+#' \code{rasterFromSxts.sxts} Converts an sxts object to a \code{RasterBrick}, preserving coordinates,
+#' projection, and time-indexed layers.
+#'
 #' @rdname sxts
 #' @export
-rasterFromSxts.sxts <- function(obj, ...){
-  coords <- attr(obj, "coords")
-  proj_str <- attr(obj, "projection")
-  dates <- index(obj)
-  temp_matrix <- cbind(coords, t(coredata(obj)))
+rasterFromSxts.sxts <- function(x, ...){
+  coords <- attr(x, "coords")
+  proj_str <- attr(x, "projection")
+  dates <- index(x)
+  temp_matrix <- cbind(coords, t(coredata(x)))
   new_raster <- raster::rasterFromXYZ(temp_matrix)
   raster::projection(new_raster) <- proj_str
   new_raster <- raster::setZ(new_raster, as.character(dates))
@@ -301,6 +443,12 @@ rasterFromSxts.sxts <- function(obj, ...){
 }
 
 # Convert a Raster object to an sxts object
+#' Convert Raster to sxts
+#'
+#' @description
+#' \code{sxtsFromRaster} Converts a \code{Raster*} object to an sxts object, auto-detecting date
+#' formats from layer names via \code{lubridate::parse_date_time}.
+#'
 #' @rdname sxts
 #' @export
 sxtsFromRaster <- function(raster, ...){
@@ -332,10 +480,11 @@ sxtsFromRaster <- function(raster, ...){
 
 #' Aggregate sxts over shapefile polygons (zonal statistics)
 #'
-#' @description For each polygon, finds all sxts spatial points that fall
-#' within it and aggregates them row-wise (per time step) using \code{FUN}.
-#' Returns a plain \code{xts} with polygon names as column names. Points that
-#' do not fall within any polygon are silently dropped.
+#' @description
+#' For each polygon, finds all sxts spatial points that fall within it and
+#' aggregates them row-wise (per time step) using \code{FUN}. Returns a
+#' plain \code{xts} with polygon names as column names. Points that do not
+#' fall within any polygon are silently dropped.
 #'
 #' The polygon source can be supplied in three ways (mutually exclusive):
 #' \itemize{
@@ -347,20 +496,28 @@ sxtsFromRaster <- function(raster, ...){
 #'         yields one output column per country within the continent.
 #' }
 #'
-#' @param x An \code{sxts} object
-#' @param shapefile An \code{sf} object, \code{Spatial*} object, or file path to a shapefile
-#' @param name_col Character; column in \code{shapefile} whose values become output column names
-#' @param country Character; country name (matches \code{world_data$name})
-#' @param continent Character; continent name (matches \code{world_data$continent})
-#' @param FUN Aggregation function applied row-wise within each polygon (default: \code{mean})
-#' @param ... Additional arguments forwarded to \code{FUN} (e.g. \code{na.rm = TRUE})
-#' @return A plain \code{xts} with one column per polygon that contains at least one sxts point
+#' @param x An \code{sxts} object.
+#' @param shapefile An \code{sf} object, \code{Spatial*} object, or file path to a shapefile.
+#' @param name_col Character; column in \code{shapefile} whose values become output column names.
+#' @param country Character; country name (matches \code{world_data$name}).
+#' @param continent Character; continent name (matches \code{world_data$continent}).
+#' @param FUN Aggregation function applied row-wise within each polygon (default: \code{mean}).
+#' @param ... Additional arguments forwarded to \code{FUN} (e.g. \code{na.rm = TRUE}).
+#'
+#' @return A plain \code{xts} with one column per polygon that contains at
+#'   least one sxts point.
+#'
 #' @importFrom sf st_read st_as_sf st_crs st_transform st_within NA_crs_
 #' @export
 zonal_stats <- function(x, ...) {
   UseMethod("zonal_stats")
 }
 
+#' @description
+#' Aggregates sxts cells within polygon zones (shapefile, country, or
+#' continent), returning a plain xts with one column per zone. Points
+#' outside all zones are dropped.
+#'
 #' @rdname zonal_stats
 #' @export
 zonal_stats.sxts <- function(x, shapefile = NULL, name_col = NULL,
@@ -440,15 +597,16 @@ zonal_stats.sxts <- function(x, shapefile = NULL, name_col = NULL,
 
 #' Fast row-bind of a list of sxts objects
 #'
-#' Drop-in replacement for `do.call(rbind.xts, list)` that is much faster and
-#' lighter on memory. `rbind.xts` merges objects pairwise, re-checking the index
-#' and copying attributes at every step. This collects the bare coordinate data
-#' once and rebuilds a single `sxts` object, so the time index is concatenated
-#' and the data matrices are bound in one pass.
+#' @description
+#' Drop-in replacement for \code{do.call(rbind.xts, list)} that binds a list
+#' of sxts objects by rows in a single pass, avoiding the O(n^2) complexity
+#' of pairwise merging. Coordinates and projection are taken from the first
+#' element.
 #'
-#' @param sxts_list A list of `sxts` objects sharing the same columns (spatial
-#'   locations). Coordinates and projection are taken from the first element.
-#' @rdname sxts
+#' @param sxts_list A list of \code{sxts} objects sharing the same columns
+#'   (spatial locations). Coordinates and projection are taken from the
+#'   first element.
+#'
 #' @importFrom xts xts
 #' @importFrom zoo index coredata
 #' @export

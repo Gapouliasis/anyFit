@@ -1,15 +1,23 @@
-#' @title monthly_ecdf
+#' Monthly Empirical CDF Grid
 #'
-#' @description This function takes a time series and generates a grid of monthly Empirical
-#' Cumulative Distribution Function (ECDF) plots for each month in the time series.
+#' @description Generates a 12-panel grid of empirical cumulative distribution
+#' function plots, one per calendar month. Supports multi-column xts input with
+#' series distinguished by colour.
 #'
-#' @param ts A xts object containing the time series data.
-#' @param ignore_zeros A logical value, if TRUE zeros will be ignored when computing the statistics. Default is FALSE.
-#' @param zero_threshold The threshold below which values are considered zero. Default is 0.01.
+#' @param ts An xts object containing the time series data.
+#' @param ignore_zeros Logical. If \code{TRUE}, zeros are excluded. Default
+#'   \code{FALSE}.
+#' @param zero_threshold Numeric. Values below this threshold are treated as
+#'   zero. Default 0.01.
 #'
-#' @return A grid of monthly ECDF plots.
+#' @return A \pkg{patchwork} grid of ggplot ECDF panels (4 rows by 3 columns).
 #'
-#' @examples TO BE FILLED
+#' @examples
+#' # Synthetic daily data
+#' set.seed(42)
+#' ts <- xts::xts(rgamma(3650, shape = 2, scale = 5),
+#'           order.by = seq.Date(as.Date("2000-01-01"), by = "day", length.out = 3650))
+#' monthly_ecdf(ts)
 #'
 #' @importFrom ggplot2 ggplot aes geom_point ggtitle scale_color_brewer labs theme element_text
 #' @importFrom lubridate month
@@ -41,7 +49,7 @@ monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
     monthly_ecdf_long = reshape2::melt(monthly_ecdf)
     monthly_ecdf_long$q = monthly_ts_long$value
 
-    monthly_ecdf_plot = ggplot(monthly_ecdf_long, aes(x = q, y = value, color = Var2)) +
+    monthly_ecdf_plot = ggplot(monthly_ecdf_long, aes(x = q, y = value, color = factor(Var2))) +
       geom_point(shape = 1, size = 1.5, stroke = 1.5) + ggtitle(month.name[i]) +
       scale_color_brewer(palette='Set1') +
       labs(x = 'Empirical Quantile', y = 'Empirical Probability') +
@@ -54,4 +62,3 @@ monthly_ecdf = function(ts, ignore_zeros = FALSE, zero_threshold = 0.01){
     plot_layout(guides = "collect") & theme(legend.position = 'bottom')
   return(plot_ecdfs)
 }
-

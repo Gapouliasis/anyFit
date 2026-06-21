@@ -16,6 +16,35 @@ qlognorm(p, location = 0, scale, shape)
 
 rlognorm(n, location = 0, scale, shape)
 }
+\arguments{
+\item{x, q}{vector of quantiles.}
+
+\item{location}{location parameter.}
+
+\item{scale}{scale parameter.}
+
+\item{shape}{shape parameter.}
+
+\item{p}{vector of probabilities.}
+
+\item{n}{number of observations. If \code{length(n) > 1}, the length is taken as the number required.}
+}
 \description{
-Log-Normal distribution
+Three-parameter Log-Normal distribution with location
+\eqn{\mu}{m}, scale \eqn{\beta}{b}, and shape \eqn{\sigma}{s}. The
+distribution is lower-bounded at \eqn{\mu}{m} and arises when the
+logarithm of \eqn{x - \mu} follows a Normal distribution. Density,
+distribution, quantile, and random generation functions are provided
+via the \pkg{FAdist} package. Fitting is performed via closed-form
+L-moments through \code{\link[lmom]{pelln3}}; an optional fixed lower
+bound is supported.
+
+The probability density function is:
+\deqn{f(x) = \frac{1}{(x-\mu) \sigma \sqrt{2\pi}} \exp\left(-\frac{\left(\ln\left(\frac{x-\mu}{\beta}\right)\right)^2}{2\sigma^2}\right), \quad x > \mu}{f(x) = exp(-(ln((x-m)/b))^2 / (2s^2)) / ((x-m) * s * sqrt(2*pi)), x > m}
+where:
+\itemize{
+\item \eqn{\mu}{m} --- location parameter (\code{location})
+\item \eqn{\beta}{b} --- scale parameter (\code{scale})
+\item \eqn{\sigma}{s} --- shape parameter (\code{shape})
+}
 }
