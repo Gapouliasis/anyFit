@@ -7,3 +7,7 @@
 ^docs$
 ^paper$
 ^paper_figures$
+^_pkgdown\.yml$
+^pkgdown$
+^\.github$
+^LICENSE\.md$

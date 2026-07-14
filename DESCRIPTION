@@ -3,11 +3,9 @@ Title: anyFit: Exploratory Data Analysis on xts timeseries objects and
     spatial netCDF objects
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("George", "Pouliasis", , "gapouliasis@gmail.com", role = c("aut", "cre"))
+Description: Package for exploratory data analysis, timeseries analysis and visualisation of point and spatially distributed environmental variables.
+License: MIT + file LICENSE
 Depends: 
     R (>= 3.6.0)
 Imports:
@@ -55,3 +53,4 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 Config/roxygen2/version: 8.0.0
+URL: https://gapouliasis.github.io/anyFit/
