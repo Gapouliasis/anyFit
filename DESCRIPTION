@@ -1,7 +1,7 @@
 Package: anyFit
 Title: anyFit: Exploratory Data Analysis on xts timeseries objects and
     spatial netCDF objects
-Version: 0.0.0.9000
+Version: 2.0.0
 Authors@R: 
     person("George", "Pouliasis", , "gapouliasis@gmail.com", role = c("aut", "cre"))
 Description: Package for exploratory data analysis, timeseries analysis and visualisation of point and spatially distributed environmental variables.
