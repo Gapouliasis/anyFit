@@ -20,3 +20,4 @@ Computes per-column transition statistics (mean and variance after/before
 zero, mean and variance after non-zero, and transition probabilities) using
 lag masks and a sentinel-based counting scheme.
 }
+\keyword{internal}

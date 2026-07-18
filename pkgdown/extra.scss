@@ -1,0 +1,24 @@
+// Reproduce the graphical abstract's header band on the navbar in both light and
+// dark themes so the white anyFit logo stays visible on every page: a left-to-
+// right charcoal gradient from #555555 to #2b2b2b. pkgdown nulls the navbar
+// bg/type when the light-switch is enabled, so we pin the colours here instead.
+.navbar {
+  background: linear-gradient(90deg, #555555 0%, #2b2b2b 100%) !important;
+  --bs-navbar-color: rgba(255, 255, 255, 0.8);
+  --bs-navbar-hover-color: #fff;
+  --bs-navbar-active-color: #fff;
+  --bs-navbar-brand-color: #fff;
+  --bs-navbar-brand-hover-color: #fff;
+  --bs-navbar-toggler-border-color: rgba(255, 255, 255, 0.35);
+  --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+
+  .nav-link,
+  .navbar-brand,
+  .dropdown-toggle {
+    color: #fff;
+  }
+  .nav-link:hover,
+  .nav-link:focus {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}

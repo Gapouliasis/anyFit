@@ -55,3 +55,4 @@ Constructs a four-panel \code{patchwork} plot (raw time series, PDF
 histogram with density overlay, empirical CDF on log-probability scale, and
 sample ACF) for a single-column xts series.
 }
+\keyword{internal}

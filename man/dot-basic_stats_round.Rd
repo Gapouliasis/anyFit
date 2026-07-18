@@ -20,3 +20,4 @@ The rounded numeric matrix (same dimensions as \code{core}).
 Rounds each row of the core statistics matrix according to a fixed
 per-statistic precision table. \code{PercOfMissingData} is left unrounded.
 }
+\keyword{internal}

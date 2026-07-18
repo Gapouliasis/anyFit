@@ -154,6 +154,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 #'
 #' @return A numeric matrix with rownames identifying each statistic and
 #'   colnames inherited from \code{m}.
+#' @keywords internal
 .basic_stats_core <- function(m, zero_threshold = 0.01, ignore_zeros = FALSE) {
   storage.mode(m) <- 'double'
   n <- nrow(m); k <- ncol(m)
@@ -224,6 +225,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 #' @return A numeric vector of length 7: LMean, LScale, L3, L4, L-CV,
 #'   L-Skewness, L-Kurtosis. Returns \code{NA} for all elements on error or
 #'   if \code{x} is empty.
+#' @keywords internal
 .basic_stats_lmom <- function(x) {
   x <- x[!is.na(x)]
   if (length(x) < 1) return(rep(NA_real_, 7))
@@ -246,6 +248,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 #'
 #' @return A list with eight named numeric vectors, each of length
 #'   \code{ncol(m)}.
+#' @keywords internal
 .basic_stats_transition <- function(m, thr) {
   n <- nrow(m); k <- ncol(m)
   na_k <- rep(NA_real_, k)
@@ -300,6 +303,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 #'   decimal places.
 #'
 #' @return The rounded numeric matrix (same dimensions as \code{core}).
+#' @keywords internal
 .basic_stats_round <- function(core, ignore_zeros = FALSE) {
   labs   <- rownames(core)
   digits <- stats::setNames(rep(2L, length(labs)), labs)
@@ -340,6 +344,7 @@ basic_stats <- function(ts, pstart = NA, pend = NA, show_label = TRUE, label_pre
 #' @param zero_threshold Numeric zero threshold.
 #'
 #' @return A \code{patchwork} object combining four ggplot panels.
+#' @keywords internal
 .basic_stats_panel <- function(ts, pstart, pend, show_label, label_prefix, show_table,
                                xpos_label, ypos_label, xpos_table, ypos_table, nbins,
                                ignore_zeros, zero_threshold) {

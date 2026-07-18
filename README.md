@@ -1,4 +1,9 @@
-﻿# anyFit
+﻿# anyFit <img src="man/figures/logo.svg" align="right" height="130" alt="anyFit logo" />
+
+<!-- badges: start -->
+[![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://opensource.org/licenses/MIT)
+<!-- badges: end -->
 
 Timeseries analysis of hydro-climatic variables is crucial for the study of relevant physical processes as well as the design and forcing of a plethora of physical and statistical models. However, physical processes exhibit a wide range of distinct features that complicate their study. For example:
 
@@ -29,6 +34,7 @@ AnyFit aims to address the above demands in a robust manner. It is based on the 
 * Zonal statistics — aggregate sxts point data over polygon boundaries (shapefile, countries, or continents)
 
 In detail the distributions supported by anyFit are the following:
+
 * Exponential
 * Rayleigh
 * Gamma
@@ -46,10 +52,42 @@ In detail the distributions supported by anyFit are the following:
 * Dagum 
 * Exponentiated Weibull
 
-This package is still in alpha testing. Use at your own risk.
+## Installation
 
-Installation: devtools::install_github("Gapouliasis/anyFit")
+``` r
+# install.packages("devtools")
+devtools::install_github("Gapouliasis/anyFit")
 
-Installation with vignette: devtools::install_github("Gapouliasis/anyFit", build_vignette = TRUE)
+# with the vignette
+devtools::install_github("Gapouliasis/anyFit", build_vignettes = TRUE)
+```
 
-To view the vignette run browseVignettes("anyFit")
+## Quick start
+
+anyFit ships a real example dataset — E-OBS ensemble-mean daily rainfall over
+Europe (0.25°, 2011–2022). The snippet below loads it clipped to the UK, maps a
+statistic, and fits a distribution across the grid — in a handful of lines.
+
+``` r
+library(anyFit)
+
+f <- system.file("extdata", "rr_ens_mean_0.25deg_reg_2011-2022_v27.0e.nc",
+                 package = "anyFit")
+
+# Read the "rr" variable, clipped to the UK, as a spatial-xts (sxts) object
+rain_uk <- nc2xts(f, varname = "rr",
+                  country = "U.K. of Great Britain and Northern Ireland")
+
+# Per-cell wet-day statistics, then map the mean and probability dry
+stats <- basic_stats_nc(rain_uk, ignore_zeros = TRUE)
+nc_ggplot(stats[[c("Mean", "Pdr")]], viridis.option = "mako")
+
+# Fit candidate distributions by L-moments at every grid cell
+fits <- fitlm_nc(rain_uk, ignore_zeros = TRUE, candidates = c("gamma", "burr"))
+```
+
+## Documentation
+
+Full documentation, a function reference and worked articles are on the
+[package website](https://gapouliasis.github.io/anyFit/). After installing with
+the vignette you can also run `browseVignettes("anyFit")`.

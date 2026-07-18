@@ -1,12 +1,14 @@
 .Rproj.user
 inst/doc
 .Rprofile
-# AGENTS.md
+AGENTS.md
 test_ncdf.R
-# .kilo
-# .kilo/*
-# paper
-# paper/*
-# .claude
+.kilo
+.kilo/*
+paper
+paper/*
+.claude
 figures
 docs
+paper_figures
+dev

@@ -11,3 +11,4 @@
 ^pkgdown$
 ^\.github$
 ^LICENSE\.md$
+^vignettes/articles$

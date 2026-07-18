@@ -18,3 +18,4 @@ if \code{x} is empty.
 Computes L-mean, L-scale, L3, L4, L-CV, L-skewness, and L-kurtosis for a
 single numeric vector via \code{\link[lmom]{samlmu}}.
 }
+\keyword{internal}

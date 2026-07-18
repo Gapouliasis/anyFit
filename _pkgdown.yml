@@ -1,0 +1,141 @@
+url: https://gapouliasis.github.io/anyFit/
+
+template:
+  bootstrap: 5
+  light-switch: true
+  bslib:
+    primary: "#0e6f80"
+
+navbar:
+  bg: primary
+  type: dark
+  structure:
+    left:  [getstarted, articles, reference]
+    right: [cheatsheet, news, search, github]
+  components:
+    getstarted:
+      text: Get started
+      href: articles/Introduction.html
+    cheatsheet:
+      text: Cheatsheet
+      href: anyFit_cheatsheet_V2.pdf
+      target: _blank
+
+articles:
+- title: Articles
+  navbar: ~
+  contents:
+  - Introduction
+  - articles/sxts-class
+  - articles/distribution-fitting
+  - articles/point-seasonal
+  - articles/gridded-workflow
+
+reference:
+- title: Loading & conversion
+  desc: Read point and gridded data into xts / sxts.
+  contents:
+  - nc2xts
+  - nc2xts_nn
+  - delim2xts
+
+- title: The sxts class & spatial operations
+  desc: The spatial-xts class, its accessors, and native spatial operations.
+  contents:
+  - sxts
+  - coords
+  - projection
+  - elements
+  - mask.sxts
+  - zonal_stats
+  - rasterFromSxts
+  - rbindlist.sxts
+
+- title: Summary statistics
+  desc: Per-series and per-cell summary statistics, including L-moments.
+  contents:
+  - basic_stats
+  - basic_stats_nc
+  - lmom_stats
+  - period_stats
+  - monthly_stats
+  - monthly_stats_nc
+  - check_missing
+
+- title: Aggregation & transforms
+  desc: Temporal aggregation and value transformations.
+  contents:
+  - aggregate_xts
+  - period_apply_nc
+  - normalise_xts
+
+- title: Distribution fitting
+  desc: L-moment fitting, goodness of fit, and L-ratio diagnostics.
+  contents:
+  - fitlm_multi
+  - fitlm_nc
+  - fitlm_nxts
+  - fitlm_monthly
+  - fitlm_monthly_nc
+  - fitlm_exp
+  - fitlm_rayleigh
+  - fitlm_gamma
+  - fitlm_gamma3
+  - fitlm_genlogi
+  - fitlm_norm
+  - fitlm_weibull
+  - fitlm_gumbel
+  - fitlm_lognorm
+  - fitlm_gev
+  - fitlm_GPD
+  - fitlm_gengamma
+  - fitlm_gengamma_loc
+  - fitlm_burr
+  - fitlm_dagum
+  - fitlm_expweibull
+  - LRatio_check
+  - fit_diagnostics
+
+- title: Autocorrelation
+  desc: Sample and theoretical autocorrelation structures (CAS, HK, SRD).
+  contents:
+  - fit_ACF
+  - fit_ACF_monthly
+  - ACF_functions
+
+- title: Visualization
+  desc: ggplot2-based maps, diagnostics and seasonal plots.
+  contents:
+  - nc_ggplot
+  - correl_plots
+  - monthly_boxplots
+  - monthly_violins
+  - monthly_ecdf
+  - monthly_fdiagnostics
+  - ridge_plots
+  - plot_missing
+
+- title: Distribution functions (d / p / q / r)
+  desc: Density, distribution, quantile and random-generation functions.
+  contents:
+  - Exponential
+  - Rayleigh
+  - Gamma
+  - Normal
+  - Log-Normal
+  - GenLogistic
+  - Weibull3
+  - Gumbel
+  - Gamma3
+  - GEV
+  - GenPareto
+  - GenGamma
+  - GenGamma-Location
+  - BurXII
+  - Dagum
+  - ExpWeibull
+
+- title: Datasets
+  desc: Data bundled with the package.
+  contents:
+  - world_data

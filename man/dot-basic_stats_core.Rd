@@ -23,3 +23,4 @@ column per input series. When \code{ignore_zeros = TRUE}, distributional
 statistics are computed on the non-zero values only (sub-threshold values
 masked to \code{NA}) and transition statistics are omitted.
 }
+\keyword{internal}
