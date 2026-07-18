@@ -1,0 +1,13 @@
+pandoc: 3.8.3
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  articles/distribution-fitting: distribution-fitting.html
+  articles/gridded-workflow: gridded-workflow.html
+  Introduction: Introduction.html
+  articles/point-seasonal: point-seasonal.html
+  articles/sxts-class: sxts-class.html
+last_built: 2026-07-18T11:46Z
+urls:
+  reference: https://gapouliasis.github.io/anyFit/reference
+  article: https://gapouliasis.github.io/anyFit/articles
