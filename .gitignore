@@ -8,7 +8,7 @@ test_ncdf.R
 paper
 paper/*
 .claude
-figures
+/figures
 docs
 paper_figures
 dev
