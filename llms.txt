@@ -1,4 +1,4 @@
-# anyFit ![anyFit logo](reference/figures/logo.svg)
+# anyFit
 
 Timeseries analysis of hydro-climatic variables is crucial for the study
 of relevant physical processes as well as the design and forcing of a
