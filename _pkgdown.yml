@@ -3,6 +3,7 @@ url: https://gapouliasis.github.io/anyFit/
 template:
   bootstrap: 5
   light-switch: true
+  math-rendering: mathjax
   bslib:
     primary: "#0e6f80"
 
