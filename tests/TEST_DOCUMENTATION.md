@@ -30,6 +30,7 @@ devtools::test(filter = "distributions")     # run a single test file
 | [test_normalise_xts.R](#test_normalise_xtsr) | `normalise_xts` | 13 |
 | [test_sxts_raster.R](#test_sxts_rasterr) | `rasterFromSxts`, `sxtsFromRaster`, `mask.sxts` (error path), `zonal_stats` (continent + dims) | 11 |
 | [test_nc_functions.R](#test_nc_functionsr) | `nc2xts`, `nc2xts_nn`, `nc_ggplot`, `basic_stats_nc`, `fitlm_nc` | 15 |
+| [test_lmom_solver.R](#test_lmom_solverr) | shared L-moment solver behind `fitlm_burr`, `fitlm_dagum`, `fitlm_gengamma(_loc)`, `fitlm_expweibull` (`Res$Diag`, `order` mapping), `qburr`, `dburr`, `*_LSpace`, `LRatio_check` | 10 |
 
 ---
 
@@ -344,6 +345,27 @@ For `fitlm_genlogi`: returns Param, TheorLMom, DataLMom (no GoF — by design).
 | `fitlm_nc()` with sxts input returns fit_results and gof_plots | 2 named elements |
 | `fitlm_nc()` fit_results has one entry per candidate | length == length(candidates) |
 | `fitlm_nc()` each fit_results element has raster_params | "raster_params" in names, inherits Raster |
+
+---
+
+## test_lmom_solver.R
+
+Shared method-of-L-moments solver (`R/fitlm_lmom_solver.R`) used by the four numerically fitted families: log-shape L-BFGS-B on the scale-free L-ratios, analytic scale, restart on stall, fit status in `Res$Diag`.
+
+**Shared fixtures:** `make_pos_ts()` wraps a vector as a one-column xts; `make_family_samples(n)` draws one sample per family well inside its attainable L-ratio region (Burr XII and Dagum (10, 2, 0.3), GG (8, 3, 1.4), EW (3, 1.5, 2)).
+
+| Test | Assertion |
+|---|---|
+| `Diag` structure (4 fitters + `fitlm_gengamma_loc`) | fields `status`, `resid`, `convergence`, `evals`, `restarts`; status is one of the four levels |
+| Recovery at order 1:3 (n = 20 000) | status `"matched"`, resid < 1e-3, fitted (L-CV, τ3) equal the sample ones to 1e-4, parameters within 15 % |
+| Order 1:5 is least squares | optim code 0 and status `"matched"` |
+| EW beyond the old ceiling | sample with shape2 = 300 is matched with fitted shape2 > 50 |
+| Outside the GG family | Burr sample above the lognormal edge → GG status `"outside_domain"`, resid ≥ 1e-3, finite params; Burr matches it |
+| `ignore_zeros` | zero-padded series gives the same fit as the wet values alone |
+| `order` mapping | `c(2, 4)` equals `c(1, 2, 4)` (λ1 only sets the scale) and differs from `1:3` |
+| `order` error | fewer than two L-ratios (`1:2`, `c(1, 3)`) → `expect_error` |
+| Log-space `qburr` / `dburr` | equal the direct formulas to 1e-10; finite at shape1 = 1e4 where the direct quantile is `Inf`; `PW` zero branch |
+| `*_LSpace` polygons | single-ring `SpatialPolygonsDataFrame`s; `LRatio_check()` runs on them |
 
 ---
 

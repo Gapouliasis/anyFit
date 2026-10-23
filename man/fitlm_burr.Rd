@@ -15,29 +15,49 @@ fitlm_burr(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 \item{zero_threshold}{Numeric. Threshold below which values are treated
 as zero. Default \code{0.01}.}
 
-\item{order}{Integer vector of L-moment orders matched by the
-optimiser. Default \code{1:5}.}
+\item{order}{Integer vector of L-moment orders to match. Order 2 matches
+the L-CV and order \eqn{r \ge 3} matches \eqn{\tau_r}; \eqn{\lambda_1}
+always sets the scale. At least two ratios are required, otherwise an
+error is raised: two give an exact match (e.g. \code{1:3}), more a
+least-squares fit. Default \code{1:5}.}
 }
 \value{
 A list with elements \code{Distribution}, \code{Param} (named
 list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-L-moments), and \code{GoF} (goodness-of-fit metrics).
+L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+(solver diagnostics): \code{status} is \code{"matched"} (fitted and
+sample L-ratios agree to within 1e-3), \code{"matched_at_bound"} (the
+same, with a shape on its bound), \code{"outside_domain"} (the sample
+(L-CV, \eqn{\tau_3}) lies outside the attainable region of the family,
+\code{BurrXII_LSpace}, see \code{\link{LRatio_check}}; the fit is the
+closest the family can get) or \code{"not_converged"}; \code{resid} is
+the largest absolute difference between fitted and sample L-ratios over
+the matched orders; \code{convergence} is the \code{optim} code;
+\code{evals} the number of objective evaluations; \code{restarts} 0 or
+\enumerate{
+\item With more than two ratios the status follows the \code{optim} code
+instead of \code{resid}, since least squares cannot match every ratio.
+}
 }
 \description{
 Fits the three-parameter Burr Type XII distribution to an
-xts series by numerical minimisation of L-moments. Closed-form
-L-moment expressions via Beta-function PWMs are evaluated at each
-optimisation step. The L-BFGS-B optimiser minimises the normalised
-root-sum-square error between the sample and theoretical L-moments of
-orders specified by \code{order}. A two-step seeding procedure
-initialises the shape parameters by min-max nearest-neighbour search
-over the scale-free L-ratios in the \code{Burr_InitValues} lookup
-table, and the scale is then derived analytically from the sample
-first L-moment and the matched shapes' unit-scale L-moment. The
-mean exists only when \eqn{\theta < 1}, imposing an effective upper
-bound on the tail index during optimisation. Zero values below
-\code{zero_threshold} may be excluded via \code{ignore_zeros}.
+xts series by the method of L-moments. The L-ratios (L-CV
+\eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not depend on the scale,
+so the two shapes are solved from the sample L-ratios selected by
+\code{order}, and the scale follows analytically as the sample
+\eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1} of the fitted
+shapes. The shapes are found by L-BFGS-B in log space, minimising the
+sum of squared differences between sample and theoretical L-ratios;
+the theoretical L-moments are closed-form Beta-function PWM
+expressions. The start is the row of the unit-scale
+\code{Burr_InitValues} table nearest in min-max scaled (L-CV,
+\eqn{\tau_3}, \eqn{\tau_4}); a fit that stalls is restarted once from
+the second-nearest row. The shapes are bounded to
+\code{0.5 <= shape1 <= 1e4} and \code{0.001 <= shape2 <= 1} (the mean
+exists only for \eqn{\theta < 1}); the scale is unbounded. The
+\code{shape2 -> 0} edge is the Weibull limit of the family. Zero values
+below \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 }
 \examples{
 x <- xts::xts(rburr(365, scale = 1.5, shape1 = 2, shape2 = 0.3),

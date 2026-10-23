@@ -37,10 +37,10 @@ Three-parameter Burr Type XII distribution with scale
 second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
 distribution is supported on \eqn{x > 0} and is widely used for
 modelling heavy-tailed positive variables. L-moments are computed via
-closed-form expressions involving Beta-function PWMs; a two-step
-seeding procedure initialises the shapes from a pre-computed lookup
-table (\code{Burr_InitValues}) and derives the scale analytically.
-Fitting uses L-BFGS-B minimisation of the normalised L-moment error.
+closed-form expressions involving Beta-function PWMs; see
+\code{\link{fitlm_burr}} for the method-of-L-moments fit. The quantile
+function is evaluated in log space, so it stays finite for large
+\eqn{\zeta\theta}{z*th}.
 
 The probability density function is:
 \deqn{f(x) = \zeta s^{-\zeta} x^{\zeta-1} \left(\zeta\theta\left(\frac{x}{s}\right)^\zeta + 1\right)^{-1/(\zeta\theta) - 1}, \quad x > 0}{f(x) = z*s^(-z) * x^(z-1) * (z*th*(x/s)^z + 1)^(-1/(z*th) - 1), x > 0}

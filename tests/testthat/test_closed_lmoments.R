@@ -75,13 +75,13 @@ test_that("engines return Inf when shape2 >= 1", {
 # and the fit actually matches the sample L-moments
 # ---------------------------------------------------------------------------
 # The wiring check: fitlm_*$TheorLMom is produced by the closed engine (not lmrp), so it
-# equals lmom_*(1:5, fitted params) exactly, and the fitted params lie in the optim box.
+# equals lmom_*(1:5, fitted params) exactly, and the fitted shapes lie in the solver box.
 # (Fit *quality* is model-dependent and is covered by the end-to-end gate, not here.)
 test_that("fitlm_burr is wired to lmom_burr and stays in the optim box", {
   res <- fitlm_burr(make_pos_ts())
   p   <- res$Param
   expect_true(p$shape2 > 0 && p$shape2 <= 1)
-  expect_true(p$shape1 >= 0.5 && p$shape1 <= 50)
+  expect_true(p$shape1 >= 0.5 && p$shape1 <= 1e4)
   expect_true(all(is.finite(as.numeric(res$TheorLMom))))
   expect_equal(as.numeric(res$TheorLMom),
                as.numeric(anyFit:::lmom_burr(1:5, p$scale, p$shape1, p$shape2)),
@@ -91,7 +91,7 @@ test_that("fitlm_burr is wired to lmom_burr and stays in the optim box", {
 test_that("fitlm_dagum is wired to lmom_dagum and stays in the optim box", {
   res <- fitlm_dagum(make_pos_ts())
   p   <- res$Param
-  expect_true(p$shape2 > 0 && p$shape2 <= 0.5)
+  expect_true(p$shape2 > 0 && p$shape2 <= 0.95)
   expect_true(all(is.finite(as.numeric(res$TheorLMom))))
   expect_equal(as.numeric(res$TheorLMom),
                as.numeric(anyFit:::lmom_dagum(1:5, p$scale, p$shape1, p$shape2)),
@@ -122,7 +122,7 @@ test_that("fitlm_burr recovers a Burr sample with the two-step seed", {
   dates <- as.POSIXct("2020-01-01", tz = "UTC") + seq_along(vals) * 86400
   ts    <- xts::xts(matrix(vals, ncol = 1, dimnames = list(NULL, "X")), order.by = dates)
   res   <- fitlm_burr(ts)
-  expect_true(res$Param$shape1 >= 0.5 && res$Param$shape1 <= 50)
+  expect_true(res$Param$shape1 >= 0.5 && res$Param$shape1 <= 1e4)
   expect_true(res$Param$shape2 > 0 && res$Param$shape2 <= 1)
   expect_lt(res$GoF$KS, 0.1)
 })

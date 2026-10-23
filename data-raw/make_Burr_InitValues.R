@@ -4,12 +4,20 @@
 # (shape1, shape2) pair at scale = 1 suffices. Shapes are taken from the existing table; the
 # unit-scale L-moments are recomputed with the closed-form lmom_burr engine.
 #
+# The fitlm_burr shape box is shape1 in [0.5, 1e4], shape2 in [0.001, 1]. The historical table
+# stops at shape1 = 50, so it is extended with a log grid over shape1 in (50, 1e4] x shape2 in
+# [0.001, 0.95] (the grid of dev/annexD_validation/fit_cores_v3.R, seed_table_v3()). Base rows
+# are those with shape1 <= 50, so re-running the script is idempotent.
+#
 #   Rscript data-raw/make_Burr_InitValues.R
 
 suppressMessages(devtools::load_all(".", quiet = TRUE))
 
-pairs <- unique(Burr_InitValues[, c("shape1", "shape2")])
-cat(sprintf("unique (shape1, shape2) pairs: %d\n", nrow(pairs)))
+pairs <- unique(Burr_InitValues[Burr_InitValues$shape1 <= 50, c("shape1", "shape2")])
+lg <- function(a, b, n) 10^seq(log10(a), log10(b), length.out = n)
+ext <- expand.grid(shape1 = lg(50, 1e4, 30)[-1], shape2 = lg(0.001, 0.95, 40))
+pairs <- unique(rbind(pairs, ext))
+cat(sprintf("unique (shape1, shape2) pairs: %d (extension %d)\n", nrow(pairs), nrow(ext)))
 
 lm <- t(mapply(function(s1, s2) {
   v <- anyFit:::lmom_burr(1:5, scale = 1, shape1 = s1, shape2 = s2)

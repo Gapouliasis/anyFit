@@ -1412,10 +1412,9 @@ fitlm_GPD=function(x,bound=NULL,ignore_zeros = FALSE, zero_threshold = 0.01) {
 #'   (\eqn{\beta = 1}) and Weibull (\eqn{\beta = \alpha}) as special
 #'   cases. Density, distribution, quantile, and random generation
 #'   functions are provided via \pkg{VGAM} using the Stacy
-#'   parameterisation. Fitting is performed numerically via L-BFGS-B
-#'   minimisation of a normalised L-moment error function, seeded from a
-#'   pre-computed lookup table (\code{GG_InitValues}) with Gauss-Legendre
-#'   quadrature evaluation of the L-moments at each optimisation step.
+#'   parameterisation. The L-moments are evaluated by Gauss-Legendre
+#'   quadrature; see \code{\link{fitlm_gengamma}} for the
+#'   method-of-L-moments fit.
 #'
 #'   The probability density function is:
 #'   \deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} x^{\alpha-1} \exp\left(-\left(\frac{x}{s}\right)^\beta\right), \quad x > 0}{f(x) = b * x^(a-1) * exp(-(x/s)^b) / (Gamma(a/b) * s^a), x > 0}
@@ -1462,31 +1461,38 @@ rgengamma=function(n,scale, shape1, shape2){
 #' @title fitlm_gengamma
 #'
 #' @description Fits the three-parameter Generalised Gamma (Stacy)
-#'   distribution to an xts series by numerical minimisation of
-#'   L-moments. As no closed-form L-moment expressions exist for this
-#'   distribution, the L-moments are computed at each optimisation step
-#'   via Gauss-Legendre quadrature of the PWMs. The L-BFGS-B optimiser
-#'   minimises the normalised root-sum-square error between the sample and
-#'   theoretical L-moments of orders specified by \code{order}. A
-#'   two-step seeding procedure is employed: the shape parameters are
-#'   initialised by a min-max nearest-neighbour search over the scale-free
-#'   L-ratios in the \code{GG_InitValues} lookup table, and the scale is
-#'   then derived analytically from the sample first L-moment and the
-#'   matched shapes' unit-scale L-moment. Zero values below
+#'   distribution to an xts series by the method of L-moments. The
+#'   L-ratios (L-CV \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not
+#'   depend on the scale, so the two shapes are solved from the sample
+#'   L-ratios selected by \code{order}, and the scale follows analytically
+#'   as the sample \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1}
+#'   of the fitted shapes. As no closed-form L-moment expressions exist,
+#'   the theoretical L-moments are computed by Gauss-Legendre quadrature of
+#'   the PWMs. The shapes are found by L-BFGS-B on the logarithms of the
+#'   Stacy shapes \eqn{k = \alpha/\beta}{k = shape1/shape2} and
+#'   \eqn{d = \beta}{d = shape2}, minimising the sum of squared differences
+#'   between sample and theoretical L-ratios, within
+#'   \code{0.01 <= k <= 4e4} (the quadrature is inaccurate below
+#'   \eqn{k = 0.01}) and \code{0.05 <= shape2 <= 200}; the scale is
+#'   unbounded. The start is the row of the unit-scale \code{GG_InitValues}
+#'   table nearest in min-max scaled (L-CV, \eqn{\tau_3}, \eqn{\tau_4}); a
+#'   fit that stalls is restarted once from the second-nearest row. The
+#'   \code{shape2 = 0.05} edge is, to within 0.002 in \eqn{\tau_3}, the
+#'   lognormal limit of the family: samples more skewed than the lognormal
+#'   at their L-CV lie outside the family and are returned as the closest
+#'   fit with status \code{"outside_domain"}. Zero values below
 #'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 #'
-#' @param x An xts object containing the time series data.
-#' @param ignore_zeros Logical. If \code{TRUE}, values below
-#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
-#' @param zero_threshold Numeric. Threshold below which values are treated
-#'   as zero. Default \code{0.01}.
-#' @param order Integer vector of L-moment orders matched by the
-#'   optimiser. Default \code{1:5}.
+#' @inheritParams fitlm_burr
 #'
 #' @return A list with elements \code{Distribution}, \code{Param} (named
 #'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 #'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'   L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+#'   (solver diagnostics: \code{status}, \code{resid}, \code{convergence},
+#'   \code{evals}, \code{restarts}; see \code{\link{fitlm_burr}}). The
+#'   attainable region that decides \code{"outside_domain"} is
+#'   \code{GGamma_LSpace}.
 #'
 #' @examples
 #' x <- xts::xts(rgengamma(365, scale = 2, shape1 = 0.8, shape2 = 0.5),
@@ -1515,34 +1521,10 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
 
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
 
-  init_values = GG_InitValues
-  # Two-step seed (same as fitlm_dagum). (lcv, tau_3, tau_4) depend only on the shapes (scale
-  # cancels in every ratio), so match the shapes by min-max NN on those scale-free quantities
-  # over the unit-scale GG_InitValues, then derive scale = sample_lambda_1 / F, F the matched
-  # shapes' unit-scale lambda_1. Avoids the blown-up absolute L-moments of the old table.
-  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4", "lcv")
-  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
-  d = as.numeric(sample_LM)[1:4]
-  d[5] <- d[2] / d[1]
-  nn = which.min(((init_values$lcv - d[5]) / rng[5])^2 +
-                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
-                 ((init_values$tau_4    - d[4]) / rng[4])^2)
-  start_par = init_values[nn, c("scale", "shape1", "shape2")]
-  unit_lms = lmom_gengamma(1:max(order), 1, as.numeric(start_par[2]), as.numeric(start_par[3]))
-  start_par["scale"] = d[1] / unit_lms[1]
-  start_par["scale"] = min(max(start_par["scale"], 0.001), 500)   # keep start in the optim box
-  start_par = as.numeric(start_par)
-  params_optim <- function(params, target_LMs, order){
-    temp_lms <- as.numeric(lmom_gengamma(1:max(order), params[1], params[2], params[3]))
-    # Degenerate shapes yield non-finite L-moments: large finite penalty so L-BFGS-B retreats.
-    if (!all(is.finite(temp_lms))) return(1e6)
-    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
-    temp_err <- sqrt(sum(temp_err))
-    if (!is.finite(temp_err)) 1e6 else temp_err
-  }
-  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
-              method = "L-BFGS-B", lower = c(0.001, 0.005, 0.05), upper = c(500,2000,200))
-  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
+  # Shapes from the scale-free L-ratios (log-(k, d) L-BFGS-B, seeded from GG_InitValues),
+  # scale analytic; see R/fitlm_lmom_solver.R.
+  fit = .fit_lmom_shapes("gengamma", sample_LM, order)
+  params = list(scale = fit$par[1], shape1 = fit$par[2], shape2 = fit$par[3])
 
   TheorLmom = lmom_gengamma(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
@@ -1556,7 +1538,7 @@ fitlm_gengamma=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
-  #Res$Diag = c(itmax,NP)
+  Res$Diag<-fit$diag
 
   return(Res)
 }
@@ -1639,13 +1621,16 @@ rgengamma_loc=function(n, location, scale, shape1, shape2){
 #' @param zero_threshold Numeric. Threshold below which values are treated
 #'   as zero. Default \code{0.01}.
 #' @param order Integer vector of L-moment orders passed to
-#'   \code{fitlm_gengamma}. Default \code{1:5}.
+#'   \code{fitlm_gengamma}, which matches them on the shifted data (see
+#'   there). Default \code{1:5}.
 #'
 #' @return A list with elements \code{Distribution}, \code{Param} (named
 #'   list of fitted \code{location}, \code{scale}, \code{shape1},
 #'   \code{shape2}), \code{TheorLMom} (theoretical L-moments),
-#'   \code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
-#'   metrics).
+#'   \code{DataLMom} (sample L-moments), \code{GoF} (goodness-of-fit
+#'   metrics) and \code{Diag} (the solver diagnostics of the
+#'   \code{fitlm_gengamma} fit to the shifted data; see
+#'   \code{\link{fitlm_burr}}).
 #'
 #' @examples
 #' x <- xts::xts(rgengamma_loc(365, location = 1, scale = 2,
@@ -1690,7 +1675,7 @@ fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
-  #Res$Diag = c(itmax,NP)
+  Res$Diag<-temp_fit$Diag
 
   return(Res)
 }
@@ -1734,10 +1719,10 @@ fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 
 #'   second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
 #'   distribution is supported on \eqn{x > 0} and is widely used for
 #'   modelling heavy-tailed positive variables. L-moments are computed via
-#'   closed-form expressions involving Beta-function PWMs; a two-step
-#'   seeding procedure initialises the shapes from a pre-computed lookup
-#'   table (\code{Burr_InitValues}) and derives the scale analytically.
-#'   Fitting uses L-BFGS-B minimisation of the normalised L-moment error.
+#'   closed-form expressions involving Beta-function PWMs; see
+#'   \code{\link{fitlm_burr}} for the method-of-L-moments fit. The density
+#'   and quantile functions are evaluated in log space, so they stay finite
+#'   for large \eqn{\zeta}{z} and \eqn{\zeta\theta}{z*th}.
 #'
 #'   The probability density function is:
 #'   \deqn{f(x) = \zeta s^{-\zeta} x^{\zeta-1} \left(\zeta\theta\left(\frac{x}{s}\right)^\zeta + 1\right)^{-1/(\zeta\theta) - 1}, \quad x > 0}{f(x) = z*s^(-z) * x^(z-1) * (z*th*(x/s)^z + 1)^(-1/(z*th) - 1), x > 0}
@@ -1757,7 +1742,15 @@ fitlm_gengamma_loc=function(x, location, ignore_zeros = FALSE, zero_threshold = 
 #'
 
 dburr=function(x, scale, shape1, shape2, PW=1){
-  d=PW*shape1*scale^(-shape1)*x^(shape1-1)*((shape1*shape2*(x/scale)^shape1)+1)^(-1/(shape1*shape2)-1)
+  # PW*(shape1/scale)*(x/scale)^(shape1-1)*(1 + ab*(x/scale)^shape1)^(-1/ab - 1), ab = shape1*shape2,
+  # evaluated in log space: the direct powers overflow for large shape1 (reached inside the
+  # fitlm_burr box). log1p(e^z) = z + log1p(e^-z) for large z.
+  ab = shape1 * shape2
+  lx = log(x / scale)
+  z = log(ab) + shape1 * lx
+  l1pez = ifelse(z > 30, z + log1p(exp(-z)), log1p(exp(z)))
+  pow = if (shape1 == 1) 0 else (shape1 - 1) * lx
+  d = PW * exp(log(shape1 / scale) + pow + (-1 / ab - 1) * l1pez)
 }
 
 #' @rdname BurXII
@@ -1773,17 +1766,16 @@ pburr=function(q, scale, shape1, shape2, PW=1) {
 #' @rdname BurXII
 #' @export
 qburr=function(p, scale, shape1, shape2, PW=1) {
-
-  q=rep(NA, length(p))
-
-  for (i in 1:length(p) ) {
-    if (p[i]>(1-PW)) {
-      A=1-((1-p[i])/PW)^(-(shape1*shape2))
-      q[i]=scale*(-A/(shape1*shape2))^(1/shape1)
-    } else {
-      q[i]=0
-    }
-  }
+  # q = scale * ((((1-p)/PW)^(-ab) - 1) / ab)^(1/shape1), ab = shape1*shape2, evaluated in log
+  # space: the direct power overflows to Inf for ab >~ 700 (reached inside the fitlm_burr box).
+  # log(e^y - 1) = log(expm1(y)) for moderate y and y + log1p(-e^-y) for large y.
+  ab = shape1 * shape2
+  q = rep(NA_real_, length(p))
+  q[which(p <= (1 - PW))] = 0
+  i = which(p > (1 - PW))
+  y = -ab * log((1 - p[i]) / PW)
+  lg = ifelse(y < 30, log(expm1(y)), y + log1p(-exp(-y)))
+  q[i] = scale * exp((lg - log(ab)) / shape1)
   return(q)
 }
 
@@ -1798,31 +1790,49 @@ rburr=function(n, scale, shape1, shape2, PW=1) {
 #' @title fitlm_burr
 #'
 #' @description Fits the three-parameter Burr Type XII distribution to an
-#'   xts series by numerical minimisation of L-moments. Closed-form
-#'   L-moment expressions via Beta-function PWMs are evaluated at each
-#'   optimisation step. The L-BFGS-B optimiser minimises the normalised
-#'   root-sum-square error between the sample and theoretical L-moments of
-#'   orders specified by \code{order}. A two-step seeding procedure
-#'   initialises the shape parameters by min-max nearest-neighbour search
-#'   over the scale-free L-ratios in the \code{Burr_InitValues} lookup
-#'   table, and the scale is then derived analytically from the sample
-#'   first L-moment and the matched shapes' unit-scale L-moment. The
-#'   mean exists only when \eqn{\theta < 1}, imposing an effective upper
-#'   bound on the tail index during optimisation. Zero values below
-#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
+#'   xts series by the method of L-moments. The L-ratios (L-CV
+#'   \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not depend on the scale,
+#'   so the two shapes are solved from the sample L-ratios selected by
+#'   \code{order}, and the scale follows analytically as the sample
+#'   \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1} of the fitted
+#'   shapes. The shapes are found by L-BFGS-B in log space, minimising the
+#'   sum of squared differences between sample and theoretical L-ratios;
+#'   the theoretical L-moments are closed-form Beta-function PWM
+#'   expressions. The start is the row of the unit-scale
+#'   \code{Burr_InitValues} table nearest in min-max scaled (L-CV,
+#'   \eqn{\tau_3}, \eqn{\tau_4}); a fit that stalls is restarted once from
+#'   the second-nearest row. The shapes are bounded to
+#'   \code{0.5 <= shape1 <= 1e4} and \code{0.001 <= shape2 <= 1} (the mean
+#'   exists only for \eqn{\theta < 1}); the scale is unbounded. The
+#'   \code{shape2 -> 0} edge is the Weibull limit of the family. Zero values
+#'   below \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 #'
 #' @param x An xts object containing the time series data.
 #' @param ignore_zeros Logical. If \code{TRUE}, values below
 #'   \code{zero_threshold} are excluded. Default \code{FALSE}.
 #' @param zero_threshold Numeric. Threshold below which values are treated
 #'   as zero. Default \code{0.01}.
-#' @param order Integer vector of L-moment orders matched by the
-#'   optimiser. Default \code{1:5}.
+#' @param order Integer vector of L-moment orders to match. Order 2 matches
+#'   the L-CV and order \eqn{r \ge 3} matches \eqn{\tau_r}; \eqn{\lambda_1}
+#'   always sets the scale. At least two ratios are required, otherwise an
+#'   error is raised: two give an exact match (e.g. \code{1:3}), more a
+#'   least-squares fit. Default \code{1:5}.
 #'
 #' @return A list with elements \code{Distribution}, \code{Param} (named
 #'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 #'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'   L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+#'   (solver diagnostics): \code{status} is \code{"matched"} (fitted and
+#'   sample L-ratios agree to within 1e-3), \code{"matched_at_bound"} (the
+#'   same, with a shape on its bound), \code{"outside_domain"} (the sample
+#'   (L-CV, \eqn{\tau_3}) lies outside the attainable region of the family,
+#'   \code{BurrXII_LSpace}, see \code{\link{LRatio_check}}; the fit is the
+#'   closest the family can get) or \code{"not_converged"}; \code{resid} is
+#'   the largest absolute difference between fitted and sample L-ratios over
+#'   the matched orders; \code{convergence} is the \code{optim} code;
+#'   \code{evals} the number of objective evaluations; \code{restarts} 0 or
+#'   1. With more than two ratios the status follows the \code{optim} code
+#'   instead of \code{resid}, since least squares cannot match every ratio.
 #'
 #' @examples
 #' x <- xts::xts(rburr(365, scale = 1.5, shape1 = 2, shape2 = 0.3),
@@ -1847,36 +1857,10 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
 
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
   
-  init_values = Burr_InitValues
-  # Two-step seed (same as fitlm_dagum). (lcv, tau_3, tau_4) depend only on the shapes (scale
-  # cancels in every ratio), so match the shapes by min-max NN on those scale-free quantities
-  # over the unit-scale Burr_InitValues, then derive scale = sample_lambda_1 / F, F the matched
-  # shapes' unit-scale lambda_1 -- avoiding the earlier four-column metric that mixed the
-  # scale-carrying lambda_1 with the scale-free ratios.
-  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4", "lcv")
-  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
-  d = as.numeric(sample_LM)[1:4]
-  d[5] <- d[2] / d[1]
-  nn = which.min(((init_values$lcv - d[5]) / rng[5])^2 +
-                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
-                 ((init_values$tau_4    - d[4]) / rng[4])^2)
-  start_par = init_values[nn, c("scale", "shape1", "shape2")]
-  unit_lms = lmom_burr(1:max(order), 1, as.numeric(start_par[2]), as.numeric(start_par[3]))
-  start_par["scale"] = d[1] / unit_lms[1]
-  start_par["scale"] = min(max(start_par["scale"], 0.5), 50)   # keep start in the optim box
-  start_par = as.numeric(start_par)
-  params_optim <- function(params, target_LMs, order){
-    temp_lms <- as.numeric(lmom_burr(1:max(order), params[1], params[2], params[3]))
-    # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
-    # finite penalty so L-BFGS-B retreats from the edge instead of failing on a non-finite fn.
-    if (!all(is.finite(temp_lms))) return(1e6)
-    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
-    temp_err <- sqrt(sum(temp_err))
-    if (!is.finite(temp_err)) 1e6 else temp_err
-  }
-  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
-              method = "L-BFGS-B", lower = c(0.5, 0.5, 0.001), upper = c(50,50,1))
-  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
+  # Shapes from the scale-free L-ratios (log-shape L-BFGS-B, seeded from Burr_InitValues),
+  # scale analytic; see R/fitlm_lmom_solver.R.
+  fit = .fit_lmom_shapes("burr", sample_LM, order)
+  params = list(scale = fit$par[1], shape1 = fit$par[2], shape2 = fit$par[3])
 
   TheorLmom=lmom_burr(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
@@ -1890,7 +1874,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-sample_LM
   Res$GoF<-GoF
-  #Res$Diag = c(itmax,NP)
+  Res$Diag<-fit$diag
 
   return(Res)
 }
@@ -1907,9 +1891,7 @@ fitlm_burr=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5
 #'   distribution is supported on \eqn{x > 0} and, unlike the Burr XII,
 #'   has a unimodal density with mode at the origin for certain parameter
 #'   ranges. L-moments are computed via closed-form Beta-function PWMs;
-#'   fitting uses L-BFGS-B minimisation seeded from the
-#'   \code{Dagum_InitValues} lookup table with scale-free L-ratio matching
-#'   and analytic scale derivation.
+#'   see \code{\link{fitlm_dagum}} for the method-of-L-moments fit.
 #'
 #'   The probability density function is:
 #'   \deqn{f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x > 0}{f(x) = 1/s * (x/s)^(-1/th - 1) * (1 + th/a * (x/s)^(-1/th))^(-a-1), x > 0}
@@ -1967,30 +1949,33 @@ rdagum=function(n, scale, shape1, shape2, PW=1) {
 #' @title fitlm_dagum
 #'
 #' @description Fits the three-parameter Dagum distribution to an xts
-#'   series by numerical minimisation of L-moments. Closed-form L-moment
-#'   expressions via Beta-function PWMs are evaluated at each optimisation
-#'   step. The L-BFGS-B optimiser minimises the normalised root-sum-square
-#'   error between the sample and theoretical L-moments of orders
-#'   specified by \code{order}. A two-step seeding procedure initialises
-#'   the shape parameters by min-max nearest-neighbour search over the
-#'   scale-free L-ratios in the \code{Dagum_InitValues} lookup table, and
-#'   the scale is derived analytically from the sample first L-moment and
-#'   the matched shapes' unit-scale L-moment. The mean exists only when
-#'   \eqn{\theta < 1}. Zero values below \code{zero_threshold} may be
-#'   excluded via \code{ignore_zeros}.
+#'   series by the method of L-moments. The L-ratios (L-CV
+#'   \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not depend on the scale,
+#'   so the two shapes are solved from the sample L-ratios selected by
+#'   \code{order}, and the scale follows analytically as the sample
+#'   \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1} of the fitted
+#'   shapes. The shapes are found by L-BFGS-B in log space, minimising the
+#'   sum of squared differences between sample and theoretical L-ratios;
+#'   the theoretical L-moments are closed-form Beta-function PWM
+#'   expressions. The start is the row of the unit-scale
+#'   \code{Dagum_InitValues} table nearest in min-max scaled (L-CV,
+#'   \eqn{\tau_3}, \eqn{\tau_4}); a fit that stalls is restarted once from
+#'   the second-nearest row. The shapes are bounded to
+#'   \code{1e-4 <= shape1 <= 500} and \code{1e-6 <= shape2 <= 0.95} (the
+#'   mean exists only for \eqn{\theta < 1}); the scale is unbounded. Large
+#'   \code{shape1} is an asymptote of the family. Zero values below
+#'   \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 #'
-#' @param x An xts object containing the time series data.
-#' @param ignore_zeros Logical. If \code{TRUE}, values below
-#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
-#' @param zero_threshold Numeric. Threshold below which values are treated
-#'   as zero. Default \code{0.01}.
-#' @param order Integer vector of L-moment orders matched by the
-#'   optimiser. Default \code{1:5}.
+#' @inheritParams fitlm_burr
 #'
 #' @return A list with elements \code{Distribution}, \code{Param} (named
 #'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 #'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'   L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+#'   (solver diagnostics: \code{status}, \code{resid}, \code{convergence},
+#'   \code{evals}, \code{restarts}; see \code{\link{fitlm_burr}}). The
+#'   attainable region that decides \code{"outside_domain"} is
+#'   \code{Dagum_LSpace}.
 #'
 #' @examples
 #' x <- xts::xts(rdagum(365, scale = 1.5, shape1 = 2, shape2 = 0.3),
@@ -2015,42 +2000,10 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
 
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
   
-  init_values = Dagum_InitValues
-  # Seed optim from the init row nearest in the four absolute L-moments
-  # (lambda_1, lambda_2, tau_3, tau_4), min-max scaled so each column contributes comparably.
-  # Min-max scaling reduces to weighting each squared term by 1/range^2 (the minima cancel
-  # in the squared distance), so only the column ranges are needed. Because lambda_1 (the
-  # scale carrier) is part of the metric, the matched row's parameters seed optim directly,
-  # by name, with no scale derivation -- avoiding the earlier scale-free-ratio NN that left
-  # optim with an arbitrary scale and trapped shape1 >> 100.
-  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4", "lcv")
-  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
-  d = as.numeric(sample_LM)[1:4]
-  d[5] <- d[2] / d[1]
-  nn = which.min(((init_values$lcv - d[5]) / rng[5])^2 +
-                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
-                 ((init_values$tau_4    - d[4]) / rng[4])^2)
-  # nn = which.min(((init_values$lambda_1 - d[1]) / rng[1])^2 +
-  #                ((init_values$lambda_2 - d[2]) / rng[2])^2 +
-  #                ((init_values$tau_3    - d[3]) / rng[3])^2 +
-  #                ((init_values$tau_4    - d[4]) / rng[4])^2)
-  start_par = init_values[nn, c("scale", "shape1", "shape2")]
-  unit_lms = lmom_dagum(1:max(order), 1, as.numeric(start_par[2]), as.numeric(start_par[3]))
-  start_par["scale"] = d[1] / unit_lms[1]
-  start_par["scale"] = min(max(start_par["scale"], 0.5), 1000)   # keep start in the optim box
-  start_par = as.numeric(start_par)
-  params_optim <- function(params, target_LMs, order){
-    temp_lms <- as.numeric(lmom_dagum(1:max(order), params[1], params[2], params[3]))
-    # Out-of-domain (shape2 -> 1, mean diverges): closed form yields Inf. Return a large
-    # finite penalty so L-BFGS-B retreats from the edge instead of failing on a non-finite fn.
-    if (!all(is.finite(temp_lms))) return(1e6)
-    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
-    temp_err <- sqrt(sum(temp_err))
-    if (!is.finite(temp_err)) 1e6 else temp_err
-  }
-  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
-              method = "L-BFGS-B", lower = c(0.5, 0.0001, 0.000001), upper = c(1000,500,0.5))
-  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
+  # Shapes from the scale-free L-ratios (log-shape L-BFGS-B, seeded from Dagum_InitValues),
+  # scale analytic; see R/fitlm_lmom_solver.R.
+  fit = .fit_lmom_shapes("dagum", sample_LM, order)
+  params = list(scale = fit$par[1], shape1 = fit$par[2], shape2 = fit$par[3])
 
   TheorLmom=lmom_dagum(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
@@ -2064,7 +2017,7 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
-  #Res$Diag = c(itmax,NP)
+  Res$Diag<-fit$diag
 
   return(Res)
 }
@@ -2082,9 +2035,8 @@ fitlm_dagum=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:
 #'   and contains the ordinary Weibull (\eqn{b = 1}) and Exponential
 #'   (\eqn{a = 1, b = 1}) as special cases. L-moments are computed by
 #'   tanh-sinh (double-exponential) quadrature, which is well-conditioned
-#'   across the full positive parameter range. Fitting uses L-BFGS-B
-#'   minimisation seeded from the \code{ExpWeibull_InitValues} lookup
-#'   table with scale-free L-ratio matching and analytic scale derivation.
+#'   across the full positive parameter range; see
+#'   \code{\link{fitlm_expweibull}} for the method-of-L-moments fit.
 #'
 #'   The probability density function is:
 #'   \deqn{f(x) = \frac{b a}{s} \left(\frac{x}{s}\right)^{a-1} \exp\left(-\left(\frac{x}{s}\right)^a\right) \left(1 - \exp\left(-\left(\frac{x}{s}\right)^a\right)\right)^{b-1}, \quad x > 0}{f(x) = b*a/s * (x/s)^(a-1) * exp(-(x/s)^a) * (1-exp(-(x/s)^a))^(b-1), x > 0}
@@ -2137,32 +2089,39 @@ rexpweibull<- function(n,scale,shape1,shape2){
 #' @title fitlm_expweibull
 #'
 #' @description Fits the three-parameter Exponentiated Weibull
-#'   distribution to an xts series by numerical minimisation of
-#'   L-moments. L-moments are computed at each optimisation step via a
-#'   fast tanh-sinh (double-exponential) quadrature engine
-#'   (\code{lmom_expweibull}), chosen for its well-conditioned behaviour
-#'   across the full positive parameter range. The L-BFGS-B optimiser
-#'   minimises the normalised root-sum-square error between the sample and
-#'   theoretical L-moments of orders specified by \code{order}. A
-#'   two-step seeding procedure initialises the shape parameters from the
-#'   \code{ExpWeibull_InitValues} lookup table and derives the scale
-#'   analytically. The distribution is meant to be fitted only to
+#'   distribution to an xts series by the method of L-moments. The
+#'   L-ratios (L-CV \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not
+#'   depend on the scale, so the two shapes are solved from the sample
+#'   L-ratios selected by \code{order}, and the scale follows analytically
+#'   as the sample \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1}
+#'   of the fitted shapes. The theoretical L-moments come from a tanh-sinh
+#'   (double-exponential) quadrature engine, well conditioned across the
+#'   full positive parameter range. The shapes are found by L-BFGS-B in log
+#'   space, minimising the sum of squared differences between sample and
+#'   theoretical L-ratios, within \code{0.05 <= shape1 <= 50} and
+#'   \code{0.02 <= shape2 <= 1e4}; the scale is unbounded. As
+#'   \code{shape2} grows the family approaches the Gumbel skewness
+#'   (\eqn{\tau_3 \to 0.17}), so large \code{shape2} values are identified
+#'   only slowly. The start is the row of the unit-scale
+#'   \code{ExpWeibull_InitValues} table nearest in min-max scaled (L-CV,
+#'   \eqn{\tau_3}, \eqn{\tau_4}); a fit that stalls is restarted once from
+#'   the second-nearest row. The distribution is meant to be fitted only to
 #'   non-negative data. Zero values below \code{zero_threshold} may be
 #'   excluded via \code{ignore_zeros}.
 #'
-#' @param x An xts object containing the time series data.
-#' @param ignore_zeros Logical. If \code{TRUE}, values below
-#'   \code{zero_threshold} are excluded. Default \code{FALSE}.
-#' @param zero_threshold Numeric. Threshold below which values are treated
-#'   as zero. Default \code{0.01}.
-#' @param order Integer vector of L-moment orders matched by the
-#'   optimiser. Default \code{1:3} (exact method-of-L-moments for the
-#'   three parameters).
+#' @inheritParams fitlm_burr
+#' @param order Integer vector of L-moment orders to match, mapped to
+#'   L-ratios as in \code{\link{fitlm_burr}}. Default \code{1:3} (exact
+#'   method-of-L-moments for the three parameters).
 #'
 #' @return A list with elements \code{Distribution}, \code{Param} (named
 #'   list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 #'   \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-#'   L-moments), and \code{GoF} (goodness-of-fit metrics).
+#'   L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+#'   (solver diagnostics: \code{status}, \code{resid}, \code{convergence},
+#'   \code{evals}, \code{restarts}; see \code{\link{fitlm_burr}}). The
+#'   attainable region that decides \code{"outside_domain"} is
+#'   \code{ExpWeibull_LSpace}.
 #'
 #' @examples
 #' x <- xts::xts(rexpweibull(365, scale = 3, shape1 = 1.5, shape2 = 2),
@@ -2188,34 +2147,10 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order =
 
   sample_LM = Lmoments::Lcoefs(NZ, rmax = max_order, na.rm = FALSE, trim = c(0, 0))
 
-  init_values = ExpWeibull_InitValues
-  # Two-step seed (same as fitlm_gengamma / fitlm_dagum). (lcv, tau_3, tau_4) depend ONLY on the
-  # shapes (a, b) -- scale cancels in every ratio -- so match the shapes by min-max NN on those
-  # three scale-free quantities, then derive the scale: scale = sample_lambda_1 / F, where F is the
-  # matched shapes' unit-scale lambda_1.
-  lm_cols = c("lambda_1", "lambda_2", "tau_3", "tau_4", "lcv")
-  rng = vapply(init_values[lm_cols], function(z) diff(range(z)), numeric(1))
-  d = as.numeric(sample_LM)[1:4]
-  d[5] <- d[2] / d[1]
-  nn = which.min(((init_values$lcv - d[5]) / rng[5])^2 +
-                 ((init_values$tau_3    - d[3]) / rng[3])^2 +
-                 ((init_values$tau_4    - d[4]) / rng[4])^2)
-  start_par = init_values[nn, c("scale", "shape1", "shape2")]
-  unit_lms = lmom_expweibull(1:max(order), 1, as.numeric(start_par[2]), as.numeric(start_par[3]))
-  start_par["scale"] = d[1] / unit_lms[1]
-  start_par["scale"] = min(max(start_par["scale"], 0.001), 1e6)   # keep start in the optim box
-  start_par = as.numeric(start_par)
-
-  params_optim <- function(params, target_LMs, order){
-    temp_lms <- as.numeric(lmom_expweibull(1:max(order), params[1], params[2], params[3]))
-    if (!all(is.finite(temp_lms))) return(1e6)
-    temp_err <- sapply(order, FUN = function(x){((target_LMs[x] - temp_lms[x])/target_LMs[x])^2})
-    temp_err <- sqrt(sum(temp_err))
-    if (!is.finite(temp_err)) 1e6 else temp_err
-  }
-  all = stats::optim(start_par, fn = params_optim, target_LMs = sample_LM, order = order,
-              method = "L-BFGS-B", lower = c(0.001, 0.05, 0.02), upper = c(1e6,50,50))
-  params = list(scale = all$par[1], shape1 = all$par[2], shape2 = all$par[3])
+  # Shapes from the scale-free L-ratios (log-shape L-BFGS-B, seeded from
+  # ExpWeibull_InitValues), scale analytic; see R/fitlm_lmom_solver.R.
+  fit = .fit_lmom_shapes("expweibull", sample_LM, order)
+  params = list(scale = fit$par[1], shape1 = fit$par[2], shape2 = fit$par[3])
 
   TheorLmom=lmom_expweibull(1:5, scale=params$scale, shape1=params$shape1, shape2=params$shape2)
 
@@ -2227,6 +2162,7 @@ fitlm_expweibull=function(x,ignore_zeros = FALSE, zero_threshold = 0.01, order =
   Res$TheorLMom<-TheorLmom
   Res$DataLMom<-as.data.frame(sample_LM)
   Res$GoF<-GoF
+  Res$Diag<-fit$diag
 
   return(Res)
 

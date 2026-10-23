@@ -79,9 +79,9 @@ test_that("fitlm_expweibull is wired to lmom_expweibull and stays in the optim b
   vals <- anyFit::rexpweibull(2000, scale = 8, shape1 = 1.5, shape2 = 1.2)
   res  <- fitlm_expweibull(make_pos_ts(vals))
   p    <- res$Param
-  expect_true(p$scale >= 0.001 && p$scale <= 1e6)
+  expect_true(p$scale > 0)                        # scale is analytic, unbounded
   expect_true(p$shape1 >= 0.05 && p$shape1 <= 50)
-  expect_true(p$shape2 >= 0.02 && p$shape2 <= 50)
+  expect_true(p$shape2 >= 0.02 && p$shape2 <= 1e4)
   expect_true(all(is.finite(as.numeric(res$TheorLMom))))
   expect_equal(as.numeric(res$TheorLMom),
                as.numeric(anyFit:::lmom_expweibull(1:5, p$scale, p$shape1, p$shape2)),

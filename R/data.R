@@ -33,22 +33,27 @@
 #' Precomputed L-moment lookup tables (internal)
 #'
 #' Reference tables consumed internally by the distribution-fitting routines.
-#' The `*_LSpace` objects delimit the feasible L-moment ratio support region of
-#' a distribution and back [LRatio_check()]. The `*_InitValues` tables map
-#' sampled L-moment ratios to good starting parameters for the numerical
-#' (L-BFGS-B) fit of the distributions that lack closed-form L-moments
-#' (Burr XII, Dagum, Exponentiated Weibull, Generalised Gamma), as used by
-#' [fitlm_nc()] and its relatives.
+#' The `*_LSpace` objects delimit the attainable (L-CV, L-skewness) region of
+#' a distribution over the shape bounds of its fitter. They back [LRatio_check()]
+#' and decide the `"outside_domain"` status of [fitlm_burr()], [fitlm_dagum()],
+#' [fitlm_gengamma()] and [fitlm_expweibull()]. They are built by
+#' `data-raw/make_LSpace.R`, which maps a 120 x 120 log grid over the shape box
+#' through the exact L-moment engine and unions the grid-cell images. The
+#' `*_InitValues` tables hold unit-scale shape pairs with their L-moments. They
+#' seed the numerical (L-BFGS-B) fit of these four families by nearest-neighbour
+#' matching on the scale-free (L-CV, \eqn{\tau_3}, \eqn{\tau_4}), and cover the
+#' fitter boxes (`data-raw/make_*_InitValues.R`).
 #'
 #' @format
 #' \itemize{
 #'   \item `LMom_LSpace`: a data frame (17994 x 3) with columns `L-CV`,
 #'     `L-Skewness`, `Dist`.
 #'   \item `BurrXII_LSpace`, `Dagum_LSpace`: [sp::SpatialPolygonsDataFrame]
-#'     objects delimiting each distribution's L-ratio support polygon.
+#'     objects delimiting each distribution's attainable L-ratio region (the
+#'     generalised gamma and exponentiated Weibull polygons are internal).
 #'   \item `Burr_InitValues`, `Dagum_InitValues`, `ExpWeibull_InitValues`,
 #'     `GG_InitValues`: data frames with 8 columns (`lambda_1`, `lambda_2`,
-#'     `tau_3`, `tau_4`, `lcv`, `scale`, `shape1`, `shape2`).
+#'     `tau_3`, `tau_4`, `lcv`, `scale`, `shape1`, `shape2`), at `scale = 1`.
 #' }
 #' @keywords internal
 #' @name lmoment-tables

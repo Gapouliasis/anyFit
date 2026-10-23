@@ -15,28 +15,44 @@ fitlm_gengamma(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 \item{zero_threshold}{Numeric. Threshold below which values are treated
 as zero. Default \code{0.01}.}
 
-\item{order}{Integer vector of L-moment orders matched by the
-optimiser. Default \code{1:5}.}
+\item{order}{Integer vector of L-moment orders to match. Order 2 matches
+the L-CV and order \eqn{r \ge 3} matches \eqn{\tau_r}; \eqn{\lambda_1}
+always sets the scale. At least two ratios are required, otherwise an
+error is raised: two give an exact match (e.g. \code{1:3}), more a
+least-squares fit. Default \code{1:5}.}
 }
 \value{
 A list with elements \code{Distribution}, \code{Param} (named
 list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-L-moments), and \code{GoF} (goodness-of-fit metrics).
+L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+(solver diagnostics: \code{status}, \code{resid}, \code{convergence},
+\code{evals}, \code{restarts}; see \code{\link{fitlm_burr}}). The
+attainable region that decides \code{"outside_domain"} is
+\code{GGamma_LSpace}.
 }
 \description{
 Fits the three-parameter Generalised Gamma (Stacy)
-distribution to an xts series by numerical minimisation of
-L-moments. As no closed-form L-moment expressions exist for this
-distribution, the L-moments are computed at each optimisation step
-via Gauss-Legendre quadrature of the PWMs. The L-BFGS-B optimiser
-minimises the normalised root-sum-square error between the sample and
-theoretical L-moments of orders specified by \code{order}. A
-two-step seeding procedure is employed: the shape parameters are
-initialised by a min-max nearest-neighbour search over the scale-free
-L-ratios in the \code{GG_InitValues} lookup table, and the scale is
-then derived analytically from the sample first L-moment and the
-matched shapes' unit-scale L-moment. Zero values below
+distribution to an xts series by the method of L-moments. The
+L-ratios (L-CV \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not
+depend on the scale, so the two shapes are solved from the sample
+L-ratios selected by \code{order}, and the scale follows analytically
+as the sample \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1}
+of the fitted shapes. As no closed-form L-moment expressions exist,
+the theoretical L-moments are computed by Gauss-Legendre quadrature of
+the PWMs. The shapes are found by L-BFGS-B on the logarithms of the
+Stacy shapes \eqn{k = \alpha/\beta}{k = shape1/shape2} and
+\eqn{d = \beta}{d = shape2}, minimising the sum of squared differences
+between sample and theoretical L-ratios, within
+\code{0.01 <= k <= 4e4} (the quadrature is inaccurate below
+\eqn{k = 0.01}) and \code{0.05 <= shape2 <= 200}; the scale is
+unbounded. The start is the row of the unit-scale \code{GG_InitValues}
+table nearest in min-max scaled (L-CV, \eqn{\tau_3}, \eqn{\tau_4}); a
+fit that stalls is restarted once from the second-nearest row. The
+\code{shape2 = 0.05} edge is, to within 0.002 in \eqn{\tau_3}, the
+lognormal limit of the family: samples more skewed than the lognormal
+at their L-CV lie outside the family and are returned as the closest
+fit with status \code{"outside_domain"}. Zero values below
 \code{zero_threshold} may be excluded via \code{ignore_zeros}.
 }
 \examples{

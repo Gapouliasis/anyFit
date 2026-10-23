@@ -24,14 +24,17 @@ fitlm_gengamma_loc(
 as zero. Default \code{0.01}.}
 
 \item{order}{Integer vector of L-moment orders passed to
-\code{fitlm_gengamma}. Default \code{1:5}.}
+\code{fitlm_gengamma}, which matches them on the shifted data (see
+there). Default \code{1:5}.}
 }
 \value{
 A list with elements \code{Distribution}, \code{Param} (named
 list of fitted \code{location}, \code{scale}, \code{shape1},
 \code{shape2}), \code{TheorLMom} (theoretical L-moments),
-\code{DataLMom} (sample L-moments), and \code{GoF} (goodness-of-fit
-metrics).
+\code{DataLMom} (sample L-moments), \code{GoF} (goodness-of-fit
+metrics) and \code{Diag} (the solver diagnostics of the
+\code{fitlm_gengamma} fit to the shifted data; see
+\code{\link{fitlm_burr}}).
 }
 \description{
 Fits the four-parameter Generalised Gamma distribution

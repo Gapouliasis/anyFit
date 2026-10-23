@@ -15,19 +15,24 @@
 \item \code{LMom_LSpace}: a data frame (17994 x 3) with columns \code{L-CV},
 \code{L-Skewness}, \code{Dist}.
 \item \code{BurrXII_LSpace}, \code{Dagum_LSpace}: \link[sp:SpatialPolygonsDataFrame]{sp::SpatialPolygonsDataFrame}
-objects delimiting each distribution's L-ratio support polygon.
+objects delimiting each distribution's attainable L-ratio region (the
+generalised gamma and exponentiated Weibull polygons are internal).
 \item \code{Burr_InitValues}, \code{Dagum_InitValues}, \code{ExpWeibull_InitValues},
 \code{GG_InitValues}: data frames with 8 columns (\code{lambda_1}, \code{lambda_2},
-\code{tau_3}, \code{tau_4}, \code{lcv}, \code{scale}, \code{shape1}, \code{shape2}).
+\code{tau_3}, \code{tau_4}, \code{lcv}, \code{scale}, \code{shape1}, \code{shape2}), at \code{scale = 1}.
 }
 }
 \description{
 Reference tables consumed internally by the distribution-fitting routines.
-The \verb{*_LSpace} objects delimit the feasible L-moment ratio support region of
-a distribution and back \code{\link[=LRatio_check]{LRatio_check()}}. The \verb{*_InitValues} tables map
-sampled L-moment ratios to good starting parameters for the numerical
-(L-BFGS-B) fit of the distributions that lack closed-form L-moments
-(Burr XII, Dagum, Exponentiated Weibull, Generalised Gamma), as used by
-\code{\link[=fitlm_nc]{fitlm_nc()}} and its relatives.
+The \verb{*_LSpace} objects delimit the attainable (L-CV, L-skewness) region of
+a distribution over the shape bounds of its fitter. They back \code{\link[=LRatio_check]{LRatio_check()}}
+and decide the \code{"outside_domain"} status of \code{\link[=fitlm_burr]{fitlm_burr()}}, \code{\link[=fitlm_dagum]{fitlm_dagum()}},
+\code{\link[=fitlm_gengamma]{fitlm_gengamma()}} and \code{\link[=fitlm_expweibull]{fitlm_expweibull()}}. They are built by
+\code{data-raw/make_LSpace.R}, which maps a 120 x 120 log grid over the shape box
+through the exact L-moment engine and unions the grid-cell images. The
+\verb{*_InitValues} tables hold unit-scale shape pairs with their L-moments. They
+seed the numerical (L-BFGS-B) fit of these four families by nearest-neighbour
+matching on the scale-free (L-CV, \eqn{\tau_3}, \eqn{\tau_4}), and cover the
+fitter boxes (\verb{data-raw/make_*_InitValues.R}).
 }
 \keyword{internal}

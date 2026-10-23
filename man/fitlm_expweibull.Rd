@@ -20,28 +20,39 @@ fitlm_expweibull(
 \item{zero_threshold}{Numeric. Threshold below which values are treated
 as zero. Default \code{0.01}.}
 
-\item{order}{Integer vector of L-moment orders matched by the
-optimiser. Default \code{1:3} (exact method-of-L-moments for the
-three parameters).}
+\item{order}{Integer vector of L-moment orders to match, mapped to
+L-ratios as in \code{\link{fitlm_burr}}. Default \code{1:3} (exact
+method-of-L-moments for the three parameters).}
 }
 \value{
 A list with elements \code{Distribution}, \code{Param} (named
 list of fitted \code{scale}, \code{shape1}, \code{shape2}),
 \code{TheorLMom} (theoretical L-moments), \code{DataLMom} (sample
-L-moments), and \code{GoF} (goodness-of-fit metrics).
+L-moments), \code{GoF} (goodness-of-fit metrics) and \code{Diag}
+(solver diagnostics: \code{status}, \code{resid}, \code{convergence},
+\code{evals}, \code{restarts}; see \code{\link{fitlm_burr}}). The
+attainable region that decides \code{"outside_domain"} is
+\code{ExpWeibull_LSpace}.
 }
 \description{
 Fits the three-parameter Exponentiated Weibull
-distribution to an xts series by numerical minimisation of
-L-moments. L-moments are computed at each optimisation step via a
-fast tanh-sinh (double-exponential) quadrature engine
-(\code{lmom_expweibull}), chosen for its well-conditioned behaviour
-across the full positive parameter range. The L-BFGS-B optimiser
-minimises the normalised root-sum-square error between the sample and
-theoretical L-moments of orders specified by \code{order}. A
-two-step seeding procedure initialises the shape parameters from the
-\code{ExpWeibull_InitValues} lookup table and derives the scale
-analytically. The distribution is meant to be fitted only to
+distribution to an xts series by the method of L-moments. The
+L-ratios (L-CV \eqn{\lambda_2/\lambda_1} and \eqn{\tau_r}) do not
+depend on the scale, so the two shapes are solved from the sample
+L-ratios selected by \code{order}, and the scale follows analytically
+as the sample \eqn{\lambda_1} divided by the unit-scale \eqn{\lambda_1}
+of the fitted shapes. The theoretical L-moments come from a tanh-sinh
+(double-exponential) quadrature engine, well conditioned across the
+full positive parameter range. The shapes are found by L-BFGS-B in log
+space, minimising the sum of squared differences between sample and
+theoretical L-ratios, within \code{0.05 <= shape1 <= 50} and
+\code{0.02 <= shape2 <= 1e4}; the scale is unbounded. As
+\code{shape2} grows the family approaches the Gumbel skewness
+(\eqn{\tau_3 \to 0.17}), so large \code{shape2} values are identified
+only slowly. The start is the row of the unit-scale
+\code{ExpWeibull_InitValues} table nearest in min-max scaled (L-CV,
+\eqn{\tau_3}, \eqn{\tau_4}); a fit that stalls is restarted once from
+the second-nearest row. The distribution is meant to be fitted only to
 non-negative data. Zero values below \code{zero_threshold} may be
 excluded via \code{ignore_zeros}.
 }

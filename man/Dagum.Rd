@@ -38,9 +38,7 @@ second shape \eqn{\theta}{th} (\code{shape2}, the tail index). The
 distribution is supported on \eqn{x > 0} and, unlike the Burr XII,
 has a unimodal density with mode at the origin for certain parameter
 ranges. L-moments are computed via closed-form Beta-function PWMs;
-fitting uses L-BFGS-B minimisation seeded from the
-\code{Dagum_InitValues} lookup table with scale-free L-ratio matching
-and analytic scale derivation.
+see \code{\link{fitlm_dagum}} for the method-of-L-moments fit.
 
 The probability density function is:
 \deqn{f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x > 0}{f(x) = 1/s * (x/s)^(-1/th - 1) * (1 + th/a * (x/s)^(-1/th))^(-a-1), x > 0}

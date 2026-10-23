@@ -79,8 +79,8 @@ test_that("fitlm_gengamma is wired to lmom_gengamma and stays in the optim box",
   vals <- anyFit::rgengamma(2000, scale = 8, shape1 = 3, shape2 = 1.4)
   res  <- fitlm_gengamma(make_pos_ts(vals))
   p    <- res$Param
-  expect_true(p$scale >= 0.001 && p$scale <= 500)
-  expect_true(p$shape1 >= 0.005 && p$shape1 <= 2000)
+  expect_true(p$scale > 0)                        # scale is analytic, unbounded
+  expect_true(p$shape1 / p$shape2 >= 0.01 && p$shape1 / p$shape2 <= 4e4)   # Stacy k box
   expect_true(p$shape2 >= 0.05 && p$shape2 <= 200)
   expect_true(all(is.finite(as.numeric(res$TheorLMom))))
   expect_equal(as.numeric(res$TheorLMom),

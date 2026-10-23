@@ -39,9 +39,8 @@ exponentiation power). The distribution is supported on \eqn{x > 0}
 and contains the ordinary Weibull (\eqn{b = 1}) and Exponential
 (\eqn{a = 1, b = 1}) as special cases. L-moments are computed by
 tanh-sinh (double-exponential) quadrature, which is well-conditioned
-across the full positive parameter range. Fitting uses L-BFGS-B
-minimisation seeded from the \code{ExpWeibull_InitValues} lookup
-table with scale-free L-ratio matching and analytic scale derivation.
+across the full positive parameter range; see
+\code{\link{fitlm_expweibull}} for the method-of-L-moments fit.
 
 The probability density function is:
 \deqn{f(x) = \frac{b a}{s} \left(\frac{x}{s}\right)^{a-1} \exp\left(-\left(\frac{x}{s}\right)^a\right) \left(1 - \exp\left(-\left(\frac{x}{s}\right)^a\right)\right)^{b-1}, \quad x > 0}{f(x) = b*a/s * (x/s)^(a-1) * exp(-(x/s)^a) * (1-exp(-(x/s)^a))^(b-1), x > 0}

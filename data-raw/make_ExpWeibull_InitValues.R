@@ -5,6 +5,12 @@
 # derives the scale from the data, so one row per (shape1, shape2) at scale = 1 suffices. The
 # unit-scale L-moments are computed with the closed-form tanh-sinh engine anyFit:::lmom_expweibull.
 #
+# The fitlm_expweibull box was widened to shape2 <= 1e4 (EW is the maximum of shape2 Weibulls and
+# tau_3 keeps rising past shape2 = 50 towards the Gumbel limit). The base grid below keeps the
+# original range; it is extended with shape1 in log [0.05, 50] x shape2 in log (50, 1e4], evaluated
+# with the engine's default rule (the grid of dev/annexD_validation/fit_cores_v3.R,
+# seed_table_v3()).
+#
 #   Rscript data-raw/make_ExpWeibull_InitValues.R
 
 suppressMessages(devtools::load_all(".", quiet = TRUE))
@@ -20,6 +26,17 @@ lm <- t(mapply(function(s1, s2) {
   c(lambda_1 = v[["lambda_1"]], lambda_2 = v[["lambda_2"]],
     tau_3 = v[["tau_3"]], tau_4 = v[["tau_4"]])
 }, pairs$shape1, pairs$shape2))
+
+lg <- function(a, b, n) 10^seq(log10(a), log10(b), length.out = n)
+ext <- expand.grid(shape1 = lg(0.05, 50, 40), shape2 = lg(50, 1e4, 30)[-1])
+cat(sprintf("extension pairs (shape2 > 50): %d\n", nrow(ext)))
+lm_ext <- t(mapply(function(s1, s2) {
+  v <- anyFit:::lmom_expweibull(1:4, scale = 1, shape1 = s1, shape2 = s2)
+  c(lambda_1 = v[["lambda_1"]], lambda_2 = v[["lambda_2"]],
+    tau_3 = v[["tau_3"]], tau_4 = v[["tau_4"]])
+}, ext$shape1, ext$shape2))
+pairs <- rbind(pairs, ext)
+lm <- rbind(lm, lm_ext)
 
 ExpWeibull_InitValues <- data.frame(
   lambda_1 = lm[, "lambda_1"], lambda_2 = lm[, "lambda_2"],

@@ -21,7 +21,13 @@ Tests whether the sample L-CV and L-skewness of one or more time
 series lie within the admissible L-ratio space of four 3-parameter
 distributions: Dagum, generalised gamma, exponentiated Weibull, and Burr type
 XII. Each distribution's theoretical L-ratio support is represented by a
-pre-computed polygon. The function identifies the sample points that fall within
+pre-computed polygon: the image of the shape bounds used by
+\code{\link{fitlm_dagum}}, \code{\link{fitlm_gengamma}},
+\code{\link{fitlm_expweibull}} and \code{\link{fitlm_burr}}, mapped through
+the exact L-moment engines (\code{data-raw/make_LSpace.R}). The same polygons
+decide the \code{"outside_domain"} fit status those functions report: a sample
+outside a polygon cannot be matched by that family, and its fit is the closest
+the family can get. The function identifies the sample points that fall within
 the theoretical space of each distribution and reports the percentage falling inside each
 distribution's support. A diagnostic plot overlays the sample L-ratios (red
 points) on the theoretical L-ratio boundaries, with separate panels for the

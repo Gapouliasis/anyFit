@@ -37,10 +37,9 @@ supported on \eqn{x > 0} and contains the ordinary Gamma
 (\eqn{\beta = 1}) and Weibull (\eqn{\beta = \alpha}) as special
 cases. Density, distribution, quantile, and random generation
 functions are provided via \pkg{VGAM} using the Stacy
-parameterisation. Fitting is performed numerically via L-BFGS-B
-minimisation of a normalised L-moment error function, seeded from a
-pre-computed lookup table (\code{GG_InitValues}) with Gauss-Legendre
-quadrature evaluation of the L-moments at each optimisation step.
+parameterisation. The L-moments are evaluated by Gauss-Legendre
+quadrature; see \code{\link{fitlm_gengamma}} for the
+method-of-L-moments fit.
 
 The probability density function is:
 \deqn{f(x) = \frac{\beta}{\Gamma(\alpha/\beta) \, s^\alpha} x^{\alpha-1} \exp\left(-\left(\frac{x}{s}\right)^\beta\right), \quad x > 0}{f(x) = b * x^(a-1) * exp(-(x/s)^b) / (Gamma(a/b) * s^a), x > 0}
