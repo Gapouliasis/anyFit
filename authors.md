@@ -7,7 +7,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/Gapouliasis/anyFit/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/Gapouliasis/anyFit/blob/2.1.0/DESCRIPTION)
 
 Pouliasis G (2026). *anyFit: anyFit: Exploratory Data Analysis on xts
 timeseries objects and spatial netCDF objects*. R package version 2.1.0,
