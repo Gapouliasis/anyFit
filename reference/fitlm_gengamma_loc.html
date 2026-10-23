@@ -29,7 +29,7 @@ GOF_tests evaluated on the full four-parameter set."><meta property="og:image" c
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,7 +111,8 @@ as zero. Default <code>0.01</code>.</p></dd>
 
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
 <dd><p>Integer vector of L-moment orders passed to
-<code>fitlm_gengamma</code>. Default <code>1:5</code>.</p></dd>
+<code>fitlm_gengamma</code>, which matches them on the shifted data (see
+there). Default <code>1:5</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -119,8 +120,10 @@ as zero. Default <code>0.01</code>.</p></dd>
     <p>A list with elements <code>Distribution</code>, <code>Param</code> (named
 list of fitted <code>location</code>, <code>scale</code>, <code>shape1</code>,
 <code>shape2</code>), <code>TheorLMom</code> (theoretical L-moments),
-<code>DataLMom</code> (sample L-moments), and <code>GoF</code> (goodness-of-fit
-metrics).</p>
+<code>DataLMom</code> (sample L-moments), <code>GoF</code> (goodness-of-fit
+metrics) and <code>Diag</code> (the solver diagnostics of the
+<code>fitlm_gengamma</code> fit to the shifted data; see
+<code><a href="fitlm_burr.html">fitlm_burr</a></code>).</p>
     </div>
 
     <div class="section level2">

@@ -5,9 +5,9 @@ first shape \\\alpha\\ (`shape1`), and second shape \\\theta\\
 (`shape2`, the tail index). The distribution is supported on \\x \> 0\\
 and, unlike the Burr XII, has a unimodal density with mode at the origin
 for certain parameter ranges. L-moments are computed via closed-form
-Beta-function PWMs; fitting uses L-BFGS-B minimisation seeded from the
-`Dagum_InitValues` lookup table with scale-free L-ratio matching and
-analytic scale derivation.
+Beta-function PWMs; see
+[`fitlm_dagum`](https://gapouliasis.github.io/anyFit/reference/fitlm_dagum.md)
+for the method-of-L-moments fit.
 
 The probability density function is: \$\$f(x) = \frac{1}{s}
 \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 +

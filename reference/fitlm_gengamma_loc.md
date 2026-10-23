@@ -44,15 +44,17 @@ fitlm_gengamma_loc(
 
 - order:
 
-  Integer vector of L-moment orders passed to `fitlm_gengamma`. Default
-  `1:5`.
+  Integer vector of L-moment orders passed to `fitlm_gengamma`, which
+  matches them on the shifted data (see there). Default `1:5`.
 
 ## Value
 
 A list with elements `Distribution`, `Param` (named list of fitted
 `location`, `scale`, `shape1`, `shape2`), `TheorLMom` (theoretical
-L-moments), `DataLMom` (sample L-moments), and `GoF` (goodness-of-fit
-metrics).
+L-moments), `DataLMom` (sample L-moments), `GoF` (goodness-of-fit
+metrics) and `Diag` (the solver diagnostics of the `fitlm_gengamma` fit
+to the shifted data; see
+[`fitlm_burr`](https://gapouliasis.github.io/anyFit/reference/fitlm_burr.md)).
 
 ## Examples
 

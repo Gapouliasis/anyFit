@@ -5,19 +5,27 @@
       fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
     }
   };
-</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Precomputed L-moment lookup tables (internal) — lmoment-tables"><meta name="description" content="Reference tables consumed internally by the distribution-fitting routines.
-The *_LSpace objects delimit the feasible L-moment ratio support region of
-a distribution and back LRatio_check(). The *_InitValues tables map
-sampled L-moment ratios to good starting parameters for the numerical
-(L-BFGS-B) fit of the distributions that lack closed-form L-moments
-(Burr XII, Dagum, Exponentiated Weibull, Generalised Gamma), as used by
-fitlm_nc() and its relatives."><meta property="og:description" content="Reference tables consumed internally by the distribution-fitting routines.
-The *_LSpace objects delimit the feasible L-moment ratio support region of
-a distribution and back LRatio_check(). The *_InitValues tables map
-sampled L-moment ratios to good starting parameters for the numerical
-(L-BFGS-B) fit of the distributions that lack closed-form L-moments
-(Burr XII, Dagum, Exponentiated Weibull, Generalised Gamma), as used by
-fitlm_nc() and its relatives."><meta property="og:image" content="https://gapouliasis.github.io/anyFit/logo.svg"></head><body>
+</script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Precomputed L-moment lookup tables (internal) — lmoment-tables"><meta name="description" content='Reference tables consumed internally by the distribution-fitting routines.
+The *_LSpace objects delimit the attainable (L-CV, L-skewness) region of
+a distribution over the shape bounds of its fitter. They back LRatio_check()
+and decide the "outside_domain" status of fitlm_burr(), fitlm_dagum(),
+fitlm_gengamma() and fitlm_expweibull(). They are built by
+data-raw/make_LSpace.R, which maps a 120 x 120 log grid over the shape box
+through the exact L-moment engine and unions the grid-cell images. The
+*_InitValues tables hold unit-scale shape pairs with their L-moments. They
+seed the numerical (L-BFGS-B) fit of these four families by nearest-neighbour
+matching on the scale-free (L-CV, \(\tau_3\), \(\tau_4\)), and cover the
+fitter boxes (data-raw/make_*_InitValues.R).'><meta property="og:description" content='Reference tables consumed internally by the distribution-fitting routines.
+The *_LSpace objects delimit the attainable (L-CV, L-skewness) region of
+a distribution over the shape bounds of its fitter. They back LRatio_check()
+and decide the "outside_domain" status of fitlm_burr(), fitlm_dagum(),
+fitlm_gengamma() and fitlm_expweibull(). They are built by
+data-raw/make_LSpace.R, which maps a 120 x 120 log grid over the shape box
+through the exact L-moment engine and unions the grid-cell images. The
+*_InitValues tables hold unit-scale shape pairs with their L-moments. They
+seed the numerical (L-BFGS-B) fit of these four families by nearest-neighbour
+matching on the scale-free (L-CV, \(\tau_3\), \(\tau_4\)), and cover the
+fitter boxes (data-raw/make_*_InitValues.R).'><meta property="og:image" content="https://gapouliasis.github.io/anyFit/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -25,7 +33,7 @@ fitlm_nc() and its relatives."><meta property="og:image" content="https://gapoul
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,12 +70,16 @@ fitlm_nc() and its relatives."><meta property="og:image" content="https://gapoul
 
     <div class="ref-description section level2">
     <p>Reference tables consumed internally by the distribution-fitting routines.
-The <code>*_LSpace</code> objects delimit the feasible L-moment ratio support region of
-a distribution and back <code><a href="LRatio_check.html">LRatio_check()</a></code>. The <code>*_InitValues</code> tables map
-sampled L-moment ratios to good starting parameters for the numerical
-(L-BFGS-B) fit of the distributions that lack closed-form L-moments
-(Burr XII, Dagum, Exponentiated Weibull, Generalised Gamma), as used by
-<code><a href="fitlm_nc.html">fitlm_nc()</a></code> and its relatives.</p>
+The <code>*_LSpace</code> objects delimit the attainable (L-CV, L-skewness) region of
+a distribution over the shape bounds of its fitter. They back <code><a href="LRatio_check.html">LRatio_check()</a></code>
+and decide the <code>"outside_domain"</code> status of <code><a href="fitlm_burr.html">fitlm_burr()</a></code>, <code><a href="fitlm_dagum.html">fitlm_dagum()</a></code>,
+<code><a href="fitlm_gengamma.html">fitlm_gengamma()</a></code> and <code><a href="fitlm_expweibull.html">fitlm_expweibull()</a></code>. They are built by
+<code>data-raw/make_LSpace.R</code>, which maps a 120 x 120 log grid over the shape box
+through the exact L-moment engine and unions the grid-cell images. The
+<code>*_InitValues</code> tables hold unit-scale shape pairs with their L-moments. They
+seed the numerical (L-BFGS-B) fit of these four families by nearest-neighbour
+matching on the scale-free (L-CV, \(\tau_3\), \(\tau_4\)), and cover the
+fitter boxes (<code>data-raw/make_*_InitValues.R</code>).</p>
     </div>
 
 
@@ -77,10 +89,11 @@ sampled L-moment ratios to good starting parameters for the numerical
 <ul><li><p><code>LMom_LSpace</code>: a data frame (17994 x 3) with columns <code>L-CV</code>,
 <code>L-Skewness</code>, <code>Dist</code>.</p></li>
 <li><p><code>BurrXII_LSpace</code>, <code>Dagum_LSpace</code>: <a href="https://edzer.github.io/sp/reference/SpatialPolygons.html" class="external-link">sp::SpatialPolygonsDataFrame</a>
-objects delimiting each distribution's L-ratio support polygon.</p></li>
+objects delimiting each distribution's attainable L-ratio region (the
+generalised gamma and exponentiated Weibull polygons are internal).</p></li>
 <li><p><code>Burr_InitValues</code>, <code>Dagum_InitValues</code>, <code>ExpWeibull_InitValues</code>,
 <code>GG_InitValues</code>: data frames with 8 columns (<code>lambda_1</code>, <code>lambda_2</code>,
-<code>tau_3</code>, <code>tau_4</code>, <code>lcv</code>, <code>scale</code>, <code>shape1</code>, <code>shape2</code>).</p></li>
+<code>tau_3</code>, <code>tau_4</code>, <code>lcv</code>, <code>scale</code>, <code>shape1</code>, <code>shape2</code>), at <code>scale = 1</code>.</p></li>
 </ul></div>
 
   </main></div>

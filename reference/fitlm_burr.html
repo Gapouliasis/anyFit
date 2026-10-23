@@ -6,30 +6,38 @@
     }
   };
 </script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet"><script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet"><link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet"><script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="fitlm_burr — fitlm_burr"><meta name="description" content="Fits the three-parameter Burr Type XII distribution to an
-xts series by numerical minimisation of L-moments. Closed-form
-L-moment expressions via Beta-function PWMs are evaluated at each
-optimisation step. The L-BFGS-B optimiser minimises the normalised
-root-sum-square error between the sample and theoretical L-moments of
-orders specified by order. A two-step seeding procedure
-initialises the shape parameters by min-max nearest-neighbour search
-over the scale-free L-ratios in the Burr_InitValues lookup
-table, and the scale is then derived analytically from the sample
-first L-moment and the matched shapes' unit-scale L-moment. The
-mean exists only when \(\theta &amp;lt; 1\), imposing an effective upper
-bound on the tail index during optimisation. Zero values below
-zero_threshold may be excluded via ignore_zeros."><meta property="og:description" content="Fits the three-parameter Burr Type XII distribution to an
-xts series by numerical minimisation of L-moments. Closed-form
-L-moment expressions via Beta-function PWMs are evaluated at each
-optimisation step. The L-BFGS-B optimiser minimises the normalised
-root-sum-square error between the sample and theoretical L-moments of
-orders specified by order. A two-step seeding procedure
-initialises the shape parameters by min-max nearest-neighbour search
-over the scale-free L-ratios in the Burr_InitValues lookup
-table, and the scale is then derived analytically from the sample
-first L-moment and the matched shapes' unit-scale L-moment. The
-mean exists only when \(\theta &amp;lt; 1\), imposing an effective upper
-bound on the tail index during optimisation. Zero values below
-zero_threshold may be excluded via ignore_zeros."><meta property="og:image" content="https://gapouliasis.github.io/anyFit/logo.svg"></head><body>
+xts series by the method of L-moments. The L-ratios (L-CV
+\(\lambda_2/\lambda_1\) and \(\tau_r\)) do not depend on the scale,
+so the two shapes are solved from the sample L-ratios selected by
+order, and the scale follows analytically as the sample
+\(\lambda_1\) divided by the unit-scale \(\lambda_1\) of the fitted
+shapes. The shapes are found by L-BFGS-B in log space, minimising the
+sum of squared differences between sample and theoretical L-ratios;
+the theoretical L-moments are closed-form Beta-function PWM
+expressions. The start is the row of the unit-scale
+Burr_InitValues table nearest in min-max scaled (L-CV,
+\(\tau_3\), \(\tau_4\)); a fit that stalls is restarted once from
+the second-nearest row. The shapes are bounded to
+0.5 &amp;lt;= shape1 &amp;lt;= 1e4 and 0.001 &amp;lt;= shape2 &amp;lt;= 1 (the mean
+exists only for \(\theta &amp;lt; 1\)); the scale is unbounded. The
+shape2 -&amp;gt; 0 edge is the Weibull limit of the family. Zero values
+below zero_threshold may be excluded via ignore_zeros."><meta property="og:description" content="Fits the three-parameter Burr Type XII distribution to an
+xts series by the method of L-moments. The L-ratios (L-CV
+\(\lambda_2/\lambda_1\) and \(\tau_r\)) do not depend on the scale,
+so the two shapes are solved from the sample L-ratios selected by
+order, and the scale follows analytically as the sample
+\(\lambda_1\) divided by the unit-scale \(\lambda_1\) of the fitted
+shapes. The shapes are found by L-BFGS-B in log space, minimising the
+sum of squared differences between sample and theoretical L-ratios;
+the theoretical L-moments are closed-form Beta-function PWM
+expressions. The start is the row of the unit-scale
+Burr_InitValues table nearest in min-max scaled (L-CV,
+\(\tau_3\), \(\tau_4\)); a fit that stalls is restarted once from
+the second-nearest row. The shapes are bounded to
+0.5 &amp;lt;= shape1 &amp;lt;= 1e4 and 0.001 &amp;lt;= shape2 &amp;lt;= 1 (the mean
+exists only for \(\theta &amp;lt; 1\)); the scale is unbounded. The
+shape2 -&amp;gt; 0 edge is the Weibull limit of the family. Zero values
+below zero_threshold may be excluded via ignore_zeros."><meta property="og:image" content="https://gapouliasis.github.io/anyFit/logo.svg"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -37,7 +45,7 @@ zero_threshold may be excluded via ignore_zeros."><meta property="og:image" cont
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,18 +82,22 @@ zero_threshold may be excluded via ignore_zeros."><meta property="og:image" cont
 
     <div class="ref-description section level2">
     <p>Fits the three-parameter Burr Type XII distribution to an
-xts series by numerical minimisation of L-moments. Closed-form
-L-moment expressions via Beta-function PWMs are evaluated at each
-optimisation step. The L-BFGS-B optimiser minimises the normalised
-root-sum-square error between the sample and theoretical L-moments of
-orders specified by <code>order</code>. A two-step seeding procedure
-initialises the shape parameters by min-max nearest-neighbour search
-over the scale-free L-ratios in the <code>Burr_InitValues</code> lookup
-table, and the scale is then derived analytically from the sample
-first L-moment and the matched shapes' unit-scale L-moment. The
-mean exists only when \(\theta &lt; 1\), imposing an effective upper
-bound on the tail index during optimisation. Zero values below
-<code>zero_threshold</code> may be excluded via <code>ignore_zeros</code>.</p>
+xts series by the method of L-moments. The L-ratios (L-CV
+\(\lambda_2/\lambda_1\) and \(\tau_r\)) do not depend on the scale,
+so the two shapes are solved from the sample L-ratios selected by
+<code>order</code>, and the scale follows analytically as the sample
+\(\lambda_1\) divided by the unit-scale \(\lambda_1\) of the fitted
+shapes. The shapes are found by L-BFGS-B in log space, minimising the
+sum of squared differences between sample and theoretical L-ratios;
+the theoretical L-moments are closed-form Beta-function PWM
+expressions. The start is the row of the unit-scale
+<code>Burr_InitValues</code> table nearest in min-max scaled (L-CV,
+\(\tau_3\), \(\tau_4\)); a fit that stalls is restarted once from
+the second-nearest row. The shapes are bounded to
+<code>0.5 &lt;= shape1 &lt;= 1e4</code> and <code>0.001 &lt;= shape2 &lt;= 1</code> (the mean
+exists only for \(\theta &lt; 1\)); the scale is unbounded. The
+<code>shape2 -&gt; 0</code> edge is the Weibull limit of the family. Zero values
+below <code>zero_threshold</code> may be excluded via <code>ignore_zeros</code>.</p>
     </div>
 
     <div class="section level2">
@@ -112,8 +124,11 @@ as zero. Default <code>0.01</code>.</p></dd>
 
 
 <dt id="arg-order">order<a class="anchor" aria-label="anchor" href="#arg-order"></a></dt>
-<dd><p>Integer vector of L-moment orders matched by the
-optimiser. Default <code>1:5</code>.</p></dd>
+<dd><p>Integer vector of L-moment orders to match. Order 2 matches
+the L-CV and order \(r \ge 3\) matches \(\tau_r\); \(\lambda_1\)
+always sets the scale. At least two ratios are required, otherwise an
+error is raised: two give an exact match (e.g. <code>1:3</code>), more a
+least-squares fit. Default <code>1:5</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -121,8 +136,18 @@ optimiser. Default <code>1:5</code>.</p></dd>
     <p>A list with elements <code>Distribution</code>, <code>Param</code> (named
 list of fitted <code>scale</code>, <code>shape1</code>, <code>shape2</code>),
 <code>TheorLMom</code> (theoretical L-moments), <code>DataLMom</code> (sample
-L-moments), and <code>GoF</code> (goodness-of-fit metrics).</p>
-    </div>
+L-moments), <code>GoF</code> (goodness-of-fit metrics) and <code>Diag</code>
+(solver diagnostics): <code>status</code> is <code>"matched"</code> (fitted and
+sample L-ratios agree to within 1e-3), <code>"matched_at_bound"</code> (the
+same, with a shape on its bound), <code>"outside_domain"</code> (the sample
+(L-CV, \(\tau_3\)) lies outside the attainable region of the family,
+<code>BurrXII_LSpace</code>, see <code><a href="LRatio_check.html">LRatio_check</a></code>; the fit is the
+closest the family can get) or <code>"not_converged"</code>; <code>resid</code> is
+the largest absolute difference between fitted and sample L-ratios over
+the matched orders; <code>convergence</code> is the <code>optim</code> code;
+<code>evals</code> the number of objective evaluations; <code>restarts</code> 0 or</p><ol><li><p>With more than two ratios the status follows the <code>optim</code> code
+instead of <code>resid</code>, since least squares cannot match every ratio.</p></li>
+</ol></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

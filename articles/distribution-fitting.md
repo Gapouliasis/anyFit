@@ -28,9 +28,16 @@ Estimation is performed in two ways. For distributions whose L-moments
 have a closed form (Gamma, Weibull, Gumbel, Log-Normal, GEV, …) the
 analytical equations are used. For flexible multi-parameter families
 without closed-form L-moments (Generalised Gamma, Burr type-XII, Dagum,
-Exponentiated Weibull), anyFit performs a fast bounded optimisation
-(L-BFGS-B), initialised from pre-computed tables that span the feasible
-L-ratio space, so that no user-supplied initial values are needed.
+Exponentiated Weibull), anyFit solves for the two shape parameters from
+the scale-free L-ratios (L-CV, L-skewness, …) with a fast bounded
+optimisation (L-BFGS-B on the logarithms of the shapes), and then
+derives the scale analytically from the mean. The optimisation starts
+from pre-computed tables that span the feasible L-ratio space, so no
+user-supplied initial values are needed. Each fit reports a status in
+`Diag`. A status of `"outside_domain"` means the sample L-ratios lie
+outside what the family can produce (see
+[`LRatio_check()`](https://gapouliasis.github.io/anyFit/reference/LRatio_check.md)),
+and the returned fit is the closest the family can get.
 
 ### Supported distributions
 
@@ -184,12 +191,12 @@ densities, here as a single column per candidate:
 
 round(fit_london$GoF_summary, 3)
 #>                    gamma   gamma3     burr
-#> MLE             4299.341 5689.598 4286.447
-#> CM                 0.290    0.406    0.141
-#> KS                 0.041    0.055    0.026
-#> MSEquant           0.397    0.223    0.038
-#> DiffOfMax        -31.457  -26.206   -3.028
-#> MeanDiffOf10Max    5.792    4.179    1.257
+#> MLE             4299.341 5689.598 4286.303
+#> CM                 0.290    0.406    0.074
+#> KS                 0.041    0.055    0.021
+#> MSEquant           0.397    0.223    0.040
+#> DiffOfMax        -31.457  -26.206   -1.214
+#> MeanDiffOf10Max    5.792    4.179    1.227
 ```
 
 ## 7. See also

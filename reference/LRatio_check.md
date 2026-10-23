@@ -4,15 +4,24 @@ Tests whether the sample L-CV and L-skewness of one or more time series
 lie within the admissible L-ratio space of four 3-parameter
 distributions: Dagum, generalised gamma, exponentiated Weibull, and Burr
 type XII. Each distribution's theoretical L-ratio support is represented
-by a pre-computed polygon. The function identifies the sample points
-that fall within the theoretical space of each distribution and reports
-the percentage falling inside each distribution's support. A diagnostic
-plot overlays the sample L-ratios (red points) on the theoretical
-L-ratio boundaries, with separate panels for the four 3-parameter
-distributions and a fifth panel showing the 2-parameter theoretical
-L-skewness-vs-L-CV curves as a reference. This tool helps pre-screen
-which distributions are geometrically capable of representing a given
-dataset before fitting.
+by a pre-computed polygon: the image of the shape bounds used by
+[`fitlm_dagum`](https://gapouliasis.github.io/anyFit/reference/fitlm_dagum.md),
+[`fitlm_gengamma`](https://gapouliasis.github.io/anyFit/reference/fitlm_gengamma.md),
+[`fitlm_expweibull`](https://gapouliasis.github.io/anyFit/reference/fitlm_expweibull.md)
+and
+[`fitlm_burr`](https://gapouliasis.github.io/anyFit/reference/fitlm_burr.md),
+mapped through the exact L-moment engines (`data-raw/make_LSpace.R`).
+The same polygons decide the `"outside_domain"` fit status those
+functions report: a sample outside a polygon cannot be matched by that
+family, and its fit is the closest the family can get. The function
+identifies the sample points that fall within the theoretical space of
+each distribution and reports the percentage falling inside each
+distribution's support. A diagnostic plot overlays the sample L-ratios
+(red points) on the theoretical L-ratio boundaries, with separate panels
+for the four 3-parameter distributions and a fifth panel showing the
+2-parameter theoretical L-skewness-vs-L-CV curves as a reference. This
+tool helps pre-screen which distributions are geometrically capable of
+representing a given dataset before fitting.
 
 ## Usage
 

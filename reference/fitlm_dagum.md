@@ -1,16 +1,20 @@
 # fitlm_dagum
 
-Fits the three-parameter Dagum distribution to an xts series by
-numerical minimisation of L-moments. Closed-form L-moment expressions
-via Beta-function PWMs are evaluated at each optimisation step. The
-L-BFGS-B optimiser minimises the normalised root-sum-square error
-between the sample and theoretical L-moments of orders specified by
-`order`. A two-step seeding procedure initialises the shape parameters
-by min-max nearest-neighbour search over the scale-free L-ratios in the
-`Dagum_InitValues` lookup table, and the scale is derived analytically
-from the sample first L-moment and the matched shapes' unit-scale
-L-moment. The mean exists only when \\\theta \< 1\\. Zero values below
-`zero_threshold` may be excluded via `ignore_zeros`.
+Fits the three-parameter Dagum distribution to an xts series by the
+method of L-moments. The L-ratios (L-CV \\\lambda_2/\lambda_1\\ and
+\\\tau_r\\) do not depend on the scale, so the two shapes are solved
+from the sample L-ratios selected by `order`, and the scale follows
+analytically as the sample \\\lambda_1\\ divided by the unit-scale
+\\\lambda_1\\ of the fitted shapes. The shapes are found by L-BFGS-B in
+log space, minimising the sum of squared differences between sample and
+theoretical L-ratios; the theoretical L-moments are closed-form
+Beta-function PWM expressions. The start is the row of the unit-scale
+`Dagum_InitValues` table nearest in min-max scaled (L-CV, \\\tau_3\\,
+\\\tau_4\\); a fit that stalls is restarted once from the second-nearest
+row. The shapes are bounded to `1e-4 <= shape1 <= 500` and
+`1e-6 <= shape2 <= 0.95` (the mean exists only for \\\theta \< 1\\); the
+scale is unbounded. Large `shape1` is an asymptote of the family. Zero
+values below `zero_threshold` may be excluded via `ignore_zeros`.
 
 ## Usage
 
@@ -36,14 +40,21 @@ fitlm_dagum(x, ignore_zeros = FALSE, zero_threshold = 0.01, order = c(1:5))
 
 - order:
 
-  Integer vector of L-moment orders matched by the optimiser. Default
-  `1:5`.
+  Integer vector of L-moment orders to match. Order 2 matches the L-CV
+  and order \\r \ge 3\\ matches \\\tau_r\\; \\\lambda_1\\ always sets
+  the scale. At least two ratios are required, otherwise an error is
+  raised: two give an exact match (e.g. `1:3`), more a least-squares
+  fit. Default `1:5`.
 
 ## Value
 
 A list with elements `Distribution`, `Param` (named list of fitted
 `scale`, `shape1`, `shape2`), `TheorLMom` (theoretical L-moments),
-`DataLMom` (sample L-moments), and `GoF` (goodness-of-fit metrics).
+`DataLMom` (sample L-moments), `GoF` (goodness-of-fit metrics) and
+`Diag` (solver diagnostics: `status`, `resid`, `convergence`, `evals`,
+`restarts`; see
+[`fitlm_burr`](https://gapouliasis.github.io/anyFit/reference/fitlm_burr.md)).
+The attainable region that decides `"outside_domain"` is `Dagum_LSpace`.
 
 ## Examples
 

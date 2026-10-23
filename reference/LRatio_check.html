@@ -9,7 +9,13 @@
 series lie within the admissible L-ratio space of four 3-parameter
 distributions: Dagum, generalised gamma, exponentiated Weibull, and Burr type
 XII. Each distribution's theoretical L-ratio support is represented by a
-pre-computed polygon. The function identifies the sample points that fall within
+pre-computed polygon: the image of the shape bounds used by
+fitlm_dagum, fitlm_gengamma,
+fitlm_expweibull and fitlm_burr, mapped through
+the exact L-moment engines (data-raw/make_LSpace.R). The same polygons
+decide the &quot;outside_domain&quot; fit status those functions report: a sample
+outside a polygon cannot be matched by that family, and its fit is the closest
+the family can get. The function identifies the sample points that fall within
 the theoretical space of each distribution and reports the percentage falling inside each
 distribution's support. A diagnostic plot overlays the sample L-ratios (red
 points) on the theoretical L-ratio boundaries, with separate panels for the
@@ -20,7 +26,13 @@ given dataset before fitting."><meta property="og:description" content="Tests wh
 series lie within the admissible L-ratio space of four 3-parameter
 distributions: Dagum, generalised gamma, exponentiated Weibull, and Burr type
 XII. Each distribution's theoretical L-ratio support is represented by a
-pre-computed polygon. The function identifies the sample points that fall within
+pre-computed polygon: the image of the shape bounds used by
+fitlm_dagum, fitlm_gengamma,
+fitlm_expweibull and fitlm_burr, mapped through
+the exact L-moment engines (data-raw/make_LSpace.R). The same polygons
+decide the &quot;outside_domain&quot; fit status those functions report: a sample
+outside a polygon cannot be matched by that family, and its fit is the closest
+the family can get. The function identifies the sample points that fall within
 the theoretical space of each distribution and reports the percentage falling inside each
 distribution's support. A diagnostic plot overlays the sample L-ratios (red
 points) on the theoretical L-ratio boundaries, with separate panels for the
@@ -35,7 +47,7 @@ given dataset before fitting."><meta property="og:image" content="https://gapoul
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,7 +87,13 @@ given dataset before fitting."><meta property="og:image" content="https://gapoul
 series lie within the admissible L-ratio space of four 3-parameter
 distributions: Dagum, generalised gamma, exponentiated Weibull, and Burr type
 XII. Each distribution's theoretical L-ratio support is represented by a
-pre-computed polygon. The function identifies the sample points that fall within
+pre-computed polygon: the image of the shape bounds used by
+<code><a href="fitlm_dagum.html">fitlm_dagum</a></code>, <code><a href="fitlm_gengamma.html">fitlm_gengamma</a></code>,
+<code><a href="fitlm_expweibull.html">fitlm_expweibull</a></code> and <code><a href="fitlm_burr.html">fitlm_burr</a></code>, mapped through
+the exact L-moment engines (<code>data-raw/make_LSpace.R</code>). The same polygons
+decide the <code>"outside_domain"</code> fit status those functions report: a sample
+outside a polygon cannot be matched by that family, and its fit is the closest
+the family can get. The function identifies the sample points that fall within
 the theoretical space of each distribution and reports the percentage falling inside each
 distribution's support. A diagnostic plot overlays the sample L-ratios (red
 points) on the theoretical L-ratio boundaries, with separate panels for the

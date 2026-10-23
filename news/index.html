@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,18 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="2.1.0" id="anyfit-210">anyFit 2.1.0<a class="anchor" aria-label="anchor" href="#anyfit-210"></a></h2>
+<ul><li>
+<code><a href="../reference/fitlm_burr.html">fitlm_burr()</a></code>, <code><a href="../reference/fitlm_dagum.html">fitlm_dagum()</a></code>, <code><a href="../reference/fitlm_gengamma.html">fitlm_gengamma()</a></code>, <code><a href="../reference/fitlm_gengamma_loc.html">fitlm_gengamma_loc()</a></code> and <code><a href="../reference/fitlm_expweibull.html">fitlm_expweibull()</a></code> use a new shared L-moment solver. The two shapes are solved from the scale-free L-ratios by L-BFGS-B on log-shapes (Stacy (k, d) coordinates for the generalised gamma), and the scale is derived analytically. The fit is restarted once from the second-nearest seed if it stalls. The fits reproduce the sample L-ratios to about 1e-7 instead of 1e-4, take 10–15 objective evaluations instead of 70–110, and no longer end on an artificial scale bound. This changes the generalised gamma and exponentiated Weibull fits substantially; Burr XII and Dagum fits change by about 1e-4.</li>
+<li>Wider shape bounds: Burr XII <code>shape1 &lt;= 1e4</code>, Dagum <code>shape2 &lt;= 0.95</code>, exponentiated Weibull <code>shape2 &lt;= 1e4</code>. The generalised gamma requires <code>shape1 / shape2 &gt;= 0.01</code>, where its quadrature is accurate. The <code>*_InitValues</code> seed tables are extended to cover the new bounds.</li>
+<li>The fitters return <code>Diag</code> (<code>status</code>, <code>resid</code>, <code>convergence</code>, <code>evals</code>, <code>restarts</code>). <code>status</code> is one of <code>"matched"</code>, <code>"matched_at_bound"</code>, <code>"outside_domain"</code> (the sample L-ratios lie outside the family’s attainable region; the fit is the closest the family can get) or <code>"not_converged"</code>.</li>
+<li>
+<code>order</code> now selects L-ratios: order 2 matches the L-CV, order r &gt;= 3 matches tau_r, and lambda_1 always sets the scale. At least two ratios are required.</li>
+<li>The attainable-region polygons <code>BurrXII_LSpace</code>, <code>Dagum_LSpace</code>, <code>GGamma_LSpace</code> and <code>ExpWeibull_LSpace</code> used by <code><a href="../reference/LRatio_check.html">LRatio_check()</a></code> are regenerated over the new bounds (<code>data-raw/make_LSpace.R</code>). The exponentiated Weibull region was previously far too small.</li>
+<li>
+<code><a href="../reference/BurXII.html">qburr()</a></code>, <code><a href="../reference/BurXII.html">rburr()</a></code> and <code><a href="../reference/BurXII.html">dburr()</a></code> are evaluated in log space and no longer overflow for large <code>shape1 * shape2</code>.</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.0.0" id="anyfit-200">anyFit 2.0.0<a class="anchor" aria-label="anchor" href="#anyfit-200"></a></h2>
 <ul><li>Introduced the <strong><code>sxts</code></strong> (spatial xts) S3 class, which stores coordinates and projection alongside the time series and preserves them through subsetting, arithmetic, lagging, differencing and aggregation.</li>
 <li>Added native spatial operations for <code>sxts</code>: bounding-box and shapefile masking (<code><a href="../reference/mask.sxts.html">mask.sxts()</a></code>), zonal statistics over polygons (<code><a href="../reference/zonal_stats.html">zonal_stats()</a></code>), and bidirectional raster conversion (<code><a href="../reference/rasterFromSxts.html">rasterFromSxts()</a></code>, <code><a href="../reference/sxts.html">sxtsFromRaster()</a></code>).</li>
@@ -57,7 +69,8 @@
 <li>Distribution fitting by the method of L-moments across sixteen families, including the flexible Burr type-XII, Dagum, Generalised Gamma and Exponentiated Weibull, with L-ratio diagnostic diagrams (<code><a href="../reference/LRatio_check.html">LRatio_check()</a></code>).</li>
 <li>A rebuilt documentation website with articles driven entirely by the bundled E-OBS example dataset.</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

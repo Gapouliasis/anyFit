@@ -11,9 +11,7 @@ second shape \(\theta\) (shape2, the tail index). The
 distribution is supported on \(x &amp;gt; 0\) and, unlike the Burr XII,
 has a unimodal density with mode at the origin for certain parameter
 ranges. L-moments are computed via closed-form Beta-function PWMs;
-fitting uses L-BFGS-B minimisation seeded from the
-Dagum_InitValues lookup table with scale-free L-ratio matching
-and analytic scale derivation.
+see fitlm_dagum for the method-of-L-moments fit.
 The probability density function is:
 $$f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x &amp;gt; 0$$
 where:
@@ -27,9 +25,7 @@ second shape \(\theta\) (shape2, the tail index). The
 distribution is supported on \(x &amp;gt; 0\) and, unlike the Burr XII,
 has a unimodal density with mode at the origin for certain parameter
 ranges. L-moments are computed via closed-form Beta-function PWMs;
-fitting uses L-BFGS-B minimisation seeded from the
-Dagum_InitValues lookup table with scale-free L-ratio matching
-and analytic scale derivation.
+see fitlm_dagum for the method-of-L-moments fit.
 The probability density function is:
 $$f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x &amp;gt; 0$$
 where:
@@ -45,7 +41,7 @@ where:
 
     <a class="navbar-brand me-2" href="../index.html">anyFit</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,9 +83,7 @@ second shape \(\theta\) (<code>shape2</code>, the tail index). The
 distribution is supported on \(x &gt; 0\) and, unlike the Burr XII,
 has a unimodal density with mode at the origin for certain parameter
 ranges. L-moments are computed via closed-form Beta-function PWMs;
-fitting uses L-BFGS-B minimisation seeded from the
-<code>Dagum_InitValues</code> lookup table with scale-free L-ratio matching
-and analytic scale derivation.</p>
+see <code><a href="fitlm_dagum.html">fitlm_dagum</a></code> for the method-of-L-moments fit.</p>
 <p>The probability density function is:
 $$f(x) = \frac{1}{s} \left(\frac{x}{s}\right)^{-1/\theta - 1} \left(1 + \frac{\theta}{\alpha}\left(\frac{x}{s}\right)^{-1/\theta}\right)^{-\alpha-1}, \quad x &gt; 0$$
 where:</p><ul><li><p>\(s\) — scale parameter (<code>scale</code>)</p></li>

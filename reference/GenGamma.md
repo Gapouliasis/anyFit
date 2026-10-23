@@ -5,11 +5,10 @@ first shape \\\alpha\\ (`shape1`), and second shape \\\beta\\
 (`shape2`). The distribution is supported on \\x \> 0\\ and contains the
 ordinary Gamma (\\\beta = 1\\) and Weibull (\\\beta = \alpha\\) as
 special cases. Density, distribution, quantile, and random generation
-functions are provided via VGAM using the Stacy parameterisation.
-Fitting is performed numerically via L-BFGS-B minimisation of a
-normalised L-moment error function, seeded from a pre-computed lookup
-table (`GG_InitValues`) with Gauss-Legendre quadrature evaluation of the
-L-moments at each optimisation step.
+functions are provided via VGAM using the Stacy parameterisation. The
+L-moments are evaluated by Gauss-Legendre quadrature; see
+[`fitlm_gengamma`](https://gapouliasis.github.io/anyFit/reference/fitlm_gengamma.md)
+for the method-of-L-moments fit.
 
 The probability density function is: \$\$f(x) =
 \frac{\beta}{\Gamma(\alpha/\beta) \\ s^\alpha} x^{\alpha-1}
